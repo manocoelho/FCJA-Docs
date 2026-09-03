@@ -326,7 +326,7 @@ function Index() {
           ano: ano,
           nucleo: p.nucleo,
           upload: respostaApi.upload,
-          url: `http://localhost:8000/arquivos/${p.file.name}`,
+          url: respostaApi.url,
         });
 
         setPendentes((prev) =>
