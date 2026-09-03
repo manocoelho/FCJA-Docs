@@ -538,7 +538,7 @@ export function DocumentTable({
             <div className="space-y-2">
               <Label>Núcleo de pesquisa</Label>
               <Select value={novoNucleo} onValueChange={setNovoNucleo}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full [&>span]:truncate">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent className="max-w-[min(90vw,42rem)]">
