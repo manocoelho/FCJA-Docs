@@ -535,12 +535,16 @@ export function DocumentTable({
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
+            {/* O "grid" e "min-w-0" impedem que a caixa cresça além do limite da tela */}
+            <div className="space-y-2 grid min-w-0">
               <Label>Núcleo de pesquisa</Label>
               <Select value={novoNucleo} onValueChange={setNovoNucleo}>
-                <SelectTrigger className="w-full [&>span]:truncate">
+                
+                {/* Aqui forçamos a largura máxima e o corte do texto diretamente no flexbox */}
+                <SelectTrigger className="w-full max-w-full overflow-hidden [&>span]:truncate [&>span]:min-w-0 text-left">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
+                
                 <SelectContent className="max-w-[min(90vw,42rem)]">
                   {NUCLEOS.filter((n) => n !== "Todos").map((n) => (
                     <SelectItem key={n} value={n} className="whitespace-normal">
