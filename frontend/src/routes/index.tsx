@@ -513,6 +513,8 @@ function Index() {
       : []),
   ];
 
+  const ultimoDoc = acervo.length > 0 ? acervo[0] : null;
+
   const kpis = [
     {
       label: "Total de Documentos",
@@ -528,8 +530,10 @@ function Index() {
     },
     {
       label: "Último Upload",
-      valor: enviados.length > 0 ? "Agora" : "Hoje, 14:30",
-      sub: enviados[0]?.nome ?? "Relatorio_Impacto.pdf",
+      // Exibe a data real do banco ou um tracinho se estiver vazio
+      valor: ultimoDoc ? ultimoDoc.upload : "--/--/----", 
+      // Exibe o nome real do arquivo
+      sub: ultimoDoc ? ultimoDoc.nome : "Nenhum documento", 
       icon: Clock,
     },
   ];
