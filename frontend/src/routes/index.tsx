@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useRef, useState, useEffect } from "react";
+import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -110,6 +111,11 @@ function formatarTamanho(bytes: number) {
 function Index() {
   // 1. Estado para armazenar os dados reais da API (inicia com os falsos como backup)
   const [documentosApi, setDocumentosApi] = useState<Doc[]>(DOCUMENTOS);
+
+  const [viewModalOpen, setViewModalOpen] = useState(false);
+  const [viewDoc, setViewDoc] = useState<Doc | null>(null);
+  const [excelData, setExcelData] = useState<string>("");
+  const [carregandoExcel, setCarregandoExcel] = useState(false);
 
   const [filtros, setFiltros] = useState<Filtros>(INICIAL);
   const [enviados, setEnviados] = useState<Doc[]>([]);
@@ -382,9 +388,42 @@ function Index() {
     if (restantes.length === 0) setDialogAberto(false);
   }
 
-  function abrirDoc(doc: Doc) {
-    if (doc.url) window.open(doc.url, "_blank", "noopener,noreferrer");
-    else toast.info("Pré-visualização indisponível", { description: "Documento de demonstração." });
+  async function abrirDoc(doc: Doc) {
+    if (!doc.url) {
+      toast.info("Pré-visualização indisponível", { description: "Documento de demonstração." });
+      return;
+    }
+
+    // Abre a janela e define qual documento será mostrado
+    setViewDoc(doc);
+    setViewModalOpen(true);
+    setExcelData("");
+
+    // Se for planilha, o React vai ler a aba 1 e converter para HTML
+    if (doc.ext === "xlsx") {
+      setCarregandoExcel(true);
+      try {
+        const res = await fetch(doc.url);
+        if (!res.ok) throw new Error("Falha ao baixar planilha");
+        const arrayBuffer = await res.arrayBuffer();
+        
+        // Lê o arquivo binário
+        const workbook = XLSX.read(arrayBuffer, { type: "array" });
+        const primeiraAba = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[primeiraAba!];
+
+        if (!worksheet) throw new Error("A planilha está vazia.");
+        
+        // Transforma os dados numa tabela HTML bonitinha
+        const html = XLSX.utils.sheet_to_html(worksheet);
+        setExcelData(html);
+      } catch (erro) {
+        console.error("Erro na leitura do Excel:", erro);
+        setExcelData("<p class='text-destructive'>Erro ao carregar a planilha. O arquivo pode estar corrompido.</p>");
+      } finally {
+        setCarregandoExcel(false);
+      }
+    }
   }
 
   function baixarDoc(doc: Doc) {
@@ -900,6 +939,58 @@ function Index() {
           onDeleteMany={removerDocs}
           onEdit={editarDoc}
         />
+       {/* === JANELA DO VISUALIZADOR INTERNO === */}
+        <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+          <DialogContent className="flex max-h-[95vh] w-[min(70rem,96vw)] max-w-none flex-col gap-0 overflow-hidden p-0">
+            <DialogHeader className="shrink-0 border-b border-border p-4 text-left">
+              <DialogTitle className="flex items-center gap-2">
+                <span className="truncate">{viewDoc?.nome}</span>
+              </DialogTitle>
+              <DialogDescription>
+                Modo de Leitura Seguro. Nenhuma alteração feita afetará o arquivo original.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="min-h-[60vh] flex-1 overflow-auto bg-muted/30 p-4">
+              {viewDoc?.ext === "pdf" && (
+                <iframe 
+                  src={viewDoc.url} 
+                  className="h-full min-h-[70vh] w-full rounded-md border bg-white shadow-sm" 
+                  title="Visualizador de PDF"
+                />
+              )}
+              
+              {viewDoc?.ext === "xlsx" && (
+                carregandoExcel ? (
+                  <div className="flex h-full min-h-[40vh] items-center justify-center text-sm font-medium text-muted-foreground animate-pulse">
+                    Lendo planilha e montando tabela virtual...
+                  </div>
+                ) : (
+                  <div className="rounded-md border bg-white p-4 shadow-sm">
+                    {/* Estilos injetados para a tabela não ficar feia */}
+                    <style>{`
+                      .planilha-viewer table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
+                      .planilha-viewer td, .planilha-viewer th { border: 1px solid #e2e8f0; padding: 6px 12px; }
+                      .planilha-viewer tr:nth-child(even) { background-color: #f8fafc; }
+                      .planilha-viewer tr:first-child { font-weight: bold; background-color: #f1f5f9; }
+                    `}</style>
+                    <div 
+                      className="planilha-viewer overflow-auto"
+                      dangerouslySetInnerHTML={{ __html: excelData }} 
+                    />
+                  </div>
+                )
+              )}
+
+              {viewDoc?.ext === "docx" && (
+                <div className="flex h-full min-h-[40vh] flex-col items-center justify-center gap-4 text-center">
+                  <p className="text-sm text-muted-foreground">Navegadores não suportam a visualização nativa de arquivos Word (.docx).</p>
+                  <Button onClick={() => baixarDoc(viewDoc)}>Baixar Arquivo Word</Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog> 
       </main>
     </div>
   );
