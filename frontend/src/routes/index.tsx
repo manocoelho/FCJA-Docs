@@ -94,6 +94,7 @@ type Pendente = {
   nucleo: string;
   progresso: number;
   status: "aguardando" | "enviando" | "concluido";
+  editado?: boolean; // <-- 1.
 };
 
 function hoje() {
@@ -242,10 +243,17 @@ function Index() {
     }
     setErroForm(null);
     setPendentes((prev) =>
-      prev.map((p) => (p.sel ? { ...p, data: cadData, tipo: cadTipo, nucleo: cadNucleo } : p)),
+      prev.map((p) => (p.sel ? { 
+          ...p, 
+          data: cadData, 
+          tipo: cadTipo, 
+          nucleo: cadNucleo,
+          sel: false,    // <-- 2. Desmarca automaticamente
+          editado: true  // <-- 3. Avisa que o arquivo foi modificado
+      } : p)),
     );
     toast.success(`Cadastro aplicado a ${alvos.length} arquivo(s)`, {
-      description: `${cadTipo} · ${new Date(`${cadData}T12:00:00`).getFullYear()} · ${cadNucleo}`,
+      description: `${cadTipo} ·${new Date(`${cadData}T12:00:00`).getFullYear()} · ${cadNucleo}`,
     });
   }
 
@@ -680,7 +688,14 @@ function Index() {
                     </div>
                     <ul className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1 text-sm">
                       {pendentes.map((p) => (
-                        <li key={p.id} className="rounded-lg bg-card/60 p-2">
+                        <li 
+                          key={p.id} 
+                          className={`rounded-lg p-2 transition-colors ${
+                            p.editado 
+                              ? "bg-emerald-50/80 border border-emerald-200" 
+                              : "bg-card/60 border border-transparent"
+                          }`}
+                        >
                           <div className="flex items-center gap-2">
                             <Checkbox
                               checked={p.sel}
