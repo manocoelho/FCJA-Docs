@@ -513,7 +513,20 @@ function Index() {
       : []),
   ];
 
-  const ultimoDoc = acervo.length > 0 ? acervo[0] : null;
+  // Procura o documento mais recente analisando e calculando a data de upload real
+  const ultimoDoc = acervo.length > 0 
+    ? [...acervo].sort((a, b) => {
+        // Converte as datas "DD/MM/YYYY" para um formato que o computador sabe calcular
+        const [diaA, mesA, anoA] = a.upload.split("/");
+        const [diaB, mesB, anoB] = b.upload.split("/");
+        
+        const dataA = new Date(Number(anoA), Number(mesA) - 1, Number(diaA)).getTime();
+        const dataB = new Date(Number(anoB), Number(mesB) - 1, Number(diaB)).getTime();
+        
+        // Retorna o mais novo primeiro
+        return dataB - dataA;
+      })[0] 
+    : null;
 
   const kpis = [
     {
