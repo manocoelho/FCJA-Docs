@@ -946,9 +946,6 @@ function Index() {
               <DialogTitle className="flex items-center gap-2">
                 <span className="truncate">{viewDoc?.nome}</span>
               </DialogTitle>
-              <DialogDescription>
-                Modo de Leitura Seguro. Nenhuma alteração feita afetará o arquivo original.
-              </DialogDescription>
             </DialogHeader>
             
             <div className="min-h-[60vh] flex-1 overflow-auto bg-muted/30 p-4">
