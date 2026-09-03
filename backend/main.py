@@ -9,6 +9,17 @@ import uuid
 import urllib.parse
 import re # <-- Nova biblioteca para limpar textos
 
+class DocUpdate(BaseModel):
+    nome: str
+    categoria: str
+    ano: int
+    nucleo: str
+
+# Adicione este bloco:
+class LoginRequest(BaseModel):
+    login: str
+    senha: str
+
 app = FastAPI()
 
 app.add_middleware(
@@ -32,6 +43,8 @@ def iniciar_banco():
 
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
+    
+    # Cria a tabela de documentos
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS documentos (
             id TEXT PRIMARY KEY,
@@ -44,6 +57,30 @@ def iniciar_banco():
             url TEXT
         )
     ''')
+    
+    # Cria a tabela de usuários
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS usuarios (
+            login TEXT PRIMARY KEY,
+            senha TEXT,
+            nome TEXT,
+            papel TEXT
+        )
+    ''')
+    
+    # Lista com toda a equipe do núcleo
+    usuarios_equipe = [
+        ('barbara', '1980', 'Bárbara', 'pesquisador'),
+        ('andre', '1980', 'André', 'pesquisador'),
+        ('antonio', '1980', 'Antonio', 'admin'),
+        ('pablo', '1980', 'Pablo', 'pesquisador'),
+        ('josilene', '1980', 'Josilene', 'pesquisador')
+    ]
+    
+    # O "INSERT OR IGNORE" garante que o Python cadastre todos sem dar erro de duplicação
+    for user in usuarios_equipe:
+        cursor.execute("INSERT OR IGNORE INTO usuarios (login, senha, nome, papel) VALUES (?, ?, ?, ?)", user)
+
     conn.commit()
     conn.close()
 
@@ -181,3 +218,17 @@ def atualizar_documento(doc_id: str, dados: DocUpdate):
     conn.close()
     
     return {"mensagem": "Documento atualizado com sucesso", "url": url_nova}
+
+@app.post("/api/login")
+def fazer_login(dados: LoginRequest):
+    conn = sqlite3.connect(DB_FILE)
+    cursor = conn.cursor()
+    # Verifica se o login e a senha batem com o banco
+    cursor.execute("SELECT nome, papel FROM usuarios WHERE login = ? AND senha = ?", (dados.login, dados.senha))
+    user = cursor.fetchone()
+    conn.close()
+    
+    if user:
+        return {"sucesso": True, "nome": user[0], "papel": user[1]}
+    else:
+        return {"sucesso": False, "erro": "Usuário ou senha incorretos"}

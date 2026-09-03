@@ -11,7 +11,10 @@ import {
   Filter,
   Plus,
   Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+
 import { Progress } from "@/components/ui/progress";
 import { FilterChips, type Chip } from "@/components/ged/FilterChips";
 import { Button } from "@/components/ui/button";
@@ -109,6 +112,37 @@ function formatarTamanho(bytes: number) {
 }
 
 function Index() {
+
+  // --- CONTROLE DE LOGIN ---
+  const [usuarioLogado, setUsuarioLogado] = useState(() => localStorage.getItem("fcja_user"));
+  const [loginInput, setLoginInput] = useState("");
+  const [senhaInput, setSenhaInput] = useState("");
+  const [erroLogin, setErroLogin] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setErroLogin("");
+    try {
+      const res = await fetch("http://localhost:8000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ login: loginInput, senha: senhaInput }),
+      });
+      const data = await res.json();
+      
+      if (data.sucesso) {
+        localStorage.setItem("fcja_user", data.nome);
+        setUsuarioLogado(data.nome);
+        toast.success(`Bem-vindo(a), ${data.nome}!`);
+      } else {
+        setErroLogin("Credenciais inválidas. Tente novamente.");
+      }
+    } catch (err) {
+      setErroLogin("Erro ao conectar com o servidor.");
+    }
+  }
+
   // 1. Estado para armazenar os dados reais da API (inicia com os falsos como backup)
   const [documentosApi, setDocumentosApi] = useState<Doc[]>(DOCUMENTOS);
 
@@ -598,6 +632,49 @@ function Index() {
     },
   ];
 
+  // === TELA DE LOGIN (AGORA NO LUGAR CORRETO PARA NÃO QUEBRAR O REACT) ===
+  if (!usuarioLogado) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
+        <form onSubmit={handleLogin} className="w-full max-w-sm rounded-2xl border border-border bg-white p-8 shadow-xl">
+          <div className="mb-8 text-center">
+            <h1 className="text-2xl font-bold tracking-tight text-primary">FCJA Docs</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Gestão Eletrônica de Documentos</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Usuário</Label>
+              <Input value={loginInput} onChange={e => setLoginInput(e.target.value)} placeholder="Ex: admin" required />
+            </div>
+            <div className="space-y-2">
+              <Label>Senha</Label>
+              <div className="relative">
+                <Input 
+                  type={mostrarSenha ? "text" : "password"} 
+                  value={senhaInput} 
+                  onChange={e => setSenhaInput(e.target.value)} 
+                  required 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setMostrarSenha(!mostrarSenha)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                >
+                  {mostrarSenha ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {erroLogin && <p className="mt-4 text-sm text-destructive text-center">{erroLogin}</p>}
+
+          <Button type="submit" className="mt-6 w-full">Entrar no Sistema</Button>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen w-full flex-col bg-background lg:flex-row">
       <Sidebar
@@ -623,6 +700,17 @@ function Index() {
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
               Painel de Documentos
+              <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
+              Painel de Documentos
+            </h1>
+            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <p>Fundação Casa de José Américo</p>
+              <span>·</span>
+              <p>Logado como: <strong className="text-foreground">{usuarioLogado}</strong></p>
+              <button onClick={() => { localStorage.removeItem("fcja_user"); setUsuarioLogado(null); }} className="ml-2 text-destructive hover:underline">Sair</button>
+            </div>
+          </div>
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Fundação Casa de José Américo · visão analítica do acervo digital
