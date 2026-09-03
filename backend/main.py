@@ -6,7 +6,8 @@ import sqlite3
 import os
 import shutil
 import uuid
-import urllib.parse # <-- Nova biblioteca para lidar com espaços e acentos nas URLs
+import urllib.parse
+import re # <-- Nova biblioteca para limpar textos
 
 app = FastAPI()
 
@@ -48,6 +49,13 @@ def iniciar_banco():
 
 iniciar_banco()
 
+# ==========================================
+# FUNÇÃO DE LIMPEZA DO WINDOWS
+# ==========================================
+def limpar_nome_pasta(texto: str) -> str:
+    """Substitui caracteres proibidos do Windows (<>:"/\|?*) por underline."""
+    return re.sub(r'[<>:"/\\|?*]', '_', texto)
+
 class DocUpdate(BaseModel):
     nome: str
     categoria: str
@@ -63,16 +71,8 @@ def listar_documentos():
     linhas = cursor.fetchall()
     conn.close()
     
-    documentos = []
-    for linha in linhas:
-        doc = dict(linha)
-        # Monta o caminho com as subpastas e codifica para a web não quebrar com espaços
-        caminho_relativo = f"{doc['nucleo']}/{doc['ano']}/{doc['categoria']}/{doc['nome']}"
-        caminho_seguro = urllib.parse.quote(caminho_relativo)
-        doc["url"] = f"http://localhost:8000/arquivos/{caminho_seguro}"
-        documentos.append(doc)
-        
-    return documentos
+    # Agora apenas devolvemos os dados, a URL já está salva certinha no banco
+    return [dict(linha) for linha in linhas]
 
 @app.post("/api/upload")
 def upload_documento(
@@ -85,20 +85,25 @@ def upload_documento(
 ):
     from datetime import datetime
     
-    # 1. Cria a árvore de pastas: C:/FCJA_Dados/arquivos/Nucleo/Ano/Categoria/
-    subpasta = os.path.join(PASTA_ARQUIVOS, nucleo, str(ano), categoria)
+    # 1. Limpa os nomes para o Windows não reclamar
+    nucleo_limpo = limpar_nome_pasta(nucleo)
+    categoria_limpa = limpar_nome_pasta(categoria)
+    nome_limpo = limpar_nome_pasta(nome)
+    
+    # 2. Cria a árvore de pastas: C:/FCJA_Dados/arquivos/Nucleo/Ano/Categoria/
+    subpasta = os.path.join(PASTA_ARQUIVOS, nucleo_limpo, str(ano), categoria_limpa)
     os.makedirs(subpasta, exist_ok=True) 
     
-    # 2. Salva o arquivo lá dentro
-    caminho_fisico = os.path.join(subpasta, file.filename)
+    # 3. Salva o arquivo lá dentro
+    caminho_fisico = os.path.join(subpasta, nome_limpo)
     with open(caminho_fisico, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
         
     doc_id = str(uuid.uuid4())
     data_upload = datetime.now().strftime("%d/%m/%Y")
     
-    # 3. Gera a URL correta para devolver ao React
-    caminho_relativo = f"{nucleo}/{ano}/{categoria}/{nome}"
+    # 4. Gera a URL correta e salva no banco
+    caminho_relativo = f"{nucleo_limpo}/{ano}/{categoria_limpa}/{nome_limpo}"
     url_nova = f"http://localhost:8000/arquivos/{urllib.parse.quote(caminho_relativo)}"
     
     conn = sqlite3.connect(DB_FILE)
@@ -123,8 +128,13 @@ def deletar_documento(doc_id: str):
     
     if resultado:
         nucleo, ano, categoria, nome = resultado
-        # Vai exatamente na subpasta correta para apagar
-        caminho_fisico = os.path.join(PASTA_ARQUIVOS, nucleo, str(ano), categoria, nome)
+        caminho_fisico = os.path.join(
+            PASTA_ARQUIVOS, 
+            limpar_nome_pasta(nucleo), 
+            str(ano), 
+            limpar_nome_pasta(categoria), 
+            limpar_nome_pasta(nome)
+        )
         if os.path.exists(caminho_fisico):
             os.remove(caminho_fisico)
             
@@ -147,16 +157,18 @@ def atualizar_documento(doc_id: str, dados: DocUpdate):
 
     n_antigo, a_antigo, c_antiga, nome_antigo = resultado
     
-    # Monta os endereços de antes e de depois da edição
-    caminho_antigo = os.path.join(PASTA_ARQUIVOS, n_antigo, str(a_antigo), c_antiga, nome_antigo)
-    caminho_novo = os.path.join(PASTA_ARQUIVOS, dados.nucleo, str(dados.ano), dados.categoria, dados.nome)
+    caminho_antigo = os.path.join(
+        PASTA_ARQUIVOS, limpar_nome_pasta(n_antigo), str(a_antigo), limpar_nome_pasta(c_antiga), limpar_nome_pasta(nome_antigo)
+    )
+    caminho_novo = os.path.join(
+        PASTA_ARQUIVOS, limpar_nome_pasta(dados.nucleo), str(dados.ano), limpar_nome_pasta(dados.categoria), limpar_nome_pasta(dados.nome)
+    )
 
-    # Se o usuário mudou alguma informação que altere a pasta ou o nome, o Python move o arquivo
     if caminho_antigo != caminho_novo and os.path.exists(caminho_antigo):
-        os.makedirs(os.path.dirname(caminho_novo), exist_ok=True) # Cria a nova pasta se não existir
-        os.rename(caminho_antigo, caminho_novo) # Move o arquivo físico
+        os.makedirs(os.path.dirname(caminho_novo), exist_ok=True)
+        os.rename(caminho_antigo, caminho_novo)
 
-    caminho_relativo = f"{dados.nucleo}/{dados.ano}/{dados.categoria}/{dados.nome}"
+    caminho_relativo = f"{limpar_nome_pasta(dados.nucleo)}/{dados.ano}/{limpar_nome_pasta(dados.categoria)}/{limpar_nome_pasta(dados.nome)}"
     url_nova = f"http://localhost:8000/arquivos/{urllib.parse.quote(caminho_relativo)}"
 
     cursor.execute('''
