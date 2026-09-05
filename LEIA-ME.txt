@@ -1,0 +1,9 @@
+Como Instalar o FCJA Docs em um PC Novo:
+
+Baixe e instale o Python (python.org). Na primeira tela do instalador, é OBRIGATÓRIO marcar a caixinha "Add python.exe to PATH".
+
+Baixe e instale o Node.js (nodejs.org - versão LTS).
+
+Dê dois cliques no arquivo instalar_dependencias.bat e espere ele terminar.
+
+Pronto! O sistema está configurado. Basta usar o arquivo que liga o servidor normalmente "Iniciar_FCJA.bat".

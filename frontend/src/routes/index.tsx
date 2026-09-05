@@ -3,16 +3,9 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import { toast } from "sonner";
 import {
-  AlertCircle,
-  CheckCircle2,
-  CloudUpload,
-  Clock,
-  Files,
-  Filter,
-  Plus,
-  Trash2,
-  Eye,
-  EyeOff,
+  AlertCircle, CheckCircle2, CloudUpload, Clock, Files, Filter, Plus, Trash2,
+  Eye, EyeOff, LayoutDashboard, FolderOpen, HardDrive, LogOut, SlidersHorizontal,
+  FileSpreadsheet, FileText, FileType2, ChevronRight, Folder
 } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
@@ -73,8 +66,8 @@ export const Route = createFileRoute("/")({
 
 type Filtros = { tipos: string[]; anoDe: number; anoAte: number; nucleo: string };
 
-const ANO_MIN = 2024;
-const ANO_MAX = 2026;
+const ANO_MIN = 2022;
+const ANO_MAX = 2027;
 
 const INICIAL: Filtros = { tipos: [], anoDe: ANO_MIN, anoAte: ANO_MAX, nucleo: "Todos" };
 
@@ -106,9 +99,11 @@ function hoje() {
 }
 
 function formatarTamanho(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes === 0) return "0 B";
+  const k = 1024;
+  const tamanhos = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + tamanhos[i];
 }
 
 function Index() {
@@ -119,6 +114,41 @@ function Index() {
   const [senhaInput, setSenhaInput] = useState("");
   const [erroLogin, setErroLogin] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
+
+// --- CONTROLE DO WEB DESKTOP ---
+  const [abaAtiva, setAbaAtiva] = useState<"dashboard" | "explorador" | "upload">("dashboard");
+  const [pastaSelecionada, setPastaSelecionada] = useState<string>("Todos");
+  
+  // NAVEGAÇÃO PROFUNDA (Ano e Tipologia)
+  const [subPastaAno, setSubPastaAno] = useState<number | null>(null);
+  const [subPastaTipo, setSubPastaTipo] = useState<string | null>(null);
+  
+  // Filtros do Dashboard
+  const [filtrosDash, setFiltrosDash] = useState<Filtros>(INICIAL);
+  const [modalFiltrosDash, setModalFiltrosDash] = useState(false);
+  
+  // Filtros da Aba de Upload
+  const [filtrosUpload, setFiltrosUpload] = useState<Filtros>(INICIAL);
+  const [modalFiltrosUpload, setModalFiltrosUpload] = useState(false);
+  
+  const [sysStatus, setSysStatus] = useState<{ total_bytes: number; usado_bytes: number; livre_bytes: number; acervo_bytes: number } | null>(null);
+
+  // Busca o status do HD assim que o sistema liga
+  useEffect(() => {
+    fetch("http://localhost:8000/api/sistema/status")
+      .then(res => res.json())
+      .then(data => { if (data.sucesso) setSysStatus(data); })
+      .catch(err => console.error("Erro ao ler HD:", err));
+  }, []);
+
+  async function abrirPastaWindows() {
+    try {
+      await fetch("http://localhost:8000/api/sistema/abrir-pasta", { method: "POST" });
+      toast.success("Explorador do Windows aberto no servidor!");
+    } catch (e) {
+      toast.error("Não foi possível abrir a pasta.");
+    }
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -346,7 +376,7 @@ function Index() {
       const ano = data.getFullYear();
 
       // ==========================================
-      // NOVA LÓGICA DE UPLOAD REAL PARA O PYTHON
+      // LÓGICA DE UPLOAD REAL PARA O PYTHON
       // ==========================================
       const formData = new FormData();
       formData.append("file", p.file);
@@ -391,12 +421,8 @@ function Index() {
     
     const anos = novos.map((n) => n.ano);
     if (anos.length > 0) {
-      setFiltros((f) => ({
-        tipos: [],
-        anoDe: Math.min(ANO_MIN, ...anos, f.anoDe),
-        anoAte: Math.max(ANO_MAX, ...anos, f.anoAte),
-        nucleo: "Todos",
-      }));
+      setFiltrosDash((f) => ({ ...f, tipos: [], anoDe: Math.min(ANO_MIN, ...anos, f.anoDe), anoAte: Math.max(ANO_MAX, ...anos, f.anoAte), nucleo: "Todos" }));
+      setFiltrosUpload((f) => ({ ...f, tipos: [], anoDe: Math.min(ANO_MIN, ...anos, f.anoDe), anoAte: Math.max(ANO_MAX, ...anos, f.anoAte), nucleo: "Todos" }));
     }
     
     const restantes = pendentes.filter((p) => !p.sel);
@@ -552,84 +578,38 @@ function Index() {
     }
   }
 
-  const documentos = useMemo(
-    () =>
-      acervo.filter((d) => {
-        const tipoOk =
-          filtros.tipos.length === 0 ||
-          filtros.tipos.includes(TIPO_POR_CATEGORIA[d.categoria] ?? "");
-        const anoOk = d.ano >= filtros.anoDe && d.ano <= filtros.anoAte;
-        const nucleoOk = filtros.nucleo === "Todos" || d.nucleo === filtros.nucleo;
-        return tipoOk && anoOk && nucleoOk;
-      }),
-    [filtros, acervo],
-  );
+  // --- DADOS DO DASHBOARD ---
+  const documentosDash = useMemo(() => acervo.filter((d) => {
+    const tipoOk = filtrosDash.tipos.length === 0 || filtrosDash.tipos.includes(TIPO_POR_CATEGORIA[d.categoria] ?? "");
+    const anoOk = d.ano >= filtrosDash.anoDe && d.ano <= filtrosDash.anoAte;
+    const nucleoOk = filtrosDash.nucleo === "Todos" || d.nucleo === filtrosDash.nucleo;
+    return tipoOk && anoOk && nucleoOk;
+  }), [filtrosDash, acervo]);
 
-  const chips: Chip[] = [
-    ...filtros.tipos.map((t) => ({
-      id: `tipo-${t}`,
-      label: `Tipo: ${t}`,
-      onRemove: () => setFiltros((f) => ({ ...f, tipos: f.tipos.filter((x) => x !== t) })),
-    })),
-    ...(filtros.anoDe !== ANO_MIN || filtros.anoAte !== ANO_MAX
-      ? [
-          {
-            id: "periodo",
-            label:
-              filtros.anoDe === filtros.anoAte
-                ? `Ano: ${filtros.anoDe}`
-                : `Período: ${filtros.anoDe}–${filtros.anoAte}`,
-            onRemove: () => setFiltros((f) => ({ ...f, anoDe: ANO_MIN, anoAte: ANO_MAX })),
-          },
-        ]
-      : []),
-    ...(filtros.nucleo !== "Todos"
-      ? [
-          {
-            id: "nucleo",
-            label: `Núcleo: ${filtros.nucleo}`,
-            onRemove: () => setFiltros((f) => ({ ...f, nucleo: "Todos" })),
-          },
-        ]
-      : []),
+  const chipsDash: Chip[] = [
+    ...filtrosDash.tipos.map((t) => ({ id: `tipo-${t}`, label: `Tipo: ${t}`, onRemove: () => setFiltrosDash(f => ({ ...f, tipos: f.tipos.filter(x => x !== t) })) })),
+    ...(filtrosDash.anoDe !== ANO_MIN || filtrosDash.anoAte !== ANO_MAX ? [{ id: "periodo", label: filtrosDash.anoDe === filtrosDash.anoAte ? `Ano: ${filtrosDash.anoDe}` : `Período: ${filtrosDash.anoDe}–${filtrosDash.anoAte}`, onRemove: () => setFiltrosDash(f => ({ ...f, anoDe: ANO_MIN, anoAte: ANO_MAX })) }] : []),
+    ...(filtrosDash.nucleo !== "Todos" ? [{ id: "nucleo", label: `Núcleo: ${filtrosDash.nucleo}`, onRemove: () => setFiltrosDash(f => ({ ...f, nucleo: "Todos" })) }] : []),
   ];
 
-  // Procura o documento mais recente analisando e calculando a data de upload real
-  const ultimoDoc = acervo.length > 0 
-    ? [...acervo].sort((a, b) => {
-        // Converte as datas "DD/MM/YYYY" para um formato que o computador sabe calcular
-        const [diaA, mesA, anoA] = a.upload.split("/");
-        const [diaB, mesB, anoB] = b.upload.split("/");
-        
-        const dataA = new Date(Number(anoA), Number(mesA) - 1, Number(diaA)).getTime();
-        const dataB = new Date(Number(anoB), Number(mesB) - 1, Number(diaB)).getTime();
-        
-        // Retorna o mais novo primeiro
-        return dataB - dataA;
-      })[0] 
-    : null;
+  // --- DADOS DO UPLOAD (Tabela) ---
+  const documentosUpload = useMemo(() => acervo.filter((d) => {
+    const tipoOk = filtrosUpload.tipos.length === 0 || filtrosUpload.tipos.includes(TIPO_POR_CATEGORIA[d.categoria] ?? "");
+    const anoOk = d.ano >= filtrosUpload.anoDe && d.ano <= filtrosUpload.anoAte;
+    const nucleoOk = filtrosUpload.nucleo === "Todos" || d.nucleo === filtrosUpload.nucleo;
+    return tipoOk && anoOk && nucleoOk;
+  }), [filtrosUpload, acervo]);
 
-  const kpis = [
-    {
-      label: "Total de Documentos",
-      valor: acervo.length.toLocaleString("pt-BR"),
-      sub: "Acervo completo",
-      icon: Files,
-    },
-    {
-      label: "Filtro Atual",
-      valor: `${documentos.length}`,
-      sub: "Encontrados",
-      icon: Filter,
-    },
-    {
-      label: "Último Upload",
-      // Exibe a data real do banco ou um tracinho se estiver vazio
-      valor: ultimoDoc ? ultimoDoc.upload : "--/--/----", 
-      // Exibe o nome real do arquivo
-      sub: ultimoDoc ? ultimoDoc.nome : "Nenhum documento", 
-      icon: Clock,
-    },
+  // --- DADOS DO EXPLORADOR (Pastas) ---
+  const documentosExplorador = useMemo(() => {
+    if (pastaSelecionada === "Todos") return acervo;
+    return acervo.filter((d) => d.nucleo === pastaSelecionada);
+  }, [acervo, pastaSelecionada]);
+
+  const chipsUpload: Chip[] = [
+    ...filtrosUpload.tipos.map((t) => ({ id: `tipo-${t}`, label: `Tipo: ${t}`, onRemove: () => setFiltrosUpload(f => ({ ...f, tipos: f.tipos.filter(x => x !== t) })) })),
+    ...(filtrosUpload.anoDe !== ANO_MIN || filtrosUpload.anoAte !== ANO_MAX ? [{ id: "periodo", label: filtrosUpload.anoDe === filtrosUpload.anoAte ? `Ano: ${filtrosUpload.anoDe}` : `Período: ${filtrosUpload.anoDe}–${filtrosUpload.anoAte}`, onRemove: () => setFiltrosUpload(f => ({ ...f, anoDe: ANO_MIN, anoAte: ANO_MAX })) }] : []),
+    ...(filtrosUpload.nucleo !== "Todos" ? [{ id: "nucleo", label: `Núcleo: ${filtrosUpload.nucleo}`, onRemove: () => setFiltrosUpload(f => ({ ...f, nucleo: "Todos" })) }] : []),
   ];
 
   // === TELA DE LOGIN (AGORA NO LUGAR CORRETO PARA NÃO QUEBRAR O REACT) ===
@@ -675,184 +655,333 @@ function Index() {
     );
   }
 
+  // === RETORNO DA TELA PRINCIPAL DO SISTEMA (WEB DESKTOP) ===
   return (
-    <div className="flex min-h-screen w-full flex-col bg-background lg:flex-row">
-      <Sidebar
-        tipos={filtros.tipos}
-        onToggleTipo={(t) =>
-          setFiltros((f) => ({
-            ...f,
-            tipos: f.tipos.includes(t) ? f.tipos.filter((x) => x !== t) : [...f.tipos, t],
-          }))
-        }
-        anoDe={filtros.anoDe}
-        anoAte={filtros.anoAte}
-        onAnoDe={(v) => setFiltros((f) => ({ ...f, anoDe: v, anoAte: Math.max(v, f.anoAte) }))}
-        onAnoAte={(v) => setFiltros((f) => ({ ...f, anoAte: v, anoDe: Math.min(v, f.anoDe) }))}
-        nucleo={filtros.nucleo}
-        onNucleo={(v) => setFiltros((f) => ({ ...f, nucleo: v }))}
-        onLimpar={() => setFiltros(INICIAL)}
-        temFiltros={chips.length > 0}
-      />
-
-      <main className="min-w-0 flex-1 space-y-8 p-6 lg:p-10">
-        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:flex sm:flex-wrap sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
-              Painel de Documentos
-              <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold tracking-tight sm:text-3xl">
-              Painel de Documentos
-            </h1>
-            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-              <p>Fundação Casa de José Américo</p>
-              <span>·</span>
-              <p>Logado como: <strong className="text-foreground">{usuarioLogado}</strong></p>
-              <button onClick={() => { localStorage.removeItem("fcja_user"); setUsuarioLogado(null); }} className="ml-2 text-destructive hover:underline">Sair</button>
+    <div className="flex h-screen w-full overflow-hidden bg-muted/20">
+      
+      {/* --- BARRA LATERAL (MENU DO SISTEMA) --- */}
+      <aside className="flex w-64 shrink-0 flex-col justify-between bg-slate-950 text-slate-300 shadow-xl">
+        <div>
+          <div className="flex h-20 items-center border-b border-white/10 px-6">
+            <div>
+              <h1 className="text-xl font-bold text-white tracking-tight">FCJA Docs</h1>
+              <p className="text-[11px] text-slate-400 uppercase tracking-widest">Web Desktop</p>
             </div>
           </div>
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Fundação Casa de José Américo · visão analítica do acervo digital
-            </p>
+          <nav className="flex flex-col gap-2 p-4">
+            <button 
+              onClick={() => setAbaAtiva("dashboard")}
+              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${abaAtiva === "dashboard" ? "bg-primary text-white" : "hover:bg-white/10 hover:text-white"}`}
+            >
+              <LayoutDashboard className="h-5 w-5" /> Dashboard Analítico
+            </button>
+            <button 
+              onClick={() => setAbaAtiva("explorador")}
+              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${abaAtiva === "explorador" ? "bg-primary text-white" : "hover:bg-white/10 hover:text-white"}`}
+            >
+              <FolderOpen className="h-5 w-5" /> Explorador de Arquivos
+            </button>
+            <button 
+              onClick={() => setAbaAtiva("upload")}
+              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${abaAtiva === "upload" ? "bg-primary text-white" : "hover:bg-white/10 hover:text-white"}`}
+            >
+              <CloudUpload className="h-5 w-5" /> Central de Upload
+            </button>
+          </nav>
+        </div>
+        <div className="border-t border-white/10 p-4">
+          <div className="mb-4 px-4 text-xs">
+            <p className="text-slate-500">Conectado como:</p>
+            <p className="font-semibold text-white">{usuarioLogado}</p>
           </div>
-          <Dialog
-            open={dialogAberto}
-            onOpenChange={(v) => {
-              setDialogAberto(v);
-              if (!v) {
-                setPendentes([]);
-                setErros([]);
-                setErroForm(null);
-                setResumo(null);
-              }
-            }}
+          <button 
+            onClick={() => { localStorage.removeItem("fcja_user"); setUsuarioLogado(null); }}
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
           >
-            <DialogTrigger asChild>
-              <Button variant="brand" size="lg" className="shrink-0">
-                <Plus /> Adicionar Documento
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="flex max-h-[90vh] w-[min(60rem,96vw)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
-              <DialogHeader className="shrink-0 border-b border-border p-6 pb-4 text-left">
-                <DialogTitle>Adicionar e Cadastrar Documento</DialogTitle>
-                <DialogDescription>
-                  Formatos aceitos: PDF, DOCX, XLSX · até 25 MB por arquivo.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="min-h-0 flex-1 overflow-y-auto p-6 pt-4">
-              <div
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setArrastando(true);
-                }}
-                onDragLeave={() => setArrastando(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setArrastando(false);
-                  receberArquivos(e.dataTransfer.files);
-                }}
-                className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 rounded-2xl border-2 border-dashed px-6 py-5 text-center transition-colors hover:border-primary hover:bg-accent/50 ${
-                  arrastando ? "border-primary bg-accent/50" : "border-border bg-secondary/50"
-                }`}
-              >
-                <input
-                  ref={inputRef}
-                  type="file"
-                  multiple
-                  className="hidden"
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.csv"
-                  onChange={(e) => {
-                    receberArquivos(e.target.files);
-                    e.target.value = "";
-                  }}
-                />
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
-                  <CloudUpload className="h-5 w-5" />
-                </span>
-                <p className="text-sm font-medium">Arraste e solte seus arquivos aqui</p>
-                <p className="text-xs text-muted-foreground">ou</p>
-                <Button variant="outline" size="sm" onClick={() => inputRef.current?.click()}>
-                  Selecionar arquivos
+            <LogOut className="h-5 w-5" /> Sair do Sistema
+          </button>
+        </div>
+      </aside>
+
+      {/* --- ÁREA PRINCIPAL (TELAS) --- */}
+      <main className="flex-1 overflow-y-auto p-8">
+        
+        {/* === TELA 1: DASHBOARD === */}
+        {abaAtiva === "dashboard" && (
+          <div className="mx-auto max-w-7xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+              <div>
+                <h2 className="text-3xl font-semibold tracking-tight">Visão Geral</h2>
+                <p className="mt-1 text-sm text-muted-foreground">Indicadores e gráficos do acervo digital.</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="brand" onClick={() => setModalFiltrosDash(true)} className="gap-2">
+                  <SlidersHorizontal className="h-4 w-4" /> Filtros Avançados
                 </Button>
+              </div>
+            </header>
+
+            <FilterChips chips={chipsDash} onLimpar={() => setFiltrosDash(INICIAL)} />
+
+            {/* KPIs do HD e Documentos */}
+            <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+              
+              <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                <p className="text-xs font-semibold uppercase text-muted-foreground">Total no Acervo</p>
+                <p className="mt-2 text-3xl font-semibold">{acervo.length}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Documentos registrados</p>
+              </div>
+
+              <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Tamanho do Acervo</p>
+                    <p className="mt-2 text-3xl font-semibold text-primary">{sysStatus ? formatarTamanho(sysStatus.acervo_bytes) : "..."}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Arquivos do sistema</p>
+                  </div>
+                  <Files className="h-8 w-8 text-primary/20" />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Espaço Utilizado</p>
+                    <p className="mt-2 text-3xl font-semibold text-blue-600">{sysStatus ? formatarTamanho(sysStatus.usado_bytes) : "..."}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">SSD Principal</p>
+                  </div>
+                  <HardDrive className="h-8 w-8 text-blue-100" />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border bg-card p-6 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-muted-foreground">Espaço Livre</p>
+                    <p className="mt-2 text-3xl font-semibold text-emerald-600">{sysStatus ? formatarTamanho(sysStatus.livre_bytes) : "..."}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Disponível para uploads</p>
+                  </div>
+                  <CheckCircle2 className="h-8 w-8 text-emerald-100" />
+                </div>
+              </div>
+              
+            </section>
+
+            <section className="grid gap-6 xl:grid-cols-2">
+              <PizzaNucleos docs={documentosDash} />
+              <BarrasAno docs={documentosDash} />
+            </section>
+          </div>
+        )}
+
+        {/* === TELA 2: EXPLORADOR DE ARQUIVOS === */}
+        {abaAtiva === "explorador" && (
+          <div className="mx-auto flex h-[calc(100vh-6rem)] max-w-7xl flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-6 shrink-0">
+              <h2 className="text-3xl font-semibold tracking-tight">Arquivos Locais</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Navegação estruturada: Núcleo {'>'} Ano {'>'} Tipologia. (Duplo clique para abrir)</p>
+            </header>
+            
+            <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+              
+              {/* Lado Esquerdo: Árvore de Pastas (Núcleos) */}
+              <div className="w-1/3 max-w-xs shrink-0 overflow-y-auto border-r border-border bg-slate-50/50 p-4">
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">Diretórios Raiz</h3>
+                <ul className="space-y-1">
+                  <li>
+                    <button 
+                      onClick={() => { setPastaSelecionada("Todos"); setSubPastaAno(null); setSubPastaTipo(null); }} 
+                      className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${pastaSelecionada === "Todos" ? "bg-primary/10 font-semibold text-primary" : "text-slate-600 hover:bg-slate-200/50"}`}
+                    >
+                      <HardDrive className="h-4 w-4 shrink-0" /> Disco Local (C:)
+                    </button>
+                  </li>
+                  {NUCLEOS.filter(n => n !== "Todos").map(nucleo => (
+                    <li key={nucleo}>
+                      <button 
+                        onClick={() => { setPastaSelecionada(nucleo); setSubPastaAno(null); setSubPastaTipo(null); }} 
+                        className={`flex w-full items-start gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${pastaSelecionada === nucleo ? "bg-primary/10 font-semibold text-primary" : "text-slate-600 hover:bg-slate-200/50"}`}
+                      >
+                        <FolderOpen className={`mt-0.5 h-4 w-4 shrink-0 ${pastaSelecionada === nucleo ? "text-primary" : "text-slate-400"}`} />
+                        <span className="line-clamp-2">{nucleo}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Lado Direito: Navegação Interna */}
+              <div className="flex flex-1 flex-col overflow-hidden bg-white">
+                
+                {/* Barra de Endereço (Breadcrumbs Interativos) */}
+                <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-slate-50/50 px-4 py-2.5 text-sm text-slate-600">
+                  <button onClick={() => { setPastaSelecionada("Todos"); setSubPastaAno(null); setSubPastaTipo(null); }} className="flex items-center gap-1.5 hover:text-primary transition-colors">
+                    <HardDrive className="h-4 w-4 text-slate-400" />
+                    <span className="font-medium">FCJA_Dados</span>
+                  </button>
+                  
+                  {pastaSelecionada !== "Todos" && (
+                    <>
+                      <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      <button onClick={() => { setSubPastaAno(null); setSubPastaTipo(null); }} className={`hover:text-primary transition-colors truncate max-w-[200px] ${!subPastaAno ? "font-semibold text-slate-900" : "font-medium"}`}>
+                        {pastaSelecionada}
+                      </button>
+                    </>
+                  )}
+
+                  {subPastaAno && (
+                    <>
+                      <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      <button onClick={() => setSubPastaTipo(null)} className={`hover:text-primary transition-colors ${!subPastaTipo ? "font-semibold text-slate-900" : "font-medium"}`}>
+                        {subPastaAno}
+                      </button>
+                    </>
+                  )}
+
+                  {subPastaTipo && (
+                    <>
+                      <ChevronRight className="h-3.5 w-3.5 text-slate-400" />
+                      <span className="font-semibold text-slate-900 truncate max-w-[150px]">{subPastaTipo}</span>
+                    </>
+                  )}
+                </div>
+                
+                {/* Tabela Interativa (Pastas ou Arquivos) */}
+                <div className="flex-1 overflow-y-auto">
+                  <table className="w-full text-left text-sm">
+                    <thead className="sticky top-0 z-10 bg-white shadow-sm ring-1 ring-border">
+                      <tr className="text-xs font-semibold text-slate-500">
+                        <th className="px-6 py-3">Nome</th>
+                        <th className="px-6 py-3">Tipologia</th>
+                        <th className="px-6 py-3">Ano</th>
+                        <th className="px-6 py-3 text-right">Data de Upload</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      
+                      {/* 1. MOSTRAR PASTAS DOS ANOS (Se só o Núcleo estiver selecionado) */}
+                      {pastaSelecionada !== "Todos" && !subPastaAno && (
+                        Array.from(new Set(documentosExplorador.map(d => d.ano))).sort((a, b) => b - a).map(ano => (
+                          <tr key={ano} onDoubleClick={() => setSubPastaAno(ano)} className="group cursor-pointer transition-colors hover:bg-slate-50">
+                            <td className="flex items-center gap-3 px-6 py-3">
+                              <Folder className="h-5 w-5 shrink-0 text-blue-400 fill-blue-400/20 transition-transform group-hover:scale-110" />
+                              <span className="font-medium text-slate-700 transition-colors group-hover:text-primary">{ano}</span>
+                            </td>
+                            <td className="px-6 py-3 text-slate-400">Pasta de Arquivos</td>
+                            <td className="px-6 py-3 text-slate-400">-</td>
+                            <td className="px-6 py-3 text-right text-slate-400">-</td>
+                          </tr>
+                        ))
+                      )}
+
+                      {/* 2. MOSTRAR PASTAS DAS TIPOLOGIAS (Se o Ano estiver selecionado) */}
+                      {pastaSelecionada !== "Todos" && subPastaAno && !subPastaTipo && (
+                        Array.from(new Set(documentosExplorador.filter(d => d.ano === subPastaAno).map(d => d.categoria))).sort().map(tipo => (
+                          <tr key={tipo} onDoubleClick={() => setSubPastaTipo(tipo)} className="group cursor-pointer transition-colors hover:bg-slate-50">
+                            <td className="flex items-center gap-3 px-6 py-3">
+                              <Folder className="h-5 w-5 shrink-0 text-blue-400 fill-blue-400/20 transition-transform group-hover:scale-110" />
+                              <span className="font-medium text-slate-700 transition-colors group-hover:text-primary">{tipo}</span>
+                            </td>
+                            <td className="px-6 py-3 text-slate-400">Pasta de Arquivos</td>
+                            <td className="px-6 py-3 text-slate-500">{subPastaAno}</td>
+                            <td className="px-6 py-3 text-right text-slate-400">-</td>
+                          </tr>
+                        ))
+                      )}
+
+                      {/* 3. MOSTRAR OS ARQUIVOS FINAIS (Se for Disco C: ou se tudo estiver selecionado) */}
+                      {(pastaSelecionada === "Todos" || (subPastaAno && subPastaTipo)) && (
+                        documentosExplorador
+                          .filter(d => pastaSelecionada === "Todos" || (d.ano === subPastaAno && d.categoria === subPastaTipo))
+                          .map((doc) => (
+                            <tr key={doc.id} onDoubleClick={() => abrirDoc(doc)} className="group cursor-pointer transition-colors hover:bg-slate-50">
+                              <td className="flex items-center gap-3 px-6 py-3">
+                                {doc.ext === "pdf" && <FileText className="h-5 w-5 shrink-0 text-red-500 transition-transform group-hover:scale-110" />}
+                                {doc.ext === "xlsx" && <FileSpreadsheet className="h-5 w-5 shrink-0 text-emerald-500 transition-transform group-hover:scale-110" />}
+                                {doc.ext === "docx" && <FileType2 className="h-5 w-5 shrink-0 text-blue-500 transition-transform group-hover:scale-110" />}
+                                <span className="font-medium text-slate-700 transition-colors group-hover:text-primary max-w-[280px] truncate" title={doc.nome}>{doc.nome}</span>
+                              </td>
+                              <td className="px-6 py-3 text-slate-500">{doc.categoria}</td>
+                              <td className="px-6 py-3 text-slate-500">{doc.ano}</td>
+                              <td className="px-6 py-3 text-right text-slate-500">{doc.upload}</td>
+                            </tr>
+                          ))
+                      )}
+
+                      {/* MENSAGEM VAZIA */}
+                      {documentosExplorador.length === 0 && (
+                        <tr>
+                          <td colSpan={4} className="py-24 text-center text-slate-400">
+                            <FolderOpen className="mx-auto mb-3 h-10 w-10 opacity-20" />
+                            Esta pasta está vazia.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
+
+        {/* === TELA 3: CENTRAL DE UPLOAD === */}
+        {abaAtiva === "upload" && (
+          <div className="mx-auto max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <header className="mb-8 border-b border-border pb-6">
+              <h2 className="text-3xl font-semibold tracking-tight">Central de Upload</h2>
+              <p className="mt-1 text-sm text-muted-foreground">Arraste seus arquivos para a nuvem local da FCJA e configure os metadados em lote.</p>
+            </header>
+            
+            <div className="space-y-6">
+              {/* BOX DE ARRASTAR ARQUIVOS */}
+              <div
+                onDragOver={(e) => { e.preventDefault(); setArrastando(true); }}
+                onDragLeave={() => setArrastando(false)}
+                onDrop={(e) => { e.preventDefault(); setArrastando(false); receberArquivos(e.dataTransfer.files); }}
+                className={`flex flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed p-12 text-center transition-all ${arrastando ? "border-primary bg-primary/5 scale-[1.02]" : "border-border bg-white"}`}
+              >
+                <input ref={inputRef} type="file" multiple className="hidden" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv" onChange={(e) => { receberArquivos(e.target.files); e.target.value = ""; }} />
+                <span className="grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary mb-2">
+                  <CloudUpload className="h-8 w-8" />
+                </span>
+                <p className="text-lg font-medium text-foreground">Arraste e solte seus arquivos aqui</p>
+                <p className="text-sm text-muted-foreground mb-4">Arquivos PDF, Word ou Excel (até 25 MB)</p>
+                <Button onClick={() => inputRef.current?.click()}>Selecionar arquivos no PC</Button>
               </div>
 
               {erros.length > 0 && (
-                <div className="mt-3 space-y-1.5 rounded-xl border border-destructive/30 bg-destructive/10 p-3">
-                  {erros.map((e) => (
-                    <p key={e} className="flex items-start gap-2 text-xs text-destructive">
-                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-                      <span>{e}</span>
-                    </p>
-                  ))}
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+                  {erros.map((e) => <p key={e} className="flex items-center gap-2 text-sm text-red-600"><AlertCircle className="h-4 w-4" /> {e}</p>)}
                 </div>
               )}
 
-              {resumo && pendentes.length === 0 && (
-                <div className="mt-3 flex items-start gap-2 rounded-xl border border-primary/25 bg-primary/10 p-3 text-xs text-primary">
-                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>
-                    Resumo: {resumo.total} documento(s) cadastrado(s) com sucesso · 0 pendente(s).
-                  </span>
-                </div>
-              )}
-
+              {/* LISTA DE PENDENTES */}
               {pendentes.length > 0 && (
                 <div className="space-y-4">
-                  <div className="rounded-xl border border-border bg-secondary/40 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <label className="flex cursor-pointer items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        <Checkbox
-                          checked={pendentes.every((p) => p.sel)}
-                          onCheckedChange={(v) => alternarTodos(v === true)}
-                          disabled={enviando}
-                        />
+                  <div className="rounded-xl border bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                      <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-muted-foreground">
+                        <Checkbox checked={pendentes.every((p) => p.sel)} onCheckedChange={(v) => alternarTodos(v === true)} disabled={enviando} />
                         Selecionar todos
                       </label>
-                      <span className="text-xs text-muted-foreground">
-                        {selecionados.length}/{pendentes.length} marcados
-                      </span>
+                      <span className="text-sm text-muted-foreground">{selecionados.length}/{pendentes.length} marcados</span>
                     </div>
-                    <ul className="mt-3 max-h-52 space-y-2 overflow-y-auto pr-1 text-sm">
+                    <ul className="max-h-96 space-y-2 overflow-y-auto pr-2">
                       {pendentes.map((p) => (
-                        <li 
-                          key={p.id} 
-                          className={`rounded-lg p-2 transition-colors ${
-                            p.editado 
-                              ? "bg-emerald-50/80 border border-emerald-200" 
-                              : "bg-card/60 border border-transparent"
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <Checkbox
-                              checked={p.sel}
-                              onCheckedChange={() => alternarSel(p.id)}
-                              disabled={enviando}
-                              aria-label={`Selecionar ${p.file.name}`}
-                            />
-                            <span className="min-w-0 flex-1 truncate">{p.file.name}</span>
-                            <span className="shrink-0 text-xs text-muted-foreground">
-                              {formatarTamanho(p.file.size)}
-                            </span>
-                            <button
-                              type="button"
-                              aria-label={`Remover ${p.file.name}`}
-                              onClick={() => removerPendente(p.id)}
-                              disabled={enviando}
-                              className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:text-destructive disabled:opacity-40"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
+                        <li key={p.id} className={`rounded-xl border p-3 transition-colors ${p.editado ? "bg-emerald-50/50 border-emerald-200" : "bg-muted/30 border-transparent"}`}>
+                          <div className="flex items-center gap-3">
+                            <Checkbox checked={p.sel} onCheckedChange={() => alternarSel(p.id)} disabled={enviando} />
+                            <span className="min-w-0 flex-1 truncate font-medium">{p.file.name}</span>
+                            <span className="text-xs text-muted-foreground">{formatarTamanho(p.file.size)}</span>
+                            <button onClick={() => removerPendente(p.id)} disabled={enviando} className="text-slate-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
                           </div>
-                          <p className="mt-1 truncate pl-6 text-[11px] text-muted-foreground">
-                            {p.tipo} · {new Date(`${p.data}T12:00:00`).getFullYear()} · {p.nucleo}
-                          </p>
+                          <p className="mt-2 pl-7 text-xs text-muted-foreground">{p.tipo} · {new Date(`${p.data}T12:00:00`).getFullYear()} · {p.nucleo}</p>
                           {p.status !== "aguardando" && (
-                            <div className="mt-1.5 flex items-center gap-2 pl-6">
-                              <Progress value={p.progresso} className="h-1.5 flex-1" />
-                              <span className="w-14 shrink-0 text-right text-[11px] text-muted-foreground">
-                                {p.status === "concluido" ? "Concluído" : `${p.progresso}%`}
-                              </span>
+                            <div className="mt-3 flex items-center gap-3 pl-7">
+                              <Progress value={p.progresso} className="h-2 flex-1" />
+                              <span className="text-xs font-medium">{p.status === "concluido" ? "Concluído" : `${p.progresso}%`}</span>
                             </div>
                           )}
                         </li>
@@ -860,223 +989,151 @@ function Index() {
                     </ul>
                   </div>
 
-                  <div className="space-y-4 rounded-xl border border-border p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Cadastro em lote (arquivos marcados)
-                    </p>
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Data do documento</Label>
-                        <Input
-                          type="date"
-                          value={cadData}
-                          onChange={(e) => {
-                            setCadData(e.target.value);
-                            aplicarCampos({ data: e.target.value });
-                          }}
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Período (ano)</Label>
-                        <Select
-                          value={String(new Date(`${cadData}T12:00:00`).getFullYear())}
-                          onValueChange={(v) => {
-                            const nova = `${v}${cadData.slice(4)}`;
-                            setCadData(nova);
-                            aplicarCampos({ data: nova });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {ANOS.map((a) => (
-                              <SelectItem key={a} value={String(a)}>
-                                {a}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                  <div className="rounded-xl border bg-white p-6 shadow-sm">
+                    <p className="mb-4 text-sm font-semibold text-foreground">Cadastro em lote</p>
+                    <div className="grid gap-4 sm:grid-cols-4">
+                      <div className="space-y-2"><Label>Data</Label><Input type="date" value={cadData} onChange={(e) => { setCadData(e.target.value); aplicarCampos({ data: e.target.value }); }} /></div>
+                      <div className="space-y-2"><Label>Ano</Label>
+                        <Select value={String(new Date(`${cadData}T12:00:00`).getFullYear())} onValueChange={(v) => { const nova = `${v}${cadData.slice(4)}`; setCadData(nova); aplicarCampos({ data: nova }); }}>
+                          <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ANOS.map((a) => (<SelectItem key={a} value={String(a)}>{a}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs text-muted-foreground">Tipo de documento</Label>
-                        <Select
-                          value={cadTipo}
-                          onValueChange={(v) => {
-                            setCadTipo(v);
-                            aplicarCampos({ tipo: v });
-                          }}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {TIPOS.map((t) => (
-                              <SelectItem key={t} value={t}>
-                                {t}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
+                      <div className="space-y-2"><Label>Tipologia</Label>
+                        <Select value={cadTipo} onValueChange={(v) => { setCadTipo(v); aplicarCampos({ tipo: v }); }}>
+                          <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TIPOS.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}</SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-1.5">
-                      <Label className="text-xs text-muted-foreground">Núcleo de pesquisa</Label>
-                      <Select
-                        value={cadNucleo}
-                        onValueChange={(v) => {
-                          setCadNucleo(v);
-                          aplicarCampos({ nucleo: v });
-                        }}
-                      >
-                        <SelectTrigger className="[&>span]:truncate">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-72 max-w-[min(28rem,90vw)]">
-                          {NUCLEOS.filter((n) => n !== "Todos").map((n) => (
-                            <SelectItem key={n} value={n} className="items-start whitespace-normal">
-                              <span className="block leading-snug">{n}</span>
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-2"><Label>Núcleo</Label>
+                        <Select value={cadNucleo} onValueChange={(v) => { setCadNucleo(v); aplicarCampos({ nucleo: v }); }}>
+                          <SelectTrigger className="[&>span]:truncate"><SelectValue /></SelectTrigger>
+                          <SelectContent className="max-w-[min(28rem,90vw)]">{NUCLEOS.filter(n => n !== "Todos").map(n => (<SelectItem key={n} value={n}>{n}</SelectItem>))}</SelectContent>
+                        </Select>
                       </div>
                     </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={aplicarEmLote}
-                      disabled={enviando || selecionados.length === 0}
-                    >
-                      Aplicar aos {selecionados.length} marcados
-                    </Button>
-                  </div>
-
-                  {erroForm && (
-                    <p className="flex items-center gap-2 text-xs font-medium text-destructive">
-                      <AlertCircle className="h-3.5 w-3.5" /> {erroForm}
-                    </p>
-                  )}
-
-                  {resumo && (
-                    <p className="text-xs text-muted-foreground">
-                      Último envio: {resumo.total} cadastrado(s) · {resumo.recusados} ainda
-                      pendente(s).
-                    </p>
-                  )}
-
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        setPendentes([]);
-                        setErros([]);
-                        setErroForm(null);
-                      }}
-                      disabled={enviando}
-                    >
-                      Limpar
-                    </Button>
-                    <Button variant="brand" onClick={cadastrarPendentes} disabled={enviando}>
-                      {enviando
-                        ? "Enviando…"
-                        : `Cadastrar ${selecionados.length} documento(s)`}
-                    </Button>
+                    <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
+                      <Button variant="outline" onClick={aplicarEmLote} disabled={enviando || selecionados.length === 0}>Aplicar aos {selecionados.length} marcados</Button>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" onClick={() => { setPendentes([]); setErros([]); }} disabled={enviando}>Limpar Fila</Button>
+                        <Button variant="brand" onClick={cadastrarPendentes} disabled={enviando}>{enviando ? "Enviando…" : `Salvar ${selecionados.length} no Banco`}</Button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
-              </div>
-            </DialogContent>
-          </Dialog>
-        </header>
+            </div>
 
-        <FilterChips chips={chips} onLimpar={() => setFiltros(INICIAL)} />
-
-        <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {kpis.map((kpi) => (
-            <div
-              key={kpi.label}
-              className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] transition-shadow hover:shadow-lg"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {kpi.label}
-                  </p>
-                  <p className="mt-2 text-3xl font-semibold tracking-tight">{kpi.valor}</p>
-                  <p className="mt-1 truncate text-xs text-muted-foreground">{kpi.sub}</p>
+            {/* TABELA COM FILTROS INDEPENDENTES */}
+            <div className="mt-12 space-y-4">
+              <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-4">
+                <div>
+                  <h3 className="text-xl font-semibold tracking-tight">Gerenciamento do Acervo</h3>
+                  <p className="text-sm text-muted-foreground">Visualize, edite ou exporte os documentos já cadastrados no banco de dados.</p>
                 </div>
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <kpi.icon className="h-5 w-5" />
-                </span>
+                
+                {/* Botões lado a lado */}
+                <div className="flex gap-3">
+                  <Button variant="outline" onClick={abrirPastaWindows} className="gap-2 bg-white">
+                    <FolderOpen className="h-4 w-4" /> Abrir Pasta no Windows
+                  </Button>
+                  <Button variant="outline" onClick={() => setModalFiltrosUpload(true)} className="gap-2 bg-white">
+                    <SlidersHorizontal className="h-4 w-4" /> Filtrar Tabela
+                  </Button>
+                </div>
+              </div>
+              
+              <FilterChips chips={chipsUpload} onLimpar={() => setFiltrosUpload(INICIAL)} />
+              <DocumentTable docs={documentosUpload} onView={abrirDoc} onDownload={baixarDoc} onDelete={removerDoc} onDeleteMany={removerDocs} onEdit={editarDoc} />
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* === MODAIS DE FILTROS INDEPENDENTES === */}
+      
+      {/* 1. Modal do Dashboard */}
+      <Dialog open={modalFiltrosDash} onOpenChange={setModalFiltrosDash}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Filtros do Dashboard</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2 grid min-w-0">
+              <Label>Núcleo de Pesquisa</Label>
+              <Select value={filtrosDash.nucleo} onValueChange={(v) => setFiltrosDash(f => ({ ...f, nucleo: v }))}>
+                <SelectTrigger className="w-full max-w-full overflow-hidden [&>span]:truncate [&>span]:min-w-0 text-left"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-w-[min(90vw,30rem)]">{NUCLEOS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Ano Inicial</Label>
+                <Select value={String(filtrosDash.anoDe)} onValueChange={(v) => setFiltrosDash(f => ({ ...f, anoDe: Number(v), anoAte: Math.max(Number(v), f.anoAte) }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ANOS.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Ano Final</Label>
+                <Select value={String(filtrosDash.anoAte)} onValueChange={(v) => setFiltrosDash(f => ({ ...f, anoAte: Number(v), anoDe: Math.min(Number(v), f.anoDe) }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ANOS.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}</SelectContent>
+                </Select>
               </div>
             </div>
-          ))}
-        </section>
+          </div>
+          <Button className="w-full" onClick={() => setModalFiltrosDash(false)}>Aplicar e Fechar</Button>
+        </DialogContent>
+      </Dialog>
 
-        <section className="grid gap-6 xl:grid-cols-2">
-          <PizzaNucleos docs={documentos} />
-          <BarrasAno docs={documentos} />
-        </section>
+      {/* 2. Modal da Tabela de Upload */}
+      <Dialog open={modalFiltrosUpload} onOpenChange={setModalFiltrosUpload}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Filtros da Tabela</DialogTitle></DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2 grid min-w-0">
+              <Label>Núcleo de Pesquisa</Label>
+              <Select value={filtrosUpload.nucleo} onValueChange={(v) => setFiltrosUpload(f => ({ ...f, nucleo: v }))}>
+                <SelectTrigger className="w-full max-w-full overflow-hidden [&>span]:truncate [&>span]:min-w-0 text-left"><SelectValue /></SelectTrigger>
+                <SelectContent className="max-w-[min(90vw,30rem)]">{NUCLEOS.map(n => <SelectItem key={n} value={n}>{n}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Ano Inicial</Label>
+                <Select value={String(filtrosUpload.anoDe)} onValueChange={(v) => setFiltrosUpload(f => ({ ...f, anoDe: Number(v), anoAte: Math.max(Number(v), f.anoAte) }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ANOS.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Ano Final</Label>
+                <Select value={String(filtrosUpload.anoAte)} onValueChange={(v) => setFiltrosUpload(f => ({ ...f, anoAte: Number(v), anoDe: Math.min(Number(v), f.anoDe) }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>{ANOS.map(a => <SelectItem key={a} value={String(a)}>{a}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+          <Button className="w-full" onClick={() => setModalFiltrosUpload(false)}>Aplicar e Fechar</Button>
+        </DialogContent>
+      </Dialog>
 
-        <DocumentTable
-          docs={documentos}
-          onView={abrirDoc}
-          onDownload={baixarDoc}
-          onDelete={removerDoc}
-          onDeleteMany={removerDocs}
-          onEdit={editarDoc}
-        />
-       {/* === JANELA DO VISUALIZADOR INTERNO === */}
-        <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
+      {/* === MODAL VISUALIZADOR DE PDF E PLANILHAS === */}
+      <Dialog open={viewModalOpen} onOpenChange={setViewModalOpen}>
           <DialogContent className="flex max-h-[95vh] w-[min(70rem,96vw)] max-w-none flex-col gap-0 overflow-hidden p-0">
             <DialogHeader className="shrink-0 border-b border-border p-4 text-left">
               <DialogTitle className="flex items-center gap-2">
                 <span className="truncate">{viewDoc?.nome}</span>
               </DialogTitle>
             </DialogHeader>
-            
             <div className="min-h-[60vh] flex-1 overflow-auto bg-muted/30 p-4">
-              {viewDoc?.ext === "pdf" && (
-                <iframe 
-                  src={viewDoc.url} 
-                  className="h-full min-h-[70vh] w-full rounded-md border bg-white shadow-sm" 
-                  title="Visualizador de PDF"
-                />
-              )}
-              
+              {viewDoc?.ext === "pdf" && (<iframe src={viewDoc.url} className="h-full min-h-[70vh] w-full rounded-md border bg-white shadow-sm" title="Visualizador" />)}
               {viewDoc?.ext === "xlsx" && (
-                carregandoExcel ? (
-                  <div className="flex h-full min-h-[40vh] items-center justify-center text-sm font-medium text-muted-foreground animate-pulse">
-                    Lendo planilha e montando tabela virtual...
-                  </div>
-                ) : (
-                  <div className="rounded-md border bg-white p-4 shadow-sm">
-                    {/* Estilos injetados para a tabela não ficar feia */}
-                    <style>{`
-                      .planilha-viewer table { border-collapse: collapse; min-width: 100%; font-size: 13px; }
-                      .planilha-viewer td, .planilha-viewer th { border: 1px solid #e2e8f0; padding: 6px 12px; }
-                      .planilha-viewer tr:nth-child(even) { background-color: #f8fafc; }
-                      .planilha-viewer tr:first-child { font-weight: bold; background-color: #f1f5f9; }
-                    `}</style>
-                    <div 
-                      className="planilha-viewer overflow-auto"
-                      dangerouslySetInnerHTML={{ __html: excelData }} 
-                    />
-                  </div>
-                )
-              )}
-
-              {viewDoc?.ext === "docx" && (
-                <div className="flex h-full min-h-[40vh] flex-col items-center justify-center gap-4 text-center">
-                  <p className="text-sm text-muted-foreground">Navegadores não suportam a visualização nativa de arquivos Word (.docx).</p>
-                  <Button onClick={() => baixarDoc(viewDoc)}>Baixar Arquivo Word</Button>
-                </div>
+                carregandoExcel ? <div className="flex h-full min-h-[40vh] items-center justify-center animate-pulse">Lendo planilha...</div>
+                : <div className="rounded-md border bg-white p-4 shadow-sm"><style>{`.planilha-viewer table { border-collapse: collapse; min-width: 100%; font-size: 13px; } .planilha-viewer td, .planilha-viewer th { border: 1px solid #e2e8f0; padding: 6px 12px; } .planilha-viewer tr:nth-child(even) { background-color: #f8fafc; } .planilha-viewer tr:first-child { font-weight: bold; background-color: #f1f5f9; }`}</style><div className="planilha-viewer overflow-auto" dangerouslySetInnerHTML={{ __html: excelData }} /></div>
               )}
             </div>
           </DialogContent>
-        </Dialog> 
-      </main>
+      </Dialog>
+
     </div>
   );
 }

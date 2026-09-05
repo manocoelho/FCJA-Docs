@@ -12,23 +12,24 @@ export type Doc = {
 export const TIPOS = ["Planilhas", "Relatórios", "Notas Fiscais", "Formulários", "Currículos"];
 export const NUCLEOS = [
   "Todos",
-  "Manuscritos de José Américo de Almeida: identificação e descrição de documentos",
-  "O modernismo na Paraíba: a revista Era Nova e a novela Reflexões de uma cabra",
-  "A Paraíba e seus problemas: permanências e transformações",
-  "Partituras de uma história pela democracia: as conexões artísticas e políticas entre José Siqueira e José Américo de Almeida",
-  "Acervo audiovisual da FCJA: imagem e memória",
-  "Os Modernismos na Paraíba e o Circuito de Comunicação da Revista Era Nova (1921-1926)",
-  "De A Paraíba e seus problemas à A Bagaceira: Itinerários literários de José Américo de Almeida",
-  "Maestro José Siqueira: Memórias da Música para o futuro",
-  "1930 A caminho do centenário: convergências bibliográficas e fontes digitais (BR 1930)",
-  "Modernização digital do acervo da Fundação Casa de José Américo: estruturando a preservação e o acesso",
-  "Imprensa e cultura na Paraíba: os circuitos de comunicação das revistas Ilustração e Manaira (1930-1940)",
-  "Por uma cartografia dos lugares de consciência na Paraíba: trajetos do patrimônio cultural por meio da memória das violações de direitos humanos e da resistência",
-  "Mapeamento do Patrimônio Arqueológico da Paraíba",
-  "Entre Termos e Conceitos: Uma Pesquisa Documental sobre Educação Patrimonial",
-  "Sustentabilidade e Diversidade: Pesquisa-ação na Mata da Falésia de Cabo Branco",
+  "Manuscritos de José Américo de Almeida: identificação e descrição de documentos", //[cite: 2]
+  "O modernismo na Paraiba a revista Era Nova e a Novela Reflexões de uma cabra", //[cite: 2]
+  "A Paraíba e seus problemas: permanências e transformações", //[cite: 2]
+  "Partituras de uma história pela democracia: as conexões artísticas e politicas entre José Siqueira e José Américo de Almeida", //[cite: 2]
+  "Acervo audiovisual da FCJA: imagem e memória", //[cite: 2]
+  "Os Modernismos na Paraiba e o Circuito de Comunicação da Revista Era Nova (1921-1926)", //[cite: 2]
+  "De A Paraíba e seus problemas à A Bagaceira: Itinerários literários de José Américo de Almeida", //[cite: 2]
+  "Maestro José Siqueira: Memórias da Música para o futuro", //[cite: 2]
+  "1930 A caminho do centenário: convergências bibliográficas e fontes digitais (BR 1930)", //[cite: 2]
+  "Modernização digital do acervo da Fundação Casa de José Américo: estruturando a preservação e o acesso", //[cite: 2]
+  "Imprensa e cultura na Paraíba: os circuitos de comunicação das revistas Ilustração e Manaira (1930-1940)", //[cite: 2]
+  "Por uma cartografia dos lugares de consciência na Paraíba: trajetos do patrimônio cultural por meio da memória das violações de direitos humanos e da resistência", //[cite: 2]
+  "Repositório Arquivistico Digital Confiável da produção do Projeto Preservação e Difusão do Acervo da FCJA", //[cite: 2]
+  "Mapeamento do Patrimonio Arqueológico da Paraiba", //[cite: 2]
+  "Entre Termos e Conceitos: Uma Pesquisa Documental sobre Educação Patrimonial", //[cite: 2]
+  "Sustentabilidade e Diversidade: Pesquisa ação na Mata da Falésia de Cabo Branco" //[cite: 2]
 ];
-export const ANOS = [2024, 2025, 2026];
+export const ANOS = [2022, 2023, 2024, 2025, 2026, 2027];
 
 export const TIPO_POR_CATEGORIA: Record<string, string> = {
   Relatório: "Relatórios",

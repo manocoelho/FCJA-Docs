@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import sqlite3
 import os
 import shutil
+import platform
 import uuid
 import urllib.parse
 import re # <-- Nova biblioteca para limpar textos
@@ -32,6 +33,13 @@ app.add_middleware(
 PASTA_DADOS = "C:/FCJA_Dados"
 PASTA_ARQUIVOS = f"{PASTA_DADOS}/arquivos"
 DB_FILE = f"{PASTA_DADOS}/fcja_ged.db"
+
+# --- verifica se a pasta existe ---
+if not os.path.exists(PASTA_DADOS):
+    os.makedirs(PASTA_DADOS)
+if not os.path.exists(PASTA_ARQUIVOS):
+    os.makedirs(PASTA_ARQUIVOS)
+# --------------------------------
 
 app.mount("/arquivos", StaticFiles(directory=PASTA_ARQUIVOS), name="arquivos")
 
@@ -232,3 +240,43 @@ def fazer_login(dados: LoginRequest):
         return {"sucesso": True, "nome": user[0], "papel": user[1]}
     else:
         return {"sucesso": False, "erro": "Usuário ou senha incorretos"}
+
+# ==========================================
+# ROTAS DO SISTEMA OPERACIONAL
+# ==========================================
+@app.get("/api/sistema/status")
+def status_sistema():
+    """Calcula o espaço total e livre do HD e o tamanho exclusivo do Acervo"""
+    try:
+        # Pega as estatísticas do disco principal
+        total, used, free = shutil.disk_usage(PASTA_DADOS)
+        
+        # Calcula o tamanho exato APENAS da pasta do sistema (FCJA_Dados)
+        tamanho_acervo = 0
+        if os.path.exists(PASTA_DADOS):
+            for dirpath, _, filenames in os.walk(PASTA_DADOS):
+                for f in filenames:
+                    fp = os.path.join(dirpath, f)
+                    if not os.path.islink(fp):
+                        tamanho_acervo += os.path.getsize(fp)
+
+        return {
+            "sucesso": True,
+            "pasta": PASTA_DADOS,
+            "total_bytes": total,
+            "usado_bytes": used,
+            "livre_bytes": free,
+            "acervo_bytes": tamanho_acervo
+        }
+    except Exception as e:
+        return {"sucesso": False, "erro": str(e)}
+
+@app.post("/api/sistema/abrir-pasta")
+def abrir_pasta_windows():
+    """Abre o explorador de arquivos do Windows direto na pasta de dados"""
+    try:
+        if platform.system() == "Windows":
+            os.startfile(PASTA_DADOS)
+        return {"sucesso": True}
+    except Exception as e:
+        return {"sucesso": False, "erro": str(e)}
