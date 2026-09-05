@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import {
   AlertCircle, CheckCircle2, CloudUpload, Clock, Files, Filter, Plus, Trash2,
   Eye, EyeOff, LayoutDashboard, FolderOpen, HardDrive, LogOut, SlidersHorizontal,
-  FileSpreadsheet, FileText, FileType2, ChevronRight, Folder
+  FileSpreadsheet, FileText, FileType2, ChevronRight, Folder, Library
 } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
@@ -60,6 +60,14 @@ export const Route = createFileRoute("/")({
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
+    links: [
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        // Desenhamos a mesma Library em SVG num fundo azul (blue-500)
+        href: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%233b82f6'/><path d='m16 6 4 14' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M12 6v14' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M8 8v12' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4 4v16' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>"
+      }
+    ]
   }),
   component: Index,
 });
@@ -109,7 +117,7 @@ function formatarTamanho(bytes: number) {
 function Index() {
 
   // --- CONTROLE DE LOGIN ---
-  const [usuarioLogado, setUsuarioLogado] = useState(() => localStorage.getItem("fcja_user"));
+  const [usuarioLogado, setUsuarioLogado] = useState(() => sessionStorage.getItem("fcja_user"));
   const [loginInput, setLoginInput] = useState("");
   const [senhaInput, setSenhaInput] = useState("");
   const [erroLogin, setErroLogin] = useState("");
@@ -162,7 +170,7 @@ function Index() {
       const data = await res.json();
       
       if (data.sucesso) {
-        localStorage.setItem("fcja_user", data.nome);
+        sessionStorage.setItem("fcja_user", data.nome);
         setUsuarioLogado(data.nome);
         toast.success(`Bem-vindo(a), ${data.nome}!`);
       } else {
@@ -612,14 +620,20 @@ function Index() {
     ...(filtrosUpload.nucleo !== "Todos" ? [{ id: "nucleo", label: `Núcleo: ${filtrosUpload.nucleo}`, onRemove: () => setFiltrosUpload(f => ({ ...f, nucleo: "Todos" })) }] : []),
   ];
 
-  // === TELA DE LOGIN (AGORA NO LUGAR CORRETO PARA NÃO QUEBRAR O REACT) ===
+  // === TELA DE LOGIN ===
   if (!usuarioLogado) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-muted/30 p-4">
         <form onSubmit={handleLogin} className="w-full max-w-sm rounded-2xl border border-border bg-white p-8 shadow-xl">
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold tracking-tight text-primary">FCJA Docs</h1>
-            <p className="mt-1 text-sm text-muted-foreground">Gestão Eletrônica de Documentos</p>
+          {/* LOGO TELA DE LOGIN */}
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="mb-4 grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-primary text-white shadow-xl shadow-primary/20">
+              <Library className="h-7 w-7" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">FCJA Docs</h1>
+            <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              Acervo Digital
+            </p>
           </div>
           
           <div className="space-y-4">
@@ -662,10 +676,16 @@ function Index() {
       {/* --- BARRA LATERAL (MENU DO SISTEMA) --- */}
       <aside className="flex w-64 shrink-0 flex-col justify-between bg-slate-950 text-slate-300 shadow-xl">
         <div>
-          <div className="flex h-20 items-center border-b border-white/10 px-6">
+          {/* NOVO LOGO E SUBTÍTULO */}
+          <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-primary text-white shadow-lg shadow-primary/20">
+              <Library className="h-5 w-5" />
+            </div>
             <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">FCJA Docs</h1>
-              <p className="text-[11px] text-slate-400 uppercase tracking-widest">Web Desktop</p>
+              <h1 className="text-xl font-bold tracking-tight text-white">FCJA Docs</h1>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-400">
+                Acervo Digital
+              </p>
             </div>
           </div>
           <nav className="flex flex-col gap-2 p-4">
@@ -695,7 +715,7 @@ function Index() {
             <p className="font-semibold text-white">{usuarioLogado}</p>
           </div>
           <button 
-            onClick={() => { localStorage.removeItem("fcja_user"); setUsuarioLogado(null); }}
+            onClick={() => { sessionStorage.removeItem("fcja_user"); setUsuarioLogado(null); }}
             className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
           >
             <LogOut className="h-5 w-5" /> Sair do Sistema
@@ -1055,6 +1075,28 @@ function Index() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Filtros do Dashboard</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
+            
+            {/* CAMPO: TIPOLOGIA (Múltipla Seleção) */}
+            <div className="space-y-2 grid min-w-0">
+              <Label>Tipologias</Label>
+              <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-slate-50/50 p-3 space-y-3">
+                {TIPOS.map((t) => (
+                  <label key={t} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 hover:text-primary">
+                    <Checkbox
+                      checked={filtrosDash.tipos.includes(t)}
+                      onCheckedChange={(checked) => {
+                        setFiltrosDash((f) => ({
+                          ...f,
+                          tipos: checked ? [...f.tipos, t] : f.tipos.filter((x) => x !== t),
+                        }));
+                      }}
+                    />
+                    <span className="truncate">{t}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2 grid min-w-0">
               <Label>Núcleo de Pesquisa</Label>
               <Select value={filtrosDash.nucleo} onValueChange={(v) => setFiltrosDash(f => ({ ...f, nucleo: v }))}>
@@ -1088,6 +1130,28 @@ function Index() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Filtros da Tabela</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
+            
+            {/* TIPOLOGIA (Múltipla Seleção) */}
+            <div className="space-y-2 grid min-w-0">
+              <Label>Tipologias</Label>
+              <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-slate-50/50 p-3 space-y-3">
+                {TIPOS.map((t) => (
+                  <label key={t} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 hover:text-primary">
+                    <Checkbox
+                      checked={filtrosUpload.tipos.includes(t)}
+                      onCheckedChange={(checked) => {
+                        setFiltrosUpload((f) => ({
+                          ...f,
+                          tipos: checked ? [...f.tipos, t] : f.tipos.filter((x) => x !== t),
+                        }));
+                      }}
+                    />
+                    <span className="truncate">{t}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div className="space-y-2 grid min-w-0">
               <Label>Núcleo de Pesquisa</Label>
               <Select value={filtrosUpload.nucleo} onValueChange={(v) => setFiltrosUpload(f => ({ ...f, nucleo: v }))}>

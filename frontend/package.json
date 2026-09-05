@@ -1,6 +1,8 @@
 {
-  "name": "tanstack_start_ts",
+  "name": "fcja-docs",
+  "author": "Antonio Rocha Lima Filho",
   "private": true,
+  "version": "1.0.0",
   "sideEffects": false,
   "type": "module",
   "scripts": {

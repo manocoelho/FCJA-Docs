@@ -264,39 +264,18 @@ export function DocumentTable({
                 Exportar
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel>Todos os filtrados ({lista.length})</DropdownMenuLabel>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuLabel>Exportar Resultados</DropdownMenuLabel>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => exportar("csv", "filtrados")}>
-                <DownloadIcon className="h-4 w-4" /> CSV
+                <DownloadIcon className="mr-2 h-4 w-4" /> CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportar("xls", "filtrados")}>
-                <DownloadIcon className="h-4 w-4" /> Excel (.xls)
+                <DownloadIcon className="mr-2 h-4 w-4" /> Excel (.xls)
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => exportar("pdf", "filtrados")}>
-                <DownloadIcon className="h-4 w-4" /> PDF
+                <DownloadIcon className="mr-2 h-4 w-4" /> PDF
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel>Página atual ({visiveis.length})</DropdownMenuLabel>
-              <DropdownMenuItem onClick={() => exportar("csv", "pagina")}>CSV</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportar("xls", "pagina")}>
-                Excel (.xls)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => exportar("pdf", "pagina")}>PDF</DropdownMenuItem>
-              {marcados.length > 0 && (
-                <>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuLabel>Selecionados ({marcados.length})</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => exportar("csv", "marcados")}>
-                    CSV
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => exportar("xls", "marcados")}>
-                    Excel (.xls)
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => exportar("pdf", "marcados")}>
-                    PDF
-                  </DropdownMenuItem>
-                </>
-              )}
             </DropdownMenuContent>
           </DropdownMenu>
           <div className="relative w-full sm:w-72">
