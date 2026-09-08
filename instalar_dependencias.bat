@@ -17,10 +17,10 @@ if %errorlevel% neq 0 (
     exit /b
 )
 
-npm --version >nul 2>&1
+call npm --version >nul 2>&1
 if %errorlevel% neq 0 (
     color 0C
-    echo [X] ERRO: Node.js (npm) nao encontrado! 
+    echo [X] ERRO: Node.js - npm nao encontrado! 
     echo Por favor, baixe e instale a versao LTS em nodejs.org.
     echo.
     pause

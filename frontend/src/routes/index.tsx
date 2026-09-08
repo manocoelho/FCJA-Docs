@@ -117,7 +117,12 @@ function formatarTamanho(bytes: number) {
 function Index() {
 
   // --- CONTROLE DE LOGIN ---
-  const [usuarioLogado, setUsuarioLogado] = useState(() => sessionStorage.getItem("fcja_user"));
+  const [usuarioLogado, setUsuarioLogado] = useState(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("fcja_user");
+    }
+    return null;
+  });
   const [loginInput, setLoginInput] = useState("");
   const [senhaInput, setSenhaInput] = useState("");
   const [erroLogin, setErroLogin] = useState("");
