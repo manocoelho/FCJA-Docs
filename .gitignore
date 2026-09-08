@@ -1,0 +1,32 @@
+# =========================
+# FRONTEND (React / Bun / Node)
+# =========================
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+.eslintcache
+.env
+.env.local
+
+# =========================
+# BACKEND (Python / FastAPI)
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+*.log
+
+# Bancos de Dados locais (opcional, caso você crie um .db na pasta do projeto para testes)
+*.db
+*.sqlite3
+
+# =========================
+# SISTEMA OPERACIONAL E EDITOR
+# =========================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
