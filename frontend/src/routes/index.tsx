@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import {
   AlertCircle, CheckCircle2, CloudUpload, Clock, Files, Filter, Plus, Trash2,
   Eye, EyeOff, LayoutDashboard, FolderOpen, HardDrive, LogOut, SlidersHorizontal,
-  FileSpreadsheet, FileText, FileType2, ChevronRight, Folder, Library
+  FileSpreadsheet, FileText, FileType2, ChevronRight, Folder, Library,
+  Users, Shield, Edit
 } from "lucide-react";
 
 import { Progress } from "@/components/ui/progress";
@@ -123,13 +124,21 @@ function Index() {
     }
     return null;
   });
+
+  // Guarda a permissão do usuário
+  const [usuarioPapel, setUsuarioPapel] = useState(() => {
+    if (typeof window !== "undefined") return sessionStorage.getItem("fcja_role");
+    return null;
+  });
+
+  const [modoStorage, setModoStorage] = useState<"LOCAL" | "EXTERNO">("LOCAL");
   const [loginInput, setLoginInput] = useState("");
   const [senhaInput, setSenhaInput] = useState("");
   const [erroLogin, setErroLogin] = useState("");
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
 // --- CONTROLE DO WEB DESKTOP ---
-  const [abaAtiva, setAbaAtiva] = useState<"dashboard" | "explorador" | "upload">("dashboard");
+  const [abaAtiva, setAbaAtiva] = useState<"dashboard" | "explorador" | "upload" | "permissoes">("dashboard");
   const [pastaSelecionada, setPastaSelecionada] = useState<string>("Todos");
   
   // NAVEGAÇÃO PROFUNDA (Ano e Tipologia)
@@ -154,6 +163,55 @@ function Index() {
       .catch(err => console.error("Erro ao ler HD:", err));
   }, []);
 
+  // Atualiza o useEffect do Status para ler o Modo atual
+  useEffect(() => {
+    fetch("http://localhost:8000/api/sistema/status")
+      .then(res => res.json())
+      .then(data => { 
+        if (data.sucesso) {
+          setSysStatus(data);
+          setModoStorage(data.modo);
+        }
+      })
+      .catch(err => console.error("Erro ao ler HD:", err));
+  }, []);
+
+  // função para trocar de HD
+  async function alternarArmazenamento(novoModo: "LOCAL" | "EXTERNO") {
+    if (modoStorage === novoModo) return;
+    const toastId = toast.loading(`Iniciando conexão com o disco ${novoModo}...`);
+    
+    try {
+      const res = await fetch("http://localhost:8000/api/sistema/armazenamento", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ modo: novoModo })
+      });
+      const data = await res.json();
+      
+      if (data.sucesso) {
+        setModoStorage(data.modo);
+        toast.success("Banco de Dados transferido!", { id: toastId, description: `Lendo informações da pasta: ${data.pasta}` });
+        
+        // Recarrega todos os documentos e recalcula os dashboards
+        const resDocs = await fetch("http://localhost:8000/api/documentos");
+        const docs = await resDocs.json();
+        setDocumentosApi(docs);
+        setEnviados([]); // Limpa cache da tela
+        
+        // Recalcula o espaço em disco
+        const resStatus = await fetch("http://localhost:8000/api/sistema/status");
+        const statusData = await resStatus.json();
+        if(statusData.sucesso) setSysStatus(statusData);
+        
+      } else {
+        toast.error("Falha na transição", { id: toastId, description: data.erro });
+      }
+    } catch (e) {
+      toast.error("Erro de Rede", { id: toastId, description: "O servidor Backend não respondeu." });
+    }
+  }
+
   async function abrirPastaWindows() {
     try {
       await fetch("http://localhost:8000/api/sistema/abrir-pasta", { method: "POST" });
@@ -176,7 +234,9 @@ function Index() {
       
       if (data.sucesso) {
         sessionStorage.setItem("fcja_user", data.nome);
+        sessionStorage.setItem("fcja_role", data.papel);
         setUsuarioLogado(data.nome);
+        setUsuarioPapel(data.papel);
         toast.success(`Bem-vindo(a), ${data.nome}!`);
       } else {
         setErroLogin("Credenciais inválidas. Tente novamente.");
@@ -712,15 +772,47 @@ function Index() {
             >
               <CloudUpload className="h-5 w-5" /> Central de Upload
             </button>
+
+            {/* BOTÃO EXCLUSIVO DE ADMIN FICA AQUI DENTRO DO MENU */}
+            {usuarioPapel === "admin" && (
+              <button 
+                onClick={() => setAbaAtiva("permissoes")}
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${abaAtiva === "permissoes" ? "bg-emerald-600 text-white" : "hover:bg-white/10 hover:text-white"}`}
+              >
+                <Shield className="h-5 w-5 text-emerald-400" /> Gerenciar Acessos
+              </button>
+            )}
           </nav>
         </div>
+        
+        {/* RODAPÉ DA BARRA LATERAL */}
         <div className="border-t border-white/10 p-4">
+          
+          {/* PAINEL DE CONTROLE DE ARMAZENAMENTO */}
+          <div className="mb-6 rounded-xl bg-white/5 p-3">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Banco de Dados Ativo</p>
+            <div className="flex rounded-lg bg-slate-950 p-1 text-xs">
+              <button
+                onClick={() => alternarArmazenamento("LOCAL")}
+                className={`flex-1 rounded-md py-2 text-center font-medium transition-all ${modoStorage === "LOCAL" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
+              >
+                Disco (C:)
+              </button>
+              <button
+                onClick={() => alternarArmazenamento("EXTERNO")}
+                className={`flex-1 rounded-md py-2 text-center font-medium transition-all ${modoStorage === "EXTERNO" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
+              >
+                HD Externo
+              </button>
+            </div>
+          </div>
+
           <div className="mb-4 px-4 text-xs">
             <p className="text-slate-500">Conectado como:</p>
             <p className="font-semibold text-white">{usuarioLogado}</p>
           </div>
           <button 
-            onClick={() => { sessionStorage.removeItem("fcja_user"); setUsuarioLogado(null); }}
+            onClick={() => { sessionStorage.removeItem("fcja_user"); sessionStorage.removeItem("fcja_role"); setUsuarioLogado(null); setUsuarioPapel(null); }}
             className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10 hover:text-red-300"
           >
             <LogOut className="h-5 w-5" /> Sair do Sistema
@@ -818,7 +910,8 @@ function Index() {
                       onClick={() => { setPastaSelecionada("Todos"); setSubPastaAno(null); setSubPastaTipo(null); }} 
                       className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${pastaSelecionada === "Todos" ? "bg-primary/10 font-semibold text-primary" : "text-slate-600 hover:bg-slate-200/50"}`}
                     >
-                      <HardDrive className="h-4 w-4 shrink-0" /> Disco Local (C:)
+                      <HardDrive className="h-4 w-4 shrink-0" /> 
+                      {modoStorage === "EXTERNO" ? "Armazenamento Externo" : "Disco Local (C:)"}
                     </button>
                   </li>
                   {NUCLEOS.filter(n => n !== "Todos").map(nucleo => (
@@ -1067,13 +1160,19 @@ function Index() {
               </div>
               
               <FilterChips chips={chipsUpload} onLimpar={() => setFiltrosUpload(INICIAL)} />
-              <DocumentTable docs={documentosUpload} onView={abrirDoc} onDownload={baixarDoc} onDelete={removerDoc} onDeleteMany={removerDocs} onEdit={editarDoc} />
-            </div>
+            <DocumentTable docs={documentosUpload} onView={abrirDoc} onDownload={baixarDoc} onDelete={removerDoc} onDeleteMany={removerDocs} onEdit={editarDoc} />
           </div>
-        )}
-      </main>
+        </div>
+      )}
 
-      {/* === MODAIS DE FILTROS INDEPENDENTES === */}
+      {/* === TELA 4: GERENCIAR PERMISSÕES (SOMENTE ADMIN) === */}
+      {abaAtiva === "permissoes" && usuarioPapel === "admin" && (
+        <TelaPermissoes />
+      )}
+      
+    </main>
+
+    {/* === MODAIS DE FILTROS INDEPENDENTES === */}
       
       {/* 1. Modal do Dashboard */}
       <Dialog open={modalFiltrosDash} onOpenChange={setModalFiltrosDash}>
@@ -1203,6 +1302,210 @@ function Index() {
           </DialogContent>
       </Dialog>
 
+    </div>
+  );
+}
+
+// ==========================================
+// TELA DE GERENCIAMENTO DE PERMISSÕES
+// ==========================================
+function TelaPermissoes() {
+  const [usuarios, setUsuarios] = useState<{login: string, nome: string, papel: string}[]>([]);
+  
+  // Estados de Criação
+  const [novoNome, setNovoNome] = useState("");
+  const [novoLogin, setNovoLogin] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [novoPapel, setNovoPapel] = useState("pesquisador");
+
+  // Estados de Edição
+  const [usuarioEditando, setUsuarioEditando] = useState<string | null>(null);
+  const [editNome, setEditNome] = useState("");
+  const [editLogin, setEditLogin] = useState("");
+  const [editSenha, setEditSenha] = useState("");
+  const [editPapel, setEditPapel] = useState("pesquisador");
+
+  const carregarUsuarios = () => {
+    fetch("http://localhost:8000/api/usuarios")
+      .then(res => res.json())
+      .then(data => setUsuarios(data))
+      .catch(() => toast.error("Erro ao carregar usuários"));
+  };
+
+  useEffect(() => {
+    carregarUsuarios();
+  }, []);
+
+  const cadastrar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch("http://localhost:8000/api/usuarios", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ nome: novoNome, login: novoLogin, senha: novaSenha, papel: novoPapel })
+    });
+    const data = await res.json();
+    if (data.sucesso) {
+      toast.success(data.mensagem);
+      setNovoNome(""); setNovoLogin(""); setNovaSenha("");
+      carregarUsuarios();
+    } else {
+      toast.error(data.erro);
+    }
+  };
+
+  const mudarPapel = async (login: string, novoPapel: string) => {
+    await fetch(`http://localhost:8000/api/usuarios/${login}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ papel: novoPapel })
+    });
+    toast.success("Permissão atualizada!");
+    carregarUsuarios();
+  };
+
+  const removerUsuario = async (login: string) => {
+    if(!confirm(`Tem certeza que deseja remover o acesso de "${login}"?`)) return;
+    await fetch(`http://localhost:8000/api/usuarios/${login}`, { method: "DELETE" });
+    toast.success("Usuário removido do sistema.");
+    carregarUsuarios();
+  };
+
+  // --- FUNÇÕES DE EDIÇÃO ---
+  const abrirEdicao = (u: any) => {
+    setUsuarioEditando(u.login);
+    setEditNome(u.nome);
+    setEditLogin(u.login);
+    setEditSenha(""); // Inicia vazio para não alterar a menos que digite
+    setEditPapel(u.papel);
+  };
+
+  const salvarEdicao = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch(`http://localhost:8000/api/usuarios/${usuarioEditando}/editar`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nome: editNome,
+        login: editLogin,
+        senha: editSenha,
+        papel: editPapel
+      })
+    });
+    
+    const data = await res.json();
+    if (data.sucesso) {
+      toast.success(data.mensagem);
+      
+      // Se você mudou o próprio login, atualiza a sessão local
+      if (usuarioEditando === sessionStorage.getItem("fcja_user") && editLogin !== usuarioEditando) {
+        sessionStorage.setItem("fcja_user", editLogin);
+        toast.info("Seu login foi atualizado. Use-o na próxima vez.");
+      }
+      
+      setUsuarioEditando(null);
+      carregarUsuarios();
+    } else {
+      toast.error(data.erro);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-5xl animate-in fade-in slide-in-from-bottom-4 duration-500 relative">
+      <header className="mb-8 border-b border-border pb-6">
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-900 flex items-center gap-3">
+          <Shield className="h-8 w-8 text-emerald-600" /> Painel do Administrador
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">Adicione novos membros da equipe e gerencie seus níveis de acesso.</p>
+      </header>
+
+      <div className="grid gap-8 md:grid-cols-3">
+        {/* FORMULÁRIO DE NOVO USUÁRIO */}
+        <div className="md:col-span-1 rounded-2xl border bg-white p-6 shadow-sm h-fit">
+          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2"><Users className="h-5 w-5" /> Novo Usuário</h3>
+          <form onSubmit={cadastrar} className="space-y-4">
+            <div className="space-y-1"><Label>Nome Completo</Label><Input required value={novoNome} onChange={e => setNovoNome(e.target.value)} placeholder="Ex: João Silva" /></div>
+            <div className="space-y-1"><Label>Nome de Usuário (Login)</Label><Input required value={novoLogin} onChange={e => setNovoLogin(e.target.value)} placeholder="Ex: joao.silva" /></div>
+            <div className="space-y-1"><Label>Senha</Label><Input required type="password" value={novaSenha} onChange={e => setNovaSenha(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Nível de Acesso</Label>
+              <Select value={novoPapel} onValueChange={setNovoPapel}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pesquisador">Pesquisador (Comum)</SelectItem>
+                  <SelectItem value="admin">Administrador (Total)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 mt-2">Cadastrar Membro</Button>
+          </form>
+        </div>
+
+        {/* TABELA DE USUÁRIOS */}
+        <div className="md:col-span-2 rounded-2xl border bg-white shadow-sm overflow-hidden h-fit">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-slate-50 border-b border-border">
+              <tr className="text-xs font-semibold text-slate-500 uppercase">
+                <th className="px-6 py-4">Usuário</th>
+                <th className="px-6 py-4">Nível de Acesso</th>
+                <th className="px-6 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {usuarios.map(u => (
+                <tr key={u.login} className="hover:bg-slate-50">
+                  <td className="px-6 py-4">
+                    <p className="font-semibold text-slate-900">{u.nome}</p>
+                    <p className="text-xs text-slate-500">@{u.login}</p>
+                  </td>
+                  <td className="px-6 py-4">
+                    <Select value={u.papel} onValueChange={(v) => mudarPapel(u.login, v)}>
+                      <SelectTrigger className={`h-8 w-36 text-xs font-semibold ${u.papel === 'admin' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-100 text-slate-700'}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pesquisador">Pesquisador</SelectItem>
+                        <SelectItem value="admin">Administrador</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="px-6 py-4 flex items-center justify-end gap-2">
+                    <Button variant="ghost" size="sm" onClick={() => abrirEdicao(u)} className="text-blue-600 hover:text-blue-800 hover:bg-blue-50" title="Editar Usuário">
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => removerUsuario(u.login)} className="text-red-500 hover:text-red-700 hover:bg-red-50" title="Revogar Acesso">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* MODAL DE EDIÇÃO */}
+      <Dialog open={!!usuarioEditando} onOpenChange={(open) => !open && setUsuarioEditando(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>Deixe a senha em branco se desejar manter a atual.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={salvarEdicao} className="space-y-4 py-4">
+            <div className="space-y-1"><Label>Nome Completo</Label><Input required value={editNome} onChange={e => setEditNome(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Login</Label><Input required value={editLogin} onChange={e => setEditLogin(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Nova Senha (Opcional)</Label><Input type="password" placeholder="******" value={editSenha} onChange={e => setEditSenha(e.target.value)} /></div>
+            <div className="space-y-1"><Label>Nível de Acesso</Label>
+              <Select value={editPapel} onValueChange={setEditPapel}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pesquisador">Pesquisador (Comum)</SelectItem>
+                  <SelectItem value="admin">Administrador (Total)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 mt-2">Salvar Alterações</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
