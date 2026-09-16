@@ -32,7 +32,7 @@ echo.
 echo [2/3] Instalando bibliotecas do Backend (Python)...
 cd backend
 python -m pip install --upgrade pip >nul 2>&1
-pip install fastapi uvicorn python-multipart pydantic
+pip install fastapi uvicorn python-multipart pydantic pandas openpyxl python-dotenv
 cd ..
 echo [OK] Backend configurado!
 echo.
