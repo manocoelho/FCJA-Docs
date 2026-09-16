@@ -160,10 +160,11 @@ function Index() {
       try {
         const res = await fetch(`http://localhost:8000/api/visualizar-planilha/${doc.id}`);
         const data = await res.json();
+        
         if (data.colunas) {
           setDadosPlanilha(data);
         } else {
-          toast.error("Erro ao ler dados da planilha.");
+          toast.error("Não foi possível abrir a planilha", { description: data.erro });
         }
       } catch (e) {
         toast.error("Falha ao se conectar com o leitor Python.");

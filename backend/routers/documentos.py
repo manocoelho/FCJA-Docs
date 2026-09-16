@@ -164,10 +164,20 @@ def visualizar_planilha(doc_id: str):
          return {"erro": "Arquivo físico não encontrado."}
 
     try:
-        # O Pandas lê o arquivo físico e converte para dados compatíveis com o React
-        df = pd.read_excel(caminho_fisico)
+        try:
+            df = pd.read_excel(caminho_fisico)
+        except ValueError as e:
+            if "engine" in str(e).lower() or "format" in str(e).lower():
+                dfs = pd.read_html(caminho_fisico)
+                df = dfs[0] # Pega a primeira tabela encontrada dentro do arquivo
+            else:
+                raise e
+                
+        # Limpa os dados vazios e envia para o React
+        df = df.fillna("")
         colunas = df.columns.astype(str).tolist()
-        linhas = df.fillna("").to_dict(orient="records")
+        linhas = df.to_dict(orient="records")
         return {"colunas": colunas, "linhas": linhas}
+        
     except Exception as e:
-        return {"erro": str(e)}
+        return {"erro": f"O arquivo é um 'falso Excel' não suportado ou está corrompido. Detalhe: {str(e)}"}
