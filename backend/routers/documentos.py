@@ -1,4 +1,5 @@
-from fastapi import APIRouter, File, UploadFile, Form
+from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import sqlite3
 import os
@@ -7,7 +8,8 @@ import uuid
 import urllib.parse
 import re
 from datetime import datetime
-import pandas as pd  # <-- Importação do Pandas adicionada aqui
+import pandas as pd
+
 import database
 
 router = APIRouter()
@@ -205,14 +207,19 @@ def abrir_arquivo_local(doc_id: str):
         database.PASTA_ARQUIVOS, limpar_nome_pasta(nucleo), str(ano), limpar_nome_pasta(categoria), limpar_nome_pasta(nome)
     )
     
-    if os.path.exists(caminho_fisico):
-        try:
-            if platform.system() == "Windows":
-                os.startfile(caminho_fisico)
-                return {"sucesso": True}
-            else:
-                return {"sucesso": False, "erro": "Este recurso só funciona no Windows."}
-        except Exception as e:
-            return {"sucesso": False, "erro": str(e)}
-            
-    return {"sucesso": False, "erro": "Arquivo físico não encontrado no HD."}
+    # --- ROTA DINÂMICA DE ARQUIVOS ---
+# Substitui o StaticFiles para garantir que o arquivo seja lido do HD atualizado
+@router.get("/arquivos/{caminho_arquivo:path}")
+def servir_arquivo_dinamico(caminho_arquivo: str):
+    caminho_completo = os.path.join(database.PASTA_ARQUIVOS, caminho_arquivo)
+    
+    # Prevenção contra vulnerabilidade de Path Traversal
+    caminho_absoluto_base = os.path.abspath(database.PASTA_ARQUIVOS)
+    caminho_absoluto_arquivo = os.path.abspath(caminho_completo)
+    if not caminho_absoluto_arquivo.startswith(caminho_absoluto_base):
+        raise HTTPException(status_code=403, detail="Acesso negado")
+
+    if not os.path.exists(caminho_absoluto_arquivo):
+        raise HTTPException(status_code=404, detail="Arquivo não encontrado no HD atual")
+        
+    return FileResponse(caminho_absoluto_arquivo)
