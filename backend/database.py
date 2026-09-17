@@ -22,7 +22,9 @@ def iniciar_banco():
             categoria TEXT,
             ano INTEGER,
             nucleo TEXT,
+            sigla TEXT,
             upload TEXT,
+            hora TEXT,
             url TEXT,
             tamanho INTEGER
         )

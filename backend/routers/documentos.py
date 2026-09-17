@@ -38,7 +38,8 @@ def upload_documento(
     ext: str = Form(...),
     categoria: str = Form(...),
     ano: int = Form(...),
-    nucleo: str = Form(...)
+    nucleo: str = Form(...),
+    sigla: str = Form("")
 ):
     nucleo_limpo = limpar_nome_pasta(nucleo)
     categoria_limpa = limpar_nome_pasta(categoria)
@@ -53,28 +54,32 @@ def upload_documento(
         
     # Mede o tamanho real do arquivo que acabou de ser salvo no SSD
     tamanho_bytes = os.path.getsize(caminho_fisico)
-        
+         
     doc_id = str(uuid.uuid4())
-    data_upload = datetime.now().strftime("%d/%m/%Y")
-    
+    agora = datetime.now()
+    data_upload = agora.strftime("%d/%m/%Y")
+    hora_upload = agora.strftime("%H:%M:%S") # Pega a hora exata da máquina
+         
     caminho_relativo = f"{nucleo_limpo}/{ano}/{categoria_limpa}/{nome_limpo}"
     url_nova = f"http://localhost:8000/arquivos/{urllib.parse.quote(caminho_relativo)}"
-    
+         
     conn = sqlite3.connect(database.DB_FILE)
     cursor = conn.cursor()
-    
-    # Inserindo com a coluna 'tamanho'
+         
+    # Inserindo com as colunas completas, incluindo a sigla
     cursor.execute('''
-        INSERT INTO documentos (id, nome, ext, categoria, ano, nucleo, upload, url, tamanho)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (doc_id, nome, ext, categoria, ano, nucleo, data_upload, url_nova, tamanho_bytes))
+        INSERT INTO documentos (id, nome, ext, categoria, ano, nucleo, sigla, upload, hora, url, tamanho)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (doc_id, nome, ext, categoria, ano, nucleo, sigla, data_upload, hora_upload, url_nova, tamanho_bytes))
     conn.commit()
     conn.close()
-    
+         
     return {
         "mensagem": "Upload concluído", 
         "id": doc_id, 
-        "upload": data_upload, 
+        "upload": data_upload,
+        "hora": hora_upload,
+        "sigla": sigla,
         "url": url_nova,
         "tamanho": tamanho_bytes
     }
@@ -178,6 +183,36 @@ def visualizar_planilha(doc_id: str):
         colunas = df.columns.astype(str).tolist()
         linhas = df.to_dict(orient="records")
         return {"colunas": colunas, "linhas": linhas}
-        
+             
     except Exception as e:
         return {"erro": f"O arquivo é um 'falso Excel' não suportado ou está corrompido. Detalhe: {str(e)}"}
+
+# --- ROTA PARA ABRIR ARQUIVOS NATIVAMENTE NO WINDOWS ---
+@router.post("/api/documentos/{doc_id}/abrir-local")
+def abrir_arquivo_local(doc_id: str):
+    import platform
+    conn = sqlite3.connect(database.DB_FILE)
+    cursor = conn.cursor()
+    cursor.execute("SELECT nucleo, ano, categoria, nome FROM documentos WHERE id = ?", (doc_id,))
+    resultado = cursor.fetchone()
+    conn.close()
+    
+    if not resultado:
+        return {"sucesso": False, "erro": "Documento não encontrado."}
+        
+    nucleo, ano, categoria, nome = resultado
+    caminho_fisico = os.path.join(
+        database.PASTA_ARQUIVOS, limpar_nome_pasta(nucleo), str(ano), limpar_nome_pasta(categoria), limpar_nome_pasta(nome)
+    )
+    
+    if os.path.exists(caminho_fisico):
+        try:
+            if platform.system() == "Windows":
+                os.startfile(caminho_fisico)
+                return {"sucesso": True}
+            else:
+                return {"sucesso": False, "erro": "Este recurso só funciona no Windows."}
+        except Exception as e:
+            return {"sucesso": False, "erro": str(e)}
+            
+    return {"sucesso": False, "erro": "Arquivo físico não encontrado no HD."}

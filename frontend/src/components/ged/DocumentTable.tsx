@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   FileText,
   FileType2,
+  Image as ImageIcon,
   Pencil,
   Search,
   Trash2,
@@ -77,6 +78,12 @@ function TipoIcone({ ext }: { ext: Doc["ext"] }) {
     return (
       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-chart-3/15 text-chart-3">
         <FileType2 className="h-4 w-4" />
+      </span>
+    );
+  if (ext === "tiff")
+    return (
+      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-orange-500/15 text-orange-500">
+        <ImageIcon className="h-4 w-4" />
       </span>
     );
   return (
@@ -157,7 +164,7 @@ export function DocumentTable({
     const termo = busca.trim().toLowerCase();
     const filtrados = termo
       ? docs.filter((d) =>
-          [d.nome, d.categoria, d.nucleo, String(d.ano), d.upload]
+          [d.nome, d.categoria, d.nucleo, d.sigla || "", String(d.ano), d.upload]
             .join(" ")
             .toLowerCase()
             .includes(termo),
@@ -283,7 +290,7 @@ export function DocumentTable({
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome, tipologia, ano, núcleo..."
+            placeholder="Buscar por nome, tipologia, sigla, ano..."
             aria-label="Busca global de documentos"
             className="pl-9"
           />
@@ -302,6 +309,7 @@ export function DocumentTable({
                 />
               </TableHead>
               <TableHead className="w-16">Tipo</TableHead>
+              <TableHead className="w-24">ID SIGAD</TableHead>
               <TableHead>
                 <Cabecalho c="nome" label="Nome do Arquivo" />
               </TableHead>
@@ -321,7 +329,7 @@ export function DocumentTable({
           <TableBody>
             {visiveis.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
                   Nenhum documento encontrado para os filtros ou busca informados.
                 </TableCell>
               </TableRow>
@@ -337,6 +345,9 @@ export function DocumentTable({
                   </TableCell>
                   <TableCell>
                     <TipoIcone ext={doc.ext} />
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground uppercase cursor-help" title={doc.id}>
+                    {doc.id.slice(0, 8)}
                   </TableCell>
                   <TableCell className="max-w-[280px] truncate font-medium">{doc.nome}</TableCell>
                   <TableCell>

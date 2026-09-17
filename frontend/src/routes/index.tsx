@@ -7,15 +7,15 @@ import { TelaUpload } from "@/components/ged/TelaUpload";
 import { useMemo, useState, useEffect } from "react";
 import { toast } from "sonner";
 import {
-  CloudUpload, FolderOpen, LayoutDashboard, LogOut, Library, Shield
+  CloudUpload, FolderOpen, LayoutDashboard, LogOut, Library, Shield, ExternalLink
 } from "lucide-react";
-
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { DOCUMENTOS } from "@/components/ged/data";
 import type { Doc } from "@/components/ged/data";
 
@@ -390,8 +390,28 @@ function Index() {
                 </table>
               </div>
             ) : (
-              <div className="flex h-full items-center justify-center text-slate-500">
-                Este formato ({viewDoc?.ext}) ainda não possui visualização nativa na plataforma.
+              <div className="flex flex-col h-full items-center justify-center gap-4 text-slate-500">
+                <p>Este formato ({viewDoc?.ext}) não possui visualização no navegador.</p>
+                <Button 
+                  variant="outline" 
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(`http://localhost:8000/api/documentos/${viewDoc?.id}/abrir-local`, { method: "POST" });
+                      const data = await res.json();
+                      if (data.sucesso) {
+                        toast.success("Arquivo aberto no Windows!");
+                      } else {
+                        toast.error("Erro ao abrir", { description: data.erro });
+                      }
+                    } catch(e) {
+                      toast.error("Erro de conexão", { description: "Não foi possível acionar o backend local." });
+                    }
+                  }}
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Abrir no Visualizador do Windows
+                </Button>
               </div>
             )}
           </div>

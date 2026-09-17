@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Folder, FolderOpen, HardDrive, ChevronRight, FileText, FileSpreadsheet, FileType2 } from "lucide-react";
+import { Folder, FolderOpen, HardDrive, ChevronRight, FileText, FileSpreadsheet, FileType2, Image as ImageIcon } from "lucide-react";
 import { NUCLEOS, type Doc } from "@/components/ged/data";
 
 interface TelaExploradorProps {
@@ -143,6 +143,7 @@ export function TelaExplorador({ acervo, modoStorage, onAbrirDoc }: TelaExplorad
                           {doc.ext === "pdf" && <FileText className="h-5 w-5 shrink-0 text-red-500 transition-transform group-hover:scale-110" />}
                           {doc.ext === "xlsx" && <FileSpreadsheet className="h-5 w-5 shrink-0 text-emerald-500 transition-transform group-hover:scale-110" />}
                           {doc.ext === "docx" && <FileType2 className="h-5 w-5 shrink-0 text-blue-500 transition-transform group-hover:scale-110" />}
+                          {doc.ext === "tiff" && <ImageIcon className="h-5 w-5 shrink-0 text-orange-500 transition-transform group-hover:scale-110" />}
                           <span className="font-medium text-slate-700 transition-colors group-hover:text-primary max-w-[280px] truncate" title={doc.nome}>{doc.nome}</span>
                         </td>
                         <td className="px-6 py-3 text-slate-500">{doc.categoria}</td>

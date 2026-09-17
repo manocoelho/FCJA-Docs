@@ -1,9 +1,9 @@
 import type { Doc } from "./data";
 
-const COLUNAS = ["Nome do Arquivo", "Tipologia", "Ano", "Núcleo", "Data de Upload"] as const;
+const COLUNAS = ["ID SIGAD", "Nome do Arquivo", "Tipologia", "Ano", "Núcleo", "Sigla", "Data de Upload", "Hora de Cadastro"] as const;
 
 function linhas(docs: Doc[]) {
-  return docs.map((d) => [d.nome, d.categoria, String(d.ano), d.nucleo, d.upload]);
+  return docs.map((d) => [d.id, d.nome, d.categoria, String(d.ano), d.nucleo, d.sigla || "-", d.upload, d.hora || ""]);
 }
 
 function baixar(conteudo: BlobPart, nome: string, mime: string) {

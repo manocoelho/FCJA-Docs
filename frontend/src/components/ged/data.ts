@@ -1,11 +1,13 @@
 export type Doc = {
   id: string;
   nome: string;
-  ext: "pdf" | "xlsx" | "docx";
+  ext: "pdf" | "xlsx" | "docx" | "tiff";
   categoria: string;
   ano: number;
   nucleo: string;
+  sigla?: string;
   upload: string;
+  hora?: string;
   url?: string;
 };
 
@@ -45,6 +47,25 @@ export const CATEGORIA_POR_TIPO: Record<string, string> = {
   "Notas Fiscais": "Nota Fiscal",
   Formulários: "Formulário",
   Currículos: "Currículo",
+};
+
+export const SIGLA_POR_NUCLEO: Record<string, string> = {
+  "Manuscritos de José Américo de Almeida: identificação e descrição de documentos": "BR_PB_FCJA_GEDA_GOP_PPMD_NMJAA",
+  "O modernismo na Paraiba a revista Era Nova e a Novela Reflexões de uma cabra": "BR_PB_FCJA_GEDA_GOP_PPMD_NRENN",
+  "A Paraíba e seus problemas: permanências e transformações": "BR_PB_FCJA_GEDA_GOP_PPMD_NPBP",
+  "Partituras de uma historia pela democracia: as conexões artísticas e politicas entre José Siqueira e José Américo de Almeida": "BR_PB_FCJA_GEDA_GOP_PPMD_NJSJAA",
+  "Acervo audiovisual da FCJA: imagem e memória": "BR_PB_FCJA_GEDA_GOP_PPMD_NAFCJA",
+  "Os Modernismos na Paraiba e o Circuito de Comunicação da Revista Era Nova (1921-1926)": "BR_PB_FCJA_GEDA_GOP_PPMD_NMREN",
+  "De A Paraíba e seus problemas à A Bagaceira: Itinerários literários de José Américo de Almeida": "BR_PB_FCJA_GEDA_GOP_PPMD_NPBPB",
+  "Maestro José Siqueira: Memórias da Música para o futuro": "BR_PB_FCJA_GEDA_GOP_PPMD_NMJS",
+  "1930 A caminho do centenário: convergências bibliográficas e fontes digitais (BR 1930)": "BR_PB_FCJA_GEDA_GOP_PPMD_NBR1930",
+  "Modernização digital do acervo da Fundação Casa de José Américo: estruturando a preservação e o acesso": "BR_PB_FCJA_GEDA_GOP_PPMD_NMD",
+  "Imprensa e cultura na Paraíba: os circuitos de comunicação das revistas Ilustração e Manaira (1930-1940)": "BR_PB_FCJA_GEDA_GOP_PPMD_NRIM",
+  "Por uma cartografia dos lugares de consciência na Paraíba: trajetos do patrimônio cultural por meio da memória das violações de direitos humanos e da resistência": "BR_PB_FCJA_GEDA_GOP_PPMD_NCMR",
+  "Repositório Arquivistico Digital Confiável da produção do Projeto Preservação e Difusão do Acervo da FCJA": "BR_PB_FCJA_GEDA_GOP_PPMD_NRDCARQ",
+  "Mapeamento do Patrimonio Arqueológico da Paraiba": "BR_PB_FCJA_GEDA_GOP_PPMD_NMAPB",
+  "Entre Termos e Conceitos: Uma Pesquisa Documental sobre Educação Patrimonial": "BR_PB_FCJA_GEDA_GOP_PPMD_NEP",
+  "Sustentabilidade e Diversidade: Pesquisa ação na Mata da Falésia de Cabo Branco": "BR_PB_FCJA_GEDA_GOP_PPMD_NMFCB",
 };
 
 export const DOCUMENTOS: Doc[] = [
