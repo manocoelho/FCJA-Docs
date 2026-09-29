@@ -1,3 +1,4 @@
+import { CODIGOS_ATIVIDADE_MEIO } from "@/components/ged/codigos";
 import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { AlertCircle, CloudUpload, Trash2, FolderOpen, SlidersHorizontal } from "lucide-react";
@@ -32,8 +33,11 @@ type Filtros = { tipos: string[]; anoDe: number; anoAte: number; nucleo: string 
 const INICIAL: Filtros = { tipos: [], anoDe: ANO_MIN, anoAte: ANO_MAX, nucleo: "Todos" };
 
 type Pendente = {
-  id: string; file: File; sel: boolean; data: string; tipo: string; nucleo: string; sigla: string;
+  id: string; file: File; sel: boolean; data: string; 
+  tipoAtividade: string; codigo: string; descricao: string;
+  tipo: string; nucleo: string; sigla: string;
   progresso: number; status: "aguardando" | "enviando" | "concluido"; editado?: boolean;
+  nomeCustomizado: string;
 };
 
 interface TelaUploadProps {
@@ -51,6 +55,9 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
   const [pendentes, setPendentes] = useState<Pendente[]>([]);
   const [cadData, setCadData] = useState(() => new Date().toISOString().slice(0, 10));
   const [cadNucleo, setCadNucleo] = useState<string>(NUCLEOS[1]!);
+  const [cadTipoAtividade, setCadTipoAtividade] = useState<string>("Atividade-Meio");
+  const [cadCodigo, setCadCodigo] = useState<string>("");
+  const [cadDescricao, setCadDescricao] = useState<string>("");
   const [cadSigla, setCadSigla] = useState<string>(SIGLA_POR_NUCLEO[NUCLEOS[1]!] || "");
   const [cadTipo, setCadTipo] = useState<string>(TIPOS[1]!);
   const [erros, setErros] = useState<string[]>([]);
@@ -85,7 +92,7 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
       
       aceitos.push({
         id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`,
-        file, sel: true, data: cadData, tipo: cadTipo, nucleo: cadNucleo, sigla: cadSigla, progresso: 0, status: "aguardando",
+        file, nomeCustomizado: file.name, sel: true, data: cadData, tipoAtividade: cadTipoAtividade, codigo: cadCodigo, descricao: cadDescricao, tipo: cadTipo, nucleo: cadNucleo, sigla: cadSigla, progresso: 0, status: "aguardando",
       });
     }
 
@@ -126,14 +133,15 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
       const categoria = CATEGORIA_POR_TIPO[p.tipo] ?? "Relatório";
 
       const formData = new FormData();
-      formData.append("file", p.file); formData.append("nome", p.file.name); formData.append("ext", ext);
+      formData.append("file", p.file); formData.append("nome", p.nomeCustomizado); formData.append("ext", ext);
+      formData.append("tipo_atividade", p.tipoAtividade); formData.append("codigo_classificacao", p.codigo); formData.append("descricao_codigo", p.descricao);
       formData.append("categoria", categoria); formData.append("ano", String(ano)); formData.append("nucleo", p.nucleo); formData.append("sigla", p.sigla);
       try {
         const res = await fetch("http://localhost:8000/api/upload", { method: "POST", body: formData });
         if (!res.ok) throw new Error("Erro na rede");
         const resp = await res.json();
                  
-        novos.push({ id: resp.id, nome: p.file.name, ext: ext as any, categoria, ano, nucleo: p.nucleo, sigla: p.sigla, upload: resp.upload, hora: resp.hora, url: resp.url });
+        novos.push({ id: resp.id, tipoAtividade: p.tipoAtividade, codigoClassificacao: p.codigo, descricaoCodigo: p.descricao, nome: p.nomeCustomizado, ext: ext as any, categoria, ano, nucleo: p.nucleo, sigla: p.sigla, upload: resp.upload, hora: resp.hora, url: resp.url });
         setPendentes((prev) => prev.map((x) => (x.id === p.id ? { ...x, status: "concluido", progresso: 100 } : x)));
       } catch (e) {
         toast.error(`Falha ao enviar: ${p.file.name}`);
@@ -204,8 +212,14 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
                   <li key={p.id} className={`rounded-xl border p-3 transition-colors ${p.editado ? "bg-emerald-50/50 border-emerald-200" : "bg-muted/30 border-transparent"}`}>
                     <div className="flex items-center gap-3">
                       <Checkbox checked={p.sel} onCheckedChange={() => setPendentes((prev) => prev.map((x) => (x.id === p.id ? { ...x, sel: !x.sel } : x)))} disabled={enviando} />
-                      <span className="min-w-0 flex-1 truncate font-medium">{p.file.name}</span>
-                      <span className="text-xs text-muted-foreground">{formatarTamanho(p.file.size)}</span>
+                      <Input 
+                        value={p.nomeCustomizado} 
+                        onChange={(e) => setPendentes((prev) => prev.map((x) => (x.id === p.id ? { ...x, nomeCustomizado: e.target.value } : x)))}
+                        disabled={enviando}
+                        className="h-7 min-w-0 flex-1 border-transparent bg-transparent hover:border-input focus-visible:bg-background px-1.5 font-medium truncate"
+                        title="Clique para editar o nome do documento"
+                      />
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{formatarTamanho(p.file.size)}</span>
                       <button onClick={() => setPendentes((prev) => prev.filter((x) => x.id !== p.id))} disabled={enviando} className="text-slate-400 hover:text-red-500"><Trash2 className="h-4 w-4" /></button>
                     </div>
                     <p className="mt-2 pl-7 text-xs text-muted-foreground">{p.tipo} · {new Date(`${p.data}T12:00:00`).getFullYear()} · {p.nucleo}</p>
@@ -271,6 +285,36 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
                   <datalist id="siglas-list">
                     {Object.values(SIGLA_POR_NUCLEO).map(sigla => <option key={sigla} value={sigla} />)}
                   </datalist>
+                </div>
+                <div className="space-y-2 w-36"><Label>Atividade</Label>
+                  <Select value={cadTipoAtividade} onValueChange={(v) => { 
+                    setCadTipoAtividade(v); 
+                    setCadCodigo(""); setCadDescricao(""); 
+                    setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, tipoAtividade: v, codigo: "", descricao: "" } : p))); 
+                  }}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Atividade-Meio">Atividade-Meio</SelectItem>
+                      <SelectItem value="Atividade-Fim">Atividade-Fim</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2 w-44"><Label>Código</Label>
+                  <Input list="codigos-list" value={cadCodigo} placeholder={cadTipoAtividade === "Atividade-Fim" ? "Em breve..." : "Ex: 001.01..."} disabled={cadTipoAtividade === "Atividade-Fim"} onChange={(e) => {
+                    const novo = e.target.value;
+                    setCadCodigo(novo);
+                    const desc = CODIGOS_ATIVIDADE_MEIO[novo] || "";
+                    setCadDescricao(desc);
+                    setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, codigo: novo, descricao: desc } : p)));
+                  }} className="bg-transparent" />
+                  {cadTipoAtividade === "Atividade-Meio" && (
+                    <datalist id="codigos-list">
+                      {Object.keys(CODIGOS_ATIVIDADE_MEIO).map(c => <option key={c} value={c} />)}
+                    </datalist>
+                  )}
+                </div>
+                <div className="space-y-2 flex-1 min-w-[200px] max-w-sm"><Label>Descrição</Label>
+                  <Input value={cadDescricao} readOnly placeholder="Automático..." className="bg-slate-50 text-muted-foreground cursor-not-allowed truncate" title={cadDescricao} />
                 </div>
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-between gap-4">

@@ -38,6 +38,9 @@ def upload_documento(
     file: UploadFile = File(...),
     nome: str = Form(...),
     ext: str = Form(...),
+    tipo_atividade: str = Form(""),
+    codigo_classificacao: str = Form(""),
+    descricao_codigo: str = Form(""),
     categoria: str = Form(...),
     ano: int = Form(...),
     nucleo: str = Form(...),
@@ -68,11 +71,11 @@ def upload_documento(
     conn = sqlite3.connect(database.DB_FILE)
     cursor = conn.cursor()
          
-    # Inserindo com as colunas completas, incluindo a sigla
+    # Inserindo com as colunas completas, incluindo a sigla, atividade e códigos
     cursor.execute('''
-        INSERT INTO documentos (id, nome, ext, categoria, ano, nucleo, sigla, upload, hora, url, tamanho)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', (doc_id, nome, ext, categoria, ano, nucleo, sigla, data_upload, hora_upload, url_nova, tamanho_bytes))
+        INSERT INTO documentos (id, tipo_atividade, codigo_classificacao, descricao_codigo, nome, ext, categoria, ano, nucleo, sigla, upload, hora, url, tamanho)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (doc_id, tipo_atividade, codigo_classificacao, descricao_codigo, nome, ext, categoria, ano, nucleo, sigla, data_upload, hora_upload, url_nova, tamanho_bytes))
     conn.commit()
     conn.close()
          

@@ -17,6 +17,9 @@ def iniciar_banco():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS documentos (
             id TEXT PRIMARY KEY,
+            tipo_atividade TEXT,
+            codigo_classificacao TEXT,
+            descricao_codigo TEXT,
             nome TEXT,
             ext TEXT,
             categoria TEXT,

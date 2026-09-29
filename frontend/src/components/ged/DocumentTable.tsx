@@ -309,7 +309,10 @@ export function DocumentTable({
                 />
               </TableHead>
               <TableHead className="w-16">Tipo</TableHead>
-              <TableHead className="w-24">ID SIGAD</TableHead>
+              <TableHead className="w-24">ID</TableHead>
+              <TableHead>Atividade</TableHead>
+              <TableHead>Código</TableHead>
+              <TableHead>Descrição</TableHead>
               <TableHead>
                 <Cabecalho c="nome" label="Nome do Arquivo" />
               </TableHead>
@@ -329,7 +332,7 @@ export function DocumentTable({
           <TableBody>
             {visiveis.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={12} className="py-12 text-center text-sm text-muted-foreground">
                   Nenhum documento encontrado para os filtros ou busca informados.
                 </TableCell>
               </TableRow>
@@ -349,6 +352,9 @@ export function DocumentTable({
                   <TableCell className="font-mono text-xs text-muted-foreground uppercase cursor-help" title={doc.id}>
                     {doc.id.slice(0, 8)}
                   </TableCell>
+                  <TableCell className="text-muted-foreground">{doc.tipoAtividade || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground font-mono">{doc.codigoClassificacao || "-"}</TableCell>
+                  <TableCell className="text-muted-foreground max-w-[150px] truncate" title={doc.descricaoCodigo}>{doc.descricaoCodigo || "-"}</TableCell>
                   <TableCell className="max-w-[280px] truncate font-medium">{doc.nome}</TableCell>
                   <TableCell>
                     <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">

@@ -1,5 +1,8 @@
 export type Doc = {
   id: string;
+  tipoAtividade?: string;
+  codigoClassificacao?: string;
+  descricaoCodigo?: string;
   nome: string;
   ext: "pdf" | "xlsx" | "docx" | "tiff";
   categoria: string;
