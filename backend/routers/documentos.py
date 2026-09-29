@@ -31,7 +31,31 @@ def listar_documentos():
     cursor.execute("SELECT * FROM documentos")
     linhas = cursor.fetchall()
     conn.close()
-    return [dict(linha) for linha in linhas]
+    
+    documentos_formatados = []
+    for linha in linhas:
+        doc_dict = dict(linha)
+        # Mapeia as colunas do SQLite para as propriedades camelCase esperadas pelo Frontend (data.ts)
+        # Se os campos novos não existirem (bancos antigos), devolve string vazia
+        doc_formatado = {
+            "id": doc_dict.get("id", ""),
+            "nome": doc_dict.get("nome", ""),
+            "ext": doc_dict.get("ext", ""),
+            "categoria": doc_dict.get("categoria", ""),
+            "ano": doc_dict.get("ano", 0),
+            "nucleo": doc_dict.get("nucleo", ""),
+            "sigla": doc_dict.get("sigla", ""),
+            "upload": doc_dict.get("upload", ""),
+            "hora": doc_dict.get("hora", ""),
+            "url": doc_dict.get("url", ""),
+            "tamanho": doc_dict.get("tamanho", 0),
+            "tipoAtividade": doc_dict.get("tipo_atividade", ""),
+            "codigoClassificacao": doc_dict.get("codigo_classificacao", ""),
+            "descricaoCodigo": doc_dict.get("descricao_codigo", "")
+        }
+        documentos_formatados.append(doc_formatado)
+        
+    return documentos_formatados
 
 @router.post("/api/upload")
 def upload_documento(
