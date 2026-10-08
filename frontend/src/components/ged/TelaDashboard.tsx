@@ -7,7 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FilterChips, type Chip } from "@/components/ged/FilterChips";
 import { BarrasAno, PizzaNucleos } from "@/components/ged/Charts";
-import { TIPOS, TIPO_POR_CATEGORIA, NUCLEOS, ANOS, type Doc } from "@/components/ged/data";
+import { NUCLEOS, ANOS, type Doc } from "@/components/ged/data";
+import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
+import { FiltroPastas } from "@/components/ged/FiltroPastas";
 
 // Função utilitária para tamanho (trazemos para cá para isolar o componente)
 function formatarTamanho(bytes: number) {
@@ -18,10 +20,10 @@ function formatarTamanho(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + tamanhos[i];
 }
 
-type Filtros = { tipos: string[]; anoDe: number; anoAte: number; nucleo: string };
+type Filtros = { tipos: string[]; anoDe: number; anoAte: number; nucleo: string; prefixoPasta: string };
 const ANO_MIN = 2022;
 const ANO_MAX = 2027;
-const INICIAL: Filtros = { tipos: [], anoDe: ANO_MIN, anoAte: ANO_MAX, nucleo: "Todos" };
+const INICIAL: Filtros = { tipos: [], anoDe: ANO_MIN, anoAte: ANO_MAX, nucleo: "Todos", prefixoPasta: "" };
 
 interface TelaDashboardProps {
   acervo: Doc[];
@@ -33,34 +35,44 @@ export function TelaDashboard({ acervo, sysStatus }: TelaDashboardProps) {
   const [modalFiltrosDash, setModalFiltrosDash] = useState(false);
 
   const documentosDash = useMemo(() => acervo.filter((d) => {
-    const tipoOk = filtrosDash.tipos.length === 0 || filtrosDash.tipos.includes(TIPO_POR_CATEGORIA[d.categoria] ?? "");
+    const tipoOk = filtrosDash.tipos.length === 0 || filtrosDash.tipos.includes(d.categoria);
     const anoOk = d.ano >= filtrosDash.anoDe && d.ano <= filtrosDash.anoAte;
     const nucleoOk = filtrosDash.nucleo === "Todos" || d.nucleo === filtrosDash.nucleo;
-    return tipoOk && anoOk && nucleoOk;
+    const pastaOk = !filtrosDash.prefixoPasta || d.codigoClassificacao?.startsWith(filtrosDash.prefixoPasta);
+    
+    return tipoOk && anoOk && nucleoOk && pastaOk;
   }), [filtrosDash, acervo]);
 
   const chipsDash: Chip[] = [
     ...filtrosDash.tipos.map((t) => ({ id: `tipo-${t}`, label: `Tipo: ${t}`, onRemove: () => setFiltrosDash(f => ({ ...f, tipos: f.tipos.filter(x => x !== t) })) })),
     ...(filtrosDash.anoDe !== ANO_MIN || filtrosDash.anoAte !== ANO_MAX ? [{ id: "periodo", label: filtrosDash.anoDe === filtrosDash.anoAte ? `Ano: ${filtrosDash.anoDe}` : `Período: ${filtrosDash.anoDe}–${filtrosDash.anoAte}`, onRemove: () => setFiltrosDash(f => ({ ...f, anoDe: ANO_MIN, anoAte: ANO_MAX })) }] : []),
     ...(filtrosDash.nucleo !== "Todos" ? [{ id: "nucleo", label: `Núcleo: ${filtrosDash.nucleo}`, onRemove: () => setFiltrosDash(f => ({ ...f, nucleo: "Todos" })) }] : []),
+    ...(filtrosDash.prefixoPasta ? [{ id: "pasta", label: `Pasta: ${filtrosDash.prefixoPasta}`, onRemove: () => setFiltrosDash(f => ({ ...f, prefixoPasta: "" })) }] : []),
   ];
 
   return (
     <>
       <div className="mx-auto max-w-7xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <header className="mb-8 flex items-center justify-between border-b border-border pb-6">
           <div>
-            <h2 className="text-3xl font-semibold tracking-tight">Visão Geral</h2>
+            <h2 className="text-3xl font-semibold tracking-tight">Dashboard Analítico</h2>
             <p className="mt-1 text-sm text-muted-foreground">Indicadores e gráficos do acervo digital.</p>
           </div>
-          <div className="flex gap-3">
-            <Button variant="brand" onClick={() => setModalFiltrosDash(true)} className="gap-2">
+          <div className="flex items-center gap-3">
+            {sysStatus === null && (
+              <span className="flex items-center gap-2 rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-600">
+                <CheckCircle2 className="h-4 w-4" /> Falha na transição
+              </span>
+            )}
+            <Button onClick={() => setModalFiltrosDash(true)} variant="outline" className="gap-2">
               <SlidersHorizontal className="h-4 w-4" /> Filtros Avançados
             </Button>
           </div>
         </header>
 
-        <FilterChips chips={chipsDash} onLimpar={() => setFiltrosDash(INICIAL)} />
+        <div className="flex flex-col gap-4">
+          <FilterChips chips={chipsDash} onLimpar={() => setFiltrosDash(INICIAL)} />
+        </div>
 
         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl border bg-card p-6 shadow-sm">
@@ -107,13 +119,17 @@ export function TelaDashboard({ acervo, sysStatus }: TelaDashboardProps) {
       </div>
 
       <Dialog open={modalFiltrosDash} onOpenChange={setModalFiltrosDash}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader><DialogTitle>Filtros do Dashboard</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
+            
+            {/* NOVO: Filtro de pastas dentro do modal */}
+            <FiltroPastas onFiltroChange={(prefixo) => setFiltrosDash(f => ({ ...f, prefixoPasta: prefixo }))} />
+
             <div className="space-y-2 grid min-w-0">
               <Label>Tipologias</Label>
               <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-slate-50/50 p-3 space-y-3">
-                {TIPOS.map((t) => (
+                {TIPOLOGIAS_MEIO.map((t) => (
                   <label key={t} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 hover:text-primary">
                     <Checkbox
                       checked={filtrosDash.tipos.includes(t)}

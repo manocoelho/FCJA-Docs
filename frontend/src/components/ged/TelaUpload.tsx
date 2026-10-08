@@ -1,4 +1,3 @@
-import { CODIGOS_ATIVIDADE_MEIO } from "@/components/ged/codigos";
 import { useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
 import { AlertCircle, CloudUpload, Trash2, FolderOpen, SlidersHorizontal } from "lucide-react";
@@ -11,7 +10,9 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FilterChips, type Chip } from "@/components/ged/FilterChips";
 import { DocumentTable } from "@/components/ged/DocumentTable";
-import { TIPOS, NUCLEOS, ANOS, CATEGORIA_POR_TIPO, TIPO_POR_CATEGORIA, SIGLA_POR_NUCLEO, type Doc } from "@/components/ged/data";
+import { NUCLEOS, ANOS, SIGLA_POR_NUCLEO, type Doc } from "@/components/ged/data";
+import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
+import { SeletorHierarquico } from "@/components/ged/SeletorHierarquico";
 
 const EXT_POR_SUFIXO: Record<string, "pdf" | "xlsx" | "docx" | "tiff"> = {
   pdf: "pdf", xlsx: "xlsx", xls: "xlsx", csv: "xlsx", docx: "docx", doc: "docx", tiff: "tiff", tif: "tiff",
@@ -59,7 +60,7 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
   const [cadCodigo, setCadCodigo] = useState<string>("");
   const [cadDescricao, setCadDescricao] = useState<string>("");
   const [cadSigla, setCadSigla] = useState<string>(SIGLA_POR_NUCLEO[NUCLEOS[1]!] || "");
-  const [cadTipo, setCadTipo] = useState<string>(TIPOS[1]!);
+  const [cadTipo, setCadTipo] = useState<string>(TIPOLOGIAS_MEIO[0] || "");
   const [erros, setErros] = useState<string[]>([]);
   const [enviando, setEnviando] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -130,7 +131,7 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
       const ano = new Date(`${p.data}T12:00:00`).getFullYear();
       const sufixo = p.file.name.split(".").pop()?.toLowerCase() ?? "";
       const ext = EXT_POR_SUFIXO[sufixo] ?? "pdf";
-      const categoria = CATEGORIA_POR_TIPO[p.tipo] ?? "Relatório";
+      const categoria = p.tipo || "Relatório";
 
       const formData = new FormData();
       formData.append("file", p.file); formData.append("nome", p.nomeCustomizado); formData.append("ext", ext);
@@ -164,7 +165,7 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
   }
 
   const documentosUpload = useMemo(() => acervo.filter((d) => {
-    const tipoOk = filtrosUpload.tipos.length === 0 || filtrosUpload.tipos.includes(TIPO_POR_CATEGORIA[d.categoria] ?? "");
+    const tipoOk = filtrosUpload.tipos.length === 0 || filtrosUpload.tipos.includes(d.categoria);
     const anoOk = d.ano >= filtrosUpload.anoDe && d.ano <= filtrosUpload.anoAte;
     const nucleoOk = filtrosUpload.nucleo === "Todos" || d.nucleo === filtrosUpload.nucleo;
     return tipoOk && anoOk && nucleoOk;
@@ -255,9 +256,16 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
                     <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ANOS.map((a) => (<SelectItem key={a} value={String(a)}>{a}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 w-44"><Label>Tipologia</Label>
+                <div className="space-y-2 w-48"><Label>Tipologia</Label>
                   <Select value={cadTipo} onValueChange={(v) => { setCadTipo(v); setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, tipo: v } : p))); }}>
-                    <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{TIPOS.map((t) => (<SelectItem key={t} value={t}>{t}</SelectItem>))}</SelectContent>
+                    <SelectTrigger className="[&>span]:truncate"><SelectValue /></SelectTrigger>
+                    <SelectContent className="max-h-80 w-[min(30rem,95vw)] overflow-y-auto p-2">
+                      {TIPOLOGIAS_MEIO.map(t => (
+                        <SelectItem key={t} value={t} className="items-start whitespace-normal py-2.5 px-3">
+                          <span className="block leading-snug">{t}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2 flex-1 min-w-[260px]"><Label>Núcleo</Label>
@@ -299,23 +307,17 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 w-44"><Label>Código</Label>
-                  <Input list="codigos-list" value={cadCodigo} placeholder={cadTipoAtividade === "Atividade-Fim" ? "Em breve..." : "Ex: 001.01..."} disabled={cadTipoAtividade === "Atividade-Fim"} onChange={(e) => {
-                    const novo = e.target.value;
-                    setCadCodigo(novo);
-                    const desc = CODIGOS_ATIVIDADE_MEIO[novo] || "";
-                    setCadDescricao(desc);
-                    setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, codigo: novo, descricao: desc } : p)));
-                  }} className="bg-transparent" />
-                  {cadTipoAtividade === "Atividade-Meio" && (
-                    <datalist id="codigos-list">
-                      {Object.keys(CODIGOS_ATIVIDADE_MEIO).map(c => <option key={c} value={c} />)}
-                    </datalist>
-                  )}
-                </div>
-                <div className="space-y-2 flex-1 min-w-[200px] max-w-sm"><Label>Descrição</Label>
-                  <Input value={cadDescricao} readOnly placeholder="Automático..." className="bg-slate-50 text-muted-foreground cursor-not-allowed truncate" title={cadDescricao} />
-                </div>
+                {cadTipoAtividade === "Atividade-Meio" ? (
+                  <SeletorHierarquico onSelecionar={(codigo, descricao) => {
+                    setCadCodigo(codigo);
+                    setCadDescricao(descricao);
+                    setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, codigo, descricao } : p)));
+                  }} />
+                ) : (
+                  <div className="col-span-full w-full p-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300 text-center text-muted-foreground mt-4">
+                     As tipologias e códigos para <strong>Atividade-Fim</strong> estarão disponíveis em breve. 
+                  </div>
+                )}
               </div>
               <div className="mt-6 flex flex-wrap items-center justify-between gap-4">
                 <Button variant="outline" onClick={aplicarEmLote} disabled={enviando || selecionados.length === 0}>Aplicar aos {selecionados.length} marcados</Button>
@@ -351,7 +353,7 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
             <div className="space-y-2 grid min-w-0">
               <Label>Tipologias</Label>
               <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-slate-50/50 p-3 space-y-3">
-                {TIPOS.map((t) => (
+                {TIPOLOGIAS_MEIO.map((t) => (
                   <label key={t} className="flex cursor-pointer items-center gap-2 text-sm text-slate-700 hover:text-primary">
                     <Checkbox checked={filtrosUpload.tipos.includes(t)} onCheckedChange={(checked) => { setFiltrosUpload((f) => ({ ...f, tipos: checked ? [...f.tipos, t] : f.tipos.filter((x) => x !== t) })); }} />
                     <span className="truncate">{t}</span>

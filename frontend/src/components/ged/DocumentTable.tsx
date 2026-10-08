@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { FiltroPastas } from "@/components/ged/FiltroPastas";
 import {
   ArrowDown,
   ArrowUp,
@@ -63,7 +64,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ANOS, CATEGORIA_POR_TIPO, NUCLEOS, TIPOS, type Doc } from "./data";
+import { ANOS, NUCLEOS, type Doc } from "./data";
+import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
 
 type Coluna = "nome" | "categoria" | "ano" | "nucleo";
 
@@ -111,6 +113,7 @@ export function DocumentTable({
   onEdit?: (doc: Doc, dados: { nome: string; categoria: string; ano: number; nucleo: string }) => void;
 }) {
   const [busca, setBusca] = useState("");
+  const [prefixoPasta, setPrefixoPasta] = useState("");
   const [coluna, setColuna] = useState<Coluna>("nome");
   const [ordem, setOrdem] = useState<"asc" | "desc">("asc");
   const [pagina, setPagina] = useState(1);
@@ -162,7 +165,7 @@ export function DocumentTable({
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    const filtrados = termo
+    let filtrados = termo
       ? docs.filter((d) =>
           [d.nome, d.categoria, d.nucleo, d.sigla || "", String(d.ano), d.upload]
             .join(" ")
@@ -170,12 +173,18 @@ export function DocumentTable({
             .includes(termo),
         )
       : docs;
+
+    // NOVO: Aplica o filtro de hierarquia caso o usuário tenha selecionado uma pasta
+    if (prefixoPasta) {
+      filtrados = filtrados.filter(d => d.codigoClassificacao?.startsWith(prefixoPasta));
+    }
+
     const fator = ordem === "asc" ? 1 : -1;
     return [...filtrados].sort((a, b) => {
       if (coluna === "ano") return (a.ano - b.ano) * fator;
       return String(a[coluna]).localeCompare(String(b[coluna]), "pt-BR") * fator;
     });
-  }, [docs, busca, coluna, ordem]);
+  }, [docs, busca, coluna, ordem, prefixoPasta]);
 
   const totalPaginas = Math.max(1, Math.ceil(lista.length / porPagina));
 
@@ -297,6 +306,11 @@ export function DocumentTable({
           </div>
         </div>
       </div>
+
+      <div className="px-6 pt-4 pb-0">
+        <FiltroPastas onFiltroChange={setPrefixoPasta} />
+      </div>
+
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
@@ -503,15 +517,12 @@ export function DocumentTable({
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {TIPOS.map((t) => {
-                      const cat = CATEGORIA_POR_TIPO[t] ?? t;
-                      return (
-                        <SelectItem key={cat} value={cat}>
-                          {cat}
-                        </SelectItem>
-                      );
-                    })}
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    {TIPOLOGIAS_MEIO.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
