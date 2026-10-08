@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { FiltroPastas } from "@/components/ged/FiltroPastas";
 import {
   ArrowDown,
   ArrowUp,
@@ -113,7 +112,6 @@ export function DocumentTable({
   onEdit?: (doc: Doc, dados: { nome: string; categoria: string; ano: number; nucleo: string }) => void;
 }) {
   const [busca, setBusca] = useState("");
-  const [prefixoPasta, setPrefixoPasta] = useState("");
   const [coluna, setColuna] = useState<Coluna>("nome");
   const [ordem, setOrdem] = useState<"asc" | "desc">("asc");
   const [pagina, setPagina] = useState(1);
@@ -165,26 +163,31 @@ export function DocumentTable({
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
-    let filtrados = termo
+    const filtrados = termo
       ? docs.filter((d) =>
-          [d.nome, d.categoria, d.nucleo, d.sigla || "", String(d.ano), d.upload]
+          [
+            d.id, 
+            d.codigoClassificacao || "", 
+            d.descricaoCodigo || "", 
+            d.nome, 
+            d.categoria, 
+            d.nucleo, 
+            d.sigla || "", 
+            String(d.ano), 
+            d.upload
+          ]
             .join(" ")
             .toLowerCase()
             .includes(termo),
         )
       : docs;
 
-    // NOVO: Aplica o filtro de hierarquia caso o usuário tenha selecionado uma pasta
-    if (prefixoPasta) {
-      filtrados = filtrados.filter(d => d.codigoClassificacao?.startsWith(prefixoPasta));
-    }
-
     const fator = ordem === "asc" ? 1 : -1;
     return [...filtrados].sort((a, b) => {
       if (coluna === "ano") return (a.ano - b.ano) * fator;
       return String(a[coluna]).localeCompare(String(b[coluna]), "pt-BR") * fator;
     });
-  }, [docs, busca, coluna, ordem, prefixoPasta]);
+  }, [docs, busca, coluna, ordem]);
 
   const totalPaginas = Math.max(1, Math.ceil(lista.length / porPagina));
 
@@ -299,18 +302,13 @@ export function DocumentTable({
           <Input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome, tipologia, sigla, ano..."
+            placeholder="Buscar por ID, código, nome, tipologia..."
             aria-label="Busca global de documentos"
             className="pl-9"
           />
           </div>
         </div>
       </div>
-
-      <div className="px-6 pt-4 pb-0">
-        <FiltroPastas onFiltroChange={setPrefixoPasta} />
-      </div>
-
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>

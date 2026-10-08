@@ -10,7 +10,8 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FilterChips, type Chip } from "@/components/ged/FilterChips";
 import { DocumentTable } from "@/components/ged/DocumentTable";
-import { NUCLEOS, ANOS, SIGLA_POR_NUCLEO, type Doc } from "@/components/ged/data";
+import { FiltroPastas } from "@/components/ged/FiltroPastas";
+import { TIPOS, NUCLEOS, ANOS, CATEGORIA_POR_TIPO, TIPO_POR_CATEGORIA, SIGLA_POR_NUCLEO, type Doc } from "@/components/ged/data";
 import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
 import { SeletorHierarquico } from "@/components/ged/SeletorHierarquico";
 
@@ -30,8 +31,8 @@ function formatarTamanho(bytes: number) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + tamanhos[i];
 }
 
-type Filtros = { tipos: string[]; anoDe: number; anoAte: number; nucleo: string };
-const INICIAL: Filtros = { tipos: [], anoDe: ANO_MIN, anoAte: ANO_MAX, nucleo: "Todos" };
+type Filtros = { tipos: string[]; anoDe: number; anoAte: number; nucleo: string; prefixoPasta: string };
+const INICIAL: Filtros = { tipos: [], anoDe: ANO_MIN, anoAte: ANO_MAX, nucleo: "Todos", prefixoPasta: "" };
 
 type Pendente = {
   id: string; file: File; sel: boolean; data: string; 
@@ -168,13 +169,15 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
     const tipoOk = filtrosUpload.tipos.length === 0 || filtrosUpload.tipos.includes(d.categoria);
     const anoOk = d.ano >= filtrosUpload.anoDe && d.ano <= filtrosUpload.anoAte;
     const nucleoOk = filtrosUpload.nucleo === "Todos" || d.nucleo === filtrosUpload.nucleo;
-    return tipoOk && anoOk && nucleoOk;
+    const pastaOk = !filtrosUpload.prefixoPasta || d.codigoClassificacao?.startsWith(filtrosUpload.prefixoPasta);
+    return tipoOk && anoOk && nucleoOk && pastaOk;
   }), [filtrosUpload, acervo]);
 
   const chipsUpload: Chip[] = [
     ...filtrosUpload.tipos.map((t) => ({ id: `tipo-${t}`, label: `Tipo: ${t}`, onRemove: () => setFiltrosUpload(f => ({ ...f, tipos: f.tipos.filter(x => x !== t) })) })),
     ...(filtrosUpload.anoDe !== ANO_MIN || filtrosUpload.anoAte !== ANO_MAX ? [{ id: "periodo", label: filtrosUpload.anoDe === filtrosUpload.anoAte ? `Ano: ${filtrosUpload.anoDe}` : `Período: ${filtrosUpload.anoDe}–${filtrosUpload.anoAte}`, onRemove: () => setFiltrosUpload(f => ({ ...f, anoDe: ANO_MIN, anoAte: ANO_MAX })) }] : []),
     ...(filtrosUpload.nucleo !== "Todos" ? [{ id: "nucleo", label: `Núcleo: ${filtrosUpload.nucleo}`, onRemove: () => setFiltrosUpload(f => ({ ...f, nucleo: "Todos" })) }] : []),
+    ...(filtrosUpload.prefixoPasta ? [{ id: "pasta", label: `Pasta: ${filtrosUpload.prefixoPasta}`, onRemove: () => setFiltrosUpload(f => ({ ...f, prefixoPasta: "" })) }] : []),
   ];
 
   return (
@@ -256,18 +259,6 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
                     <SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ANOS.map((a) => (<SelectItem key={a} value={String(a)}>{a}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2 w-48"><Label>Tipologia</Label>
-                  <Select value={cadTipo} onValueChange={(v) => { setCadTipo(v); setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, tipo: v } : p))); }}>
-                    <SelectTrigger className="[&>span]:truncate"><SelectValue /></SelectTrigger>
-                    <SelectContent className="max-h-80 w-[min(30rem,95vw)] overflow-y-auto p-2">
-                      {TIPOLOGIAS_MEIO.map(t => (
-                        <SelectItem key={t} value={t} className="items-start whitespace-normal py-2.5 px-3">
-                          <span className="block leading-snug">{t}</span>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2 flex-1 min-w-[260px]"><Label>Núcleo</Label>
                   <Select value={cadNucleo} onValueChange={(v) => { 
                     setCadNucleo(v); 
@@ -311,11 +302,49 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
                   <SeletorHierarquico onSelecionar={(codigo, descricao) => {
                     setCadCodigo(codigo);
                     setCadDescricao(descricao);
-                    setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, codigo, descricao } : p)));
-                  }} />
+                    
+                    let sugestao: string = cadTipo;
+                    if (descricao) {
+                      const descNormal = descricao.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                      const matches = TIPOLOGIAS_MEIO.filter(t => descNormal.includes(t.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")));
+                      
+                      const melhorMatch = matches.sort((a, b) => b.length - a.length)[0];
+                      if (melhorMatch) {
+                        sugestao = melhorMatch;
+                        setCadTipo(melhorMatch);
+                      }
+                    }
+
+                    setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, codigo, descricao, tipo: sugestao } : p)));
+                  }}>
+                    <div className="space-y-2 w-full"><Label className="text-xs text-muted-foreground">5. Tipologia</Label>
+                      <Select value={cadTipo} onValueChange={(v) => { setCadTipo(v); setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, tipo: v } : p))); }}>
+                        <SelectTrigger className="[&>span]:truncate bg-white"><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-80 w-[min(30rem,95vw)] overflow-y-auto p-2">
+                          {TIPOLOGIAS_MEIO.map(t => (
+                            <SelectItem key={t} value={t} className="items-start whitespace-normal py-2.5 px-3">
+                              <span className="block leading-snug">{t}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </SeletorHierarquico>
                 ) : (
-                  <div className="col-span-full w-full p-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300 text-center text-muted-foreground mt-4">
-                     As tipologias e códigos para <strong>Atividade-Fim</strong> estarão disponíveis em breve. 
+                  <div className="col-span-full w-full flex flex-col md:flex-row gap-6 p-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300 items-center justify-between mt-4">
+                    <span className="text-muted-foreground">As classificações e códigos para <strong>Atividade-Fim</strong> estarão disponíveis em breve.</span>
+                    <div className="space-y-2 w-full md:w-64 text-left"><Label>Tipologia (Geral)</Label>
+                      <Select value={cadTipo} onValueChange={(v) => { setCadTipo(v); setPendentes((prev) => prev.map((p) => (p.sel ? { ...p, tipo: v } : p))); }}>
+                        <SelectTrigger className="[&>span]:truncate bg-white"><SelectValue /></SelectTrigger>
+                        <SelectContent className="max-h-80 w-[min(30rem,95vw)] overflow-y-auto p-2">
+                          {TIPOLOGIAS_MEIO.map(t => (
+                            <SelectItem key={t} value={t} className="items-start whitespace-normal py-2.5 px-3">
+                              <span className="block leading-snug">{t}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 )}
               </div>
@@ -347,9 +376,13 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
       </div>
 
       <Dialog open={modalFiltrosUpload} onOpenChange={setModalFiltrosUpload}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader><DialogTitle>Filtros da Tabela</DialogTitle></DialogHeader>
           <div className="space-y-4 py-4">
+            
+            {/* Filtro por Pasta integrado na modal de Filtros da Tabela */}
+            <FiltroPastas onFiltroChange={(prefixo: string) => setFiltrosUpload(f => ({ ...f, prefixoPasta: prefixo }))} />
+
             <div className="space-y-2 grid min-w-0">
               <Label>Tipologias</Label>
               <div className="max-h-36 overflow-y-auto rounded-md border border-border bg-slate-50/50 p-3 space-y-3">

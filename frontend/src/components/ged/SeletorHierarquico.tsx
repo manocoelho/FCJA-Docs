@@ -3,9 +3,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HIERARQUIA_ATIVIDADES } from "./codigos";
 
-type Props = { onSelecionar: (codigo: string, descricao: string) => void; };
+type Props = { 
+  onSelecionar: (codigo: string, descricao: string) => void;
+  children?: React.ReactNode; 
+};
 
-export function SeletorHierarquico({ onSelecionar }: Props) {
+export function SeletorHierarquico({ onSelecionar, children }: Props) {
   const [funcao, setFuncao] = useState("");
   const [subfuncao, setSubfuncao] = useState("");
   const [atividade, setAtividade] = useState("");
@@ -19,7 +22,7 @@ export function SeletorHierarquico({ onSelecionar }: Props) {
   return (
     <div className="col-span-full w-full bg-slate-50/60 p-5 rounded-2xl border border-slate-200 mt-4 shadow-sm">
       <Label className="text-sm font-bold text-primary mb-4 block">Navegação em Pastas (Atividade-Meio)</Label>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 items-end">
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">1. Função</Label>
           <Select value={funcao} onValueChange={(v) => { setFuncao(v); setSubfuncao(""); setAtividade(""); setCodigo(""); onSelecionar("", ""); }}>
@@ -52,6 +55,7 @@ export function SeletorHierarquico({ onSelecionar }: Props) {
             <SelectContent><div className="max-h-60 overflow-y-auto w-[min(30rem,90vw)]">{codigos.map((c: { codigo: string; descricao: string }) => <SelectItem key={c.codigo} value={c.codigo}>{c.codigo} - {c.descricao}</SelectItem>)}</div></SelectContent>
           </Select>
         </div>
+        {children}
       </div>
     </div>
   );

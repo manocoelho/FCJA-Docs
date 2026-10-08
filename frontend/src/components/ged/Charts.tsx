@@ -129,3 +129,55 @@ export function BarrasAno({ docs }: { docs: Doc[] }) {
     </div>
   );
 }
+
+export function BarrasTipologia({ docs }: { docs: Doc[] }) {
+  const mapa = new Map<string, number>();
+  for (const d of docs) {
+    const chave = d.categoria || "Não Classificado";
+    mapa.set(chave, (mapa.get(chave) ?? 0) + 1);
+  }
+  const dados = [...mapa.entries()]
+    .sort((a, b) => b[1] - a[1]) // Ordena do maior para o menor
+    .slice(0, 5) // Top 5 Tipologias
+    .map(([nome, total]) => ({ nome: abreviar(nome), total }));
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-[var(--shadow-card)] xl:col-span-2">
+      <h3 className="text-base font-semibold">Top 5 Tipologias Documentais</h3>
+      <p className="mt-1 text-xs text-muted-foreground">Classificações mais recorrentes no acervo</p>
+      <div className="mt-4 h-80">
+        {dados.length === 0 ? (
+          <div className="grid h-full place-items-center text-sm text-muted-foreground">
+            Sem dados para os filtros selecionados.
+          </div>
+        ) : (
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={dados} layout="vertical" margin={{ top: 8, right: 32, left: 32, bottom: 0 }}>
+            <XAxis
+              type="number"
+              allowDecimals={false}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+            />
+            <YAxis
+              type="category"
+              dataKey="nome"
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: "var(--muted-foreground)", fontSize: 12 }}
+              width={160}
+            />
+            <Tooltip cursor={{ fill: "var(--accent)" }} contentStyle={tooltipStyle} />
+            <Bar dataKey="total" name="Documentos" radius={[0, 8, 8, 0]} barSize={36}>
+              {dados.map((entry, i) => (
+                <Cell key={entry.nome} fill={CORES[i % CORES.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  );
+}

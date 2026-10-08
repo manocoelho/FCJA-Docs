@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FilterChips, type Chip } from "@/components/ged/FilterChips";
-import { BarrasAno, PizzaNucleos } from "@/components/ged/Charts";
+import { BarrasAno, PizzaNucleos, BarrasTipologia } from "@/components/ged/Charts";
 import { NUCLEOS, ANOS, type Doc } from "@/components/ged/data";
 import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
 import { FiltroPastas } from "@/components/ged/FiltroPastas";
@@ -115,6 +115,7 @@ export function TelaDashboard({ acervo, sysStatus }: TelaDashboardProps) {
         <section className="grid gap-6 xl:grid-cols-2">
           <PizzaNucleos docs={documentosDash} />
           <BarrasAno docs={documentosDash} />
+          <BarrasTipologia docs={documentosDash} />
         </section>
       </div>
 
