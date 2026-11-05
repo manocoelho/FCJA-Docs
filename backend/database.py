@@ -48,6 +48,7 @@ from models.evento import EventoArquivisticoModel  # noqa: E402
 from models.termo_eliminacao import TermoEliminacaoModel  # noqa: E402
 from models.pcd_ttd import ClassePcdModel  # noqa: E402
 from models.dossie import UnidadeArquivamentoModel  # noqa: E402
+from models.pacote_sip import ConfigArchivematicaModel, PacoteSipModel  # noqa: E402
 from models.usuario import UsuarioModel  # noqa: E402
 
 
@@ -60,6 +61,7 @@ def iniciar_banco():
     )
     from services.temporalidade_service import popular_classes_pcd_iniciais
     from services.dossie_service import popular_dossies_iniciais
+    from services.archivematica_service import obter_config_archivematica
 
     Base.metadata.create_all(bind=engine)
     migrar_esquema_banco(engine)
@@ -80,3 +82,4 @@ def iniciar_banco():
         popular_classes_pcd_iniciais(db)
         sincronizar_legado_earq(db, PASTA_ARQUIVOS)
         popular_dossies_iniciais(db)
+        obter_config_archivematica(db)

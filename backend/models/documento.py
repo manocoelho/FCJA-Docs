@@ -60,3 +60,7 @@ class DocumentoModel(Base):
     fixidade_verificada = Column(Integer, default=1)  # 1 = Íntegro, 0 = Divergente/Ausente
     ultima_verificacao_fixidade = Column(String(30), default="")
     usuario_captura = Column(String(100), default="sistema")
+
+    # Interoperabilidade OAIS / RDC-Arq — Pacote SIP e AIP no Archivematica (Fase 4)
+    pacote_sip_id = Column(String(80), index=True, default="")
+    aip_uuid_archivematica = Column(String(100), default="")

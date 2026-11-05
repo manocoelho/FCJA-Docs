@@ -38,6 +38,8 @@ COLUNAS_NOVAS_DOCUMENTOS = [
     ("fixidade_verificada", "INTEGER DEFAULT 1"),
     ("ultima_verificacao_fixidade", "VARCHAR(30) DEFAULT ''"),
     ("usuario_captura", "VARCHAR(100) DEFAULT 'sistema'"),
+    ("pacote_sip_id", "VARCHAR(80) DEFAULT ''"),
+    ("aip_uuid_archivematica", "VARCHAR(100) DEFAULT ''"),
 ]
 
 

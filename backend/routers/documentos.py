@@ -105,6 +105,8 @@ def listar_documentos(request: Request = None):
                 "fixidadeVerificada": bool(doc.fixidade_verificada) if doc.fixidade_verificada is not None else True,
                 "ultimaVerificacaoFixidade": doc.ultima_verificacao_fixidade or "",
                 "usuarioCaptura": doc.usuario_captura or "sistema",
+                "pacoteSipId": doc.pacote_sip_id or "",
+                "aipUuidArchivematica": doc.aip_uuid_archivematica or "",
             })
 
     return documentos_formatados

@@ -266,6 +266,27 @@ export function ModalMetadadosEarq({
                 {doc.hashSha256 || "Hash pendente de sincronização — clique em Verificar Fixidade abaixo."}
               </p>
             </div>
+
+            {(doc.pacoteSipId || doc.aipUuidArchivematica) && (
+              <div className="grid gap-3 sm:grid-cols-2 rounded-lg border border-blue-200 bg-blue-50/70 p-3">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-blue-700">
+                    Pacote SIP OAIS (BagIt RFC 8493)
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs font-bold text-slate-900">
+                    {doc.pacoteSipId || "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">
+                    AIP UUID no Archivematica (RDC-Arq)
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs font-bold text-emerald-900 break-all">
+                    {doc.aipUuidArchivematica || "Em processamento no Archivematica"}
+                  </p>
+                </div>
+              </div>
+            )}
           </section>
         </div>
 

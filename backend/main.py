@@ -1,15 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import database
-from routers import auth, documentos, sistema, auditoria, pcd_ttd, dossies
+from routers import auth, documentos, sistema, auditoria, pcd_ttd, dossies, archivematica
 
 # 1. INICIALIZAÇÃO DO BANCO DE DADOS E MIGRAÇÃO AUTOMÁTICA e-ARQ v2
 database.iniciar_banco()
 
 # 2. CONFIGURAÇÃO DO SERVIDOR WEB (SIGAD FCJA)
 app = FastAPI(
-    title="SIGAD FCJA — API Arquivística (e-ARQ Brasil v2)",
-    version="3.0.0",
+    title="SIGAD FCJA — API Arquivística (e-ARQ Brasil v2 + Conector RDC-Arq Archivematica)",
+    version="4.0.0",
 )
 
 # 3. LIBERAÇÃO DO CORS (Restrito à Rede Local da FCJA e Localhost)
@@ -36,6 +36,7 @@ app.include_router(auth.router)
 app.include_router(documentos.router)
 app.include_router(pcd_ttd.router)
 app.include_router(dossies.router)
+app.include_router(archivematica.router)
 app.include_router(auditoria.router)
 app.include_router(sistema.router)
 

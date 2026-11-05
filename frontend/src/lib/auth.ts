@@ -51,6 +51,11 @@ export function podeEliminarDocumentoOficial(papel?: string | null): boolean {
   return p === "arquivista" || p === "admin";
 }
 
+export function podeExecutarAcaoArquivistica(papel?: string | null): boolean {
+  const p = (papel || "").toLowerCase().trim();
+  return p === "arquivista" || p === "admin";
+}
+
 export function podeGerenciarUsuarios(papel?: string | null): boolean {
   return (papel || "").toLowerCase().trim() === "admin";
 }

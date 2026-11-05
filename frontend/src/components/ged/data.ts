@@ -1,7 +1,7 @@
 export type Doc = {
   id: string;
   numeroProtocolo?: string | undefined;
-  dossieId?: string | undefined;
+  dossieId?: string | number | null | undefined;
   codigoDossie?: string | undefined;
   tipoAtividade?: string | undefined;
   codigoClassificacao?: string | undefined;
@@ -16,7 +16,7 @@ export type Doc = {
   hora?: string | undefined;
   url?: string | undefined;
   tamanho?: number | undefined;
-  // Metadados e-ARQ Brasil v2, TTD & PREMIS (Fases 1 a 3)
+  // Metadados e-ARQ Brasil v2, TTD, PREMIS & Conector OAIS Archivematica (Fases 1 a 4)
   autor?: string | undefined;
   redator?: string | undefined;
   originador?: string | undefined;
@@ -36,6 +36,8 @@ export type Doc = {
   fixidadeVerificada?: boolean | undefined;
   ultimaVerificacaoFixidade?: string | undefined;
   usuarioCaptura?: string | undefined;
+  pacoteSipId?: string | undefined;
+  aipUuidArchivematica?: string | undefined;
 };
 
 export const CLASSES_FIM_PADRAO = [

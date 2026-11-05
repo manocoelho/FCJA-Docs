@@ -6,9 +6,11 @@ import { TelaExplorador } from "@/components/ged/TelaExplorador";
 import { TelaUpload } from "@/components/ged/TelaUpload";
 import { TelaAuditoriaSigad } from "@/components/ged/TelaAuditoriaSigad";
 import { TelaGestaoArquivistica } from "@/components/ged/TelaGestaoArquivistica";
+import { TelaArchivematicaSigad } from "@/components/ged/TelaArchivematicaSigad";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+  Archive,
   CloudUpload,
   FolderOpen,
   LayoutDashboard,
@@ -72,7 +74,7 @@ function Index() {
   });
 
   const [abaAtiva, setAbaAtiva] = useState<
-    "dashboard" | "explorador" | "upload" | "gestao" | "auditoria" | "permissoes"
+    "dashboard" | "explorador" | "upload" | "gestao" | "archivematica" | "auditoria" | "permissoes"
   >("dashboard");
 
   // Estados do Visualizador
@@ -196,6 +198,16 @@ function Index() {
               <FolderKanban className="h-5 w-5 text-purple-400" /> PCD, TTD & Dossiês
             </button>
             <button
+              onClick={() => setAbaAtiva("archivematica")}
+              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                abaAtiva === "archivematica"
+                  ? "bg-primary text-white"
+                  : "hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <Archive className="h-5 w-5 text-emerald-400" /> Conector Archivematica
+            </button>
+            <button
               onClick={() => setAbaAtiva("auditoria")}
               className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                 abaAtiva === "auditoria"
@@ -265,6 +277,13 @@ function Index() {
             acervo={acervo}
             usuarioPapel={usuarioPapel}
             onDocumentosAlterados={recarregarDocumentos}
+          />
+        )}
+        {abaAtiva === "archivematica" && (
+          <TelaArchivematicaSigad
+            acervo={acervo}
+            usuarioPapel={usuarioPapel}
+            onAcervoAlterado={recarregarDocumentos}
           />
         )}
         {abaAtiva === "auditoria" && (
