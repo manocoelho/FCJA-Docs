@@ -14,6 +14,7 @@ import { FiltroPastas } from "@/components/ged/FiltroPastas";
 import { TIPOS, NUCLEOS, ANOS, CATEGORIA_POR_TIPO, TIPO_POR_CATEGORIA, SIGLA_POR_NUCLEO, type Doc } from "@/components/ged/data";
 import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
 import { SeletorHierarquico } from "@/components/ged/SeletorHierarquico";
+import { API_BASE_URL } from "@/lib/api";
 
 const EXT_POR_SUFIXO: Record<string, "pdf" | "xlsx" | "docx" | "tiff"> = {
   pdf: "pdf", xlsx: "xlsx", xls: "xlsx", csv: "xlsx", docx: "docx", doc: "docx", tiff: "tiff", tif: "tiff",
@@ -73,7 +74,7 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
 
   async function abrirPastaWindows() {
     try {
-      await fetch("http://localhost:8000/api/sistema/abrir-pasta", { method: "POST" });
+      await fetch(`${API_BASE_URL}/api/sistema/abrir-pasta`, { method: "POST" });
       toast.success("Explorador do Windows aberto no servidor!");
     } catch (e) {
       toast.error("Não foi possível abrir a pasta.");
@@ -139,7 +140,7 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
       formData.append("tipo_atividade", p.tipoAtividade); formData.append("codigo_classificacao", p.codigo); formData.append("descricao_codigo", p.descricao);
       formData.append("categoria", categoria); formData.append("ano", String(ano)); formData.append("nucleo", p.nucleo); formData.append("sigla", p.sigla);
       try {
-        const res = await fetch("http://localhost:8000/api/upload", { method: "POST", body: formData });
+        const res = await fetch(`${API_BASE_URL}/api/upload`, { method: "POST", body: formData });
         if (!res.ok) throw new Error("Erro na rede");
         const resp = await res.json();
                  

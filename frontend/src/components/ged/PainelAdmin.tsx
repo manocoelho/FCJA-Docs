@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { API_BASE_URL } from "@/lib/api";
 
 export function PainelAdmin() {
   const [usuarios, setUsuarios] = useState<{login: string, nome: string, papel: string}[]>([]);
@@ -37,7 +38,7 @@ export function PainelAdmin() {
   const [editPapel, setEditPapel] = useState("pesquisador");
 
   const carregarUsuarios = () => {
-    fetch("http://localhost:8000/api/usuarios")
+    fetch(`${API_BASE_URL}/api/usuarios`)
       .then(res => res.json())
       .then(data => setUsuarios(data))
       .catch(() => toast.error("Erro ao carregar usuários"));
@@ -49,7 +50,7 @@ export function PainelAdmin() {
 
   const cadastrar = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch("http://localhost:8000/api/usuarios", {
+    const res = await fetch(`${API_BASE_URL}/api/usuarios`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ nome: novoNome, login: novoLogin, senha: novaSenha, papel: novoPapel })
@@ -65,7 +66,7 @@ export function PainelAdmin() {
   };
 
   const mudarPapel = async (login: string, novoPapel: string) => {
-    await fetch(`http://localhost:8000/api/usuarios/${login}`, {
+    await fetch(`${API_BASE_URL}/api/usuarios/${login}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ papel: novoPapel })
@@ -76,7 +77,7 @@ export function PainelAdmin() {
 
   const removerUsuario = async (login: string) => {
     if(!confirm(`Tem certeza que deseja remover o acesso de "${login}"?`)) return;
-    await fetch(`http://localhost:8000/api/usuarios/${login}`, { method: "DELETE" });
+    await fetch(`${API_BASE_URL}/api/usuarios/${login}`, { method: "DELETE" });
     toast.success("Usuário removido do sistema.");
     carregarUsuarios();
   };
@@ -91,7 +92,7 @@ export function PainelAdmin() {
 
   const salvarEdicao = async (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`http://localhost:8000/api/usuarios/${usuarioEditando}/editar`, {
+    const res = await fetch(`${API_BASE_URL}/api/usuarios/${usuarioEditando}/editar`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

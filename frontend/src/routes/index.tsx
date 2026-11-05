@@ -75,7 +75,7 @@ function Index() {
   const [edicoes, setEdicoes] = useState<Record<string, { nome: string; categoria: string; ano: number; nucleo: string }>>({});
 
   function atualizarStatusHD() {
-    fetch("http://localhost:8000/api/sistema/status")
+    fetch(`${API_BASE_URL}/api/sistema/status")
       .then(res => res.json())
       .then(data => { 
         if (data.sucesso) {
@@ -95,7 +95,7 @@ function Index() {
     const toastId = toast.loading(`Iniciando conexão com o disco ${novoModo}...`);
     
     try {
-      const res = await fetch("http://localhost:8000/api/sistema/armazenamento", {
+      const res = await fetch(`${API_BASE_URL}/api/sistema/armazenamento", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ modo: novoModo })
@@ -106,12 +106,12 @@ function Index() {
         setModoStorage(data.modo);
         toast.success("Banco de Dados transferido!", { id: toastId, description: `Lendo informações da pasta: ${data.pasta}` });
         
-        const resDocs = await fetch("http://localhost:8000/api/documentos");
+        const resDocs = await fetch(`${API_BASE_URL}/api/documentos");
         const docs = await resDocs.json();
         setDocumentosApi(docs);
         setEnviados([]); 
         
-        const resStatus = await fetch("http://localhost:8000/api/sistema/status");
+        const resStatus = await fetch(`${API_BASE_URL}/api/sistema/status");
         const statusData = await resStatus.json();
         if(statusData.sucesso) setSysStatus(statusData);
         
@@ -124,7 +124,7 @@ function Index() {
   }
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/documentos")
+    fetch(`${API_BASE_URL}/api/documentos")
       .then((res) => {
         if (!res.ok) throw new Error("Falha na rede");
         return res.json();
@@ -158,7 +158,7 @@ function Index() {
     if (doc.ext === "xlsx") {
       setCarregandoView(true);
       try {
-        const res = await fetch(`http://localhost:8000/api/visualizar-planilha/${doc.id}`);
+        const res = await fetch(`${API_BASE_URL}/api/visualizar-planilha/${doc.id}`);
         const data = await res.json();
         
         if (data.colunas) {
@@ -180,14 +180,14 @@ function Index() {
       return;
     }
     const a = document.createElement("a");
-    a.href = doc.url;
+    a.href = resolveUrl(doc.url);
     a.download = doc.nome;
     a.click();
   }
 
   async function removerDoc(doc: Doc) {
     try {
-      const res = await fetch(`http://localhost:8000/api/documentos/${doc.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/documentos/${doc.id}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Falha ao apagar no backend");
@@ -206,7 +206,7 @@ function Index() {
     if (lista.length === 0) return;
     try {
       await Promise.all(
-        lista.map(doc => fetch(`http://localhost:8000/api/documentos/${doc.id}`, { method: "DELETE" }))
+        lista.map(doc => fetch(`${API_BASE_URL}/api/documentos/${doc.id}`, { method: "DELETE" }))
       );
       const ids = lista.map((d) => d.id);
       setDocumentosApi((prev) => prev.filter((d) => !ids.includes(d.id)));
@@ -227,7 +227,7 @@ function Index() {
     dados: { nome: string; categoria: string; ano: number; nucleo: string },
   ) {
     try {
-      const res = await fetch(`http://localhost:8000/api/documentos/${doc.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/documentos/${doc.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dados)
@@ -363,7 +363,7 @@ function Index() {
           
           <div className="flex-1 overflow-hidden rounded-md border bg-slate-50">
             {viewDoc?.ext === "pdf" ? (
-              <iframe src={viewDoc?.url} className="h-full w-full border-0" title="Visualizador PDF" />
+              <iframe src={resolveUrl(viewDoc?.url || "")} className="h-full w-full border-0" title="Visualizador PDF" />
             ) : carregandoView ? (
               <div className="flex h-full items-center justify-center text-slate-500">
                 <span className="animate-pulse">Processando dados com o Python...</span>
@@ -396,7 +396,7 @@ function Index() {
                   variant="outline" 
                   onClick={async () => {
                     try {
-                      const res = await fetch(`http://localhost:8000/api/documentos/${viewDoc?.id}/abrir-local`, { method: "POST" });
+                      const res = await fetch(`${API_BASE_URL}/api/documentos/${viewDoc?.id}/abrir-local`, { method: "POST" });
                       const data = await res.json();
                       if (data.sucesso) {
                         toast.success("Arquivo aberto no Windows!");

@@ -7,6 +7,28 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
 export default defineConfig({
+  // Desativa o preset Cloudflare do Nitro para permitir build/preview nativo em servidor Linux local
+  nitro: false,
+  vite: {
+    server: {
+      host: "0.0.0.0",
+      port: 8080,
+      proxy: {
+        "/api": {
+          target: "http://127.0.0.1:8000",
+          changeOrigin: true,
+        },
+        "/arquivos": {
+          target: "http://127.0.0.1:8000",
+          changeOrigin: true,
+        },
+      },
+    },
+    preview: {
+      host: "0.0.0.0",
+      port: 8080,
+    },
+  },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this

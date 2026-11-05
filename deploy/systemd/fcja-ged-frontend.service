@@ -1,0 +1,24 @@
+[Unit]
+Description=FCJA Docs - Frontend Web (React + Vite + Bun)
+After=network.target fcja-ged-backend.service
+Wants=fcja-ged-backend.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/fcja-docs/frontend
+Environment="NODE_ENV=production"
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+
+# Serve a build otimizada de produção na porta 8080 exposta para a rede local
+ExecStart=/usr/local/bin/bun run preview -- --host 0.0.0.0 --port 8080
+
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fcja-ged-frontend
+
+[Install]
+WantedBy=multi-user.target

@@ -4,6 +4,7 @@ import { Eye, EyeOff, Library } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { API_BASE_URL } from "@/lib/api";
 
 interface TelaLoginProps {
   onLoginSuccess: (nome: string, papel: string) => void;
@@ -19,7 +20,7 @@ export function TelaLogin({ onLoginSuccess }: TelaLoginProps) {
     e.preventDefault();
     setErroLogin("");
     try {
-      const res = await fetch("http://localhost:8000/api/login", {
+      const res = await fetch(`${API_BASE_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ login: loginInput, senha: senhaInput }),
