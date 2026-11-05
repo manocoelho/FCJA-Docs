@@ -1,6 +1,9 @@
 @echo off
 chcp 65001 > nul
 color 0A
+:: Garante que o script rode a partir da raiz do repositorio
+cd /d "%~dp0\..\.."
+
 echo ===================================================
 echo      INSTALADOR AUTOMATICO - FCJA DOCS
 echo ===================================================
@@ -46,6 +49,6 @@ echo.
 
 echo ===================================================
 echo SUCESSO! O ambiente foi montado perfeitamente.
-echo Voce ja pode ligar o sistema no seu .bat principal.
+echo Voce ja pode ligar o sistema executando scripts\windows\Iniciar_FCJA.bat.
 echo ===================================================
 pause

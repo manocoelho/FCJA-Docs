@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 > NUL
-:: Garante que o script rode a partir da pasta onde ele esta salvo
-cd /d "%~dp0"
+:: Garante que o script rode a partir da raiz do repositorio
+cd /d "%~dp0\..\.."
 
 echo ==========================================
 echo    PREPARANDO O SISTEMA GED - FCJA

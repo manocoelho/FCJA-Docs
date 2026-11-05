@@ -5,7 +5,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-NGINX_CONF_SRC="$SCRIPT_DIR/deploy/nginx/fcja-ged"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+NGINX_CONF_SRC="$REPO_DIR/deploy/nginx/fcja-ged"
 NGINX_AVAILABLE="/etc/nginx/sites-available/fcja-ged"
 NGINX_ENABLED="/etc/nginx/sites-enabled/fcja-ged"
 

@@ -1,6 +1,6 @@
 -- ============================================================================
 -- SCRIPT DE PROVISIONAMENTO MYSQL - FCJA DOCS (Ubuntu 24.04 LTS)
--- Execução: sudo mysql < setup_mysql.sql
+-- Execução: sudo mysql < scripts/database/setup_mysql.sql
 -- ============================================================================
 
 -- 1. Cria o banco de dados com suporte completo a acentuação e UTF-8

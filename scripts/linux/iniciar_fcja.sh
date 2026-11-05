@@ -5,7 +5,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_DIR"
 
 # Adiciona Bun ao PATH caso esteja instalado no diretório do usuário
 export BUN_INSTALL="${BUN_INSTALL:-$HOME/.bun}"
@@ -45,20 +46,20 @@ start_services() {
 
     if [ ! -f "backend/.venv/bin/uvicorn" ]; then
         echo "[ERRO] Ambiente virtual não encontrado em backend/.venv."
-        echo "Execute ./instalar_dependencias.sh primeiro."
+        echo "Execute ./scripts/linux/instalar_dependencias.sh primeiro."
         exit 1
     fi
 
     # Inicia Backend FastAPI exposto para a rede local
     (
-        cd "$SCRIPT_DIR/backend"
+        cd "$REPO_DIR/backend"
         exec ./.venv/bin/uvicorn main:app --host 0.0.0.0 --port "$BACKEND_PORT"
     ) &
     BACKEND_PID=$!
 
     # Inicia Frontend Vite/Bun exposto para a rede local
     (
-        cd "$SCRIPT_DIR/frontend"
+        cd "$REPO_DIR/frontend"
         exec bun run dev -- --host 0.0.0.0 --port "$FRONTEND_PORT"
     ) &
     FRONTEND_PID=$!

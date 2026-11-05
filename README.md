@@ -1,4 +1,4 @@
-# 📄 FCJA Docs | Sistema de Gestão Eletrônica de Documentos (GED)
+# 📄 FCJA Docs | Sistema de Gestão Eletrônica de Documentos (SIGAD / e-ARQ Brasil v2)
 
 ![Ubuntu](https://img.shields.io/badge/Ubuntu_24.04_LTS-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
 ![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
@@ -7,7 +7,7 @@
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
 ![Nginx](https://img.shields.io/badge/Nginx-009639?style=for-the-badge&logo=nginx&logoColor=white)
 
-Sistema de **Gestão Eletrônica de Documentos (GED)** desenvolvido sob medida para a **Fundação Casa de José Américo (FCJA)**. Projetado sob o Princípio da Responsabilidade Única (SRP) e alinhado às diretrizes arquivísticas do **CONARQ / PCDM (Plano de Classificação de Documentos da Paraíba)**, o sistema centraliza o armazenamento no servidor local da Fundação, a classificação arquivística em lote, a visualização nativa de documentos e os indicadores analíticos em tempo real.
+Sistema **Informatizado de Gestão Arquivística de Documentos (SIGAD)** desenvolvido sob medida para a **Fundação Casa de José Américo (FCJA)**. Projetado sob o Princípio da Responsabilidade Única (SRP), em total conformidade com as diretrizes do **e-ARQ Brasil v2 (CONARQ, 2022)**, **PCDM/TTD (Atividade-Fim e Atividade-Meio)** e integrado ao ecossistema de preservação digital de longo prazo (**Archivematica / RDC-Arq**) e difusão (**AtoM**).
 
 ---
 
@@ -17,22 +17,22 @@ O **FCJA Docs** atua de forma integrada ao ecossistema de preservação e difus�
 
 | Sistema | Papel Arquivístico | Endereço na Rede Local |
 | :--- | :--- | :--- |
-| **FCJA Docs (GED)** | Gestão documental corrente/intermediária e classificação PCDM | `http://192.168.1.115` *(ou `:8085`)* |
-| **Archivematica** | Preservação digital sistêmica e geração de pacotes AIP | `http://192.168.1.132` |
+| **FCJA Docs (SIGAD)** | Gestão arquivística, protocolo, temporalidade TTD, dossiês e conector SIP | `http://192.168.1.115` *(ou `:8085`)* |
+| **Archivematica** | Preservação digital sistêmica e geração de pacotes AIP (OAIS) | `http://192.168.1.132` |
 | **Storage Service** | Gerenciamento de áreas de transferência e armazenamento | `http://192.168.1.132:8000` |
 | **AtoM** | Difusão, descrição arquivística e acesso aos pacotes DIP | `http://192.168.1.110` |
 
 ---
 
-## ✨ Destaques e Funcionalidades
+## ✨ Destaques e Funcionalidades do SIGAD
 
-* 🖥️ **Interface Web Desktop:** Navegação fluida e modular via barra lateral (`Dashboard Analítico`, `Explorador de Arquivos`, `Central de Upload` e `Gerenciar Acessos`).
-* 🗂️ **Classificação Arquivística Guiada (PCDM/APEPB):** Seletor hierárquico completo (*Função > Subfunção > Atividade > Código de Classificação*) integrado às 186 tipologias documentais de atividade-meio e aos 16 Núcleos de Pesquisa da FCJA.
-* 📂 **Explorador do Acervo no Servidor:** Navegação estruturada em árvore (`Armazenamento no Servidor > Núcleo > Ano > Tipologia`) com abertura por duplo clique.
-* 📊 **Dashboard Analítico em Tempo Real:** Gráficos por Núcleo, Ano e Tipologia, além de monitoramento ao vivo do espaço total, utilizado e livre no disco do servidor Linux.
-* ☁️ **Central de Upload em Lote:** Área *drag-and-drop* para arquivos `PDF`, `DOCX`, `XLSX`, `CSV` e `TIFF` (até 25 MB por arquivo), com aplicação de metadados em lote e exportação de inventário em Excel.
-* 👁️ **Visualizador Nativo:** Leitura direta de PDFs e renderização tabular de planilhas `.xlsx`/`.xls` no próprio navegador, sem necessidade de download prévio.
-* 🔐 **Controle de Acesso Baseado em Papéis:** Perfis de **Pesquisador** e **Administrador** persistidos em banco **MySQL** via **SQLAlchemy**.
+* 🛡️ **Conformidade e-ARQ Brasil v2 (CONARQ, 2022):** Número Único de Protocolo (NUP), metadados diplomáticos obrigatórios, níveis de acesso LAI/LGPD e trilha de auditoria imutável (*append-only*).
+* 🔒 **Fixidade Criptográfica SHA-256 (PREMIS v3):** Cálculo e verificação em tempo real da integridade de cada componente digital.
+* 🗂️ **Plano de Classificação (PCD) & Tabela de Temporalidade (TTD):** Suporte a Atividade-Meio (APEPB) e Atividade-Fim da FCJA (Pesquisa Histórica, Curadoria e Difusão Cultural) com cálculo automatizado do ciclo vital (`CORRENTE`, `INTERMEDIARIA`, `APTO_RECOLHIMENTO`, `APTO_ELIMINACAO`).
+* 📁 **Unidades de Arquivamento (Dossiês / Processos & Juntada):** Preservação da relação orgânica entre documentos arquivísticos com código padronizado `FCJA-DOS-AAAA-NNNN`.
+* 📦 **Conector Automático OAIS → Archivematica:** Montagem de pacotes **BagIt (RFC 8493)** com `metadata.csv` (Dublin Core + e-ARQ), manifesto XML `METS` e eventos `PREMIS` sem retrabalho de digitação.
+* 🔐 **Segurança e RBAC:** Autenticação via JWT (`HS256`) e senhas com hashing seguro PBKDF2-HMAC-SHA256 para perfis de Pesquisador, Arquivista e Administrador.
+* 📜 **Termo de Eliminação Controlada:** Geração e impressão oficial de Termo de Eliminação e Edital de Ciência conforme o art. 9º da Lei 8.159/1991.
 
 ---
 
@@ -46,7 +46,7 @@ O **FCJA Docs** atua de forma integrada ao ecossistema de preservação e difus�
 ### Backend (`/backend`)
 * **Python 3.12 + FastAPI** servido em produção por **Gunicorn + Uvicorn Workers**
 * **SQLAlchemy 2.0 + PyMySQL** conectado ao **MySQL 8.0** (`utf8mb4`) com fallback automático para SQLite em desenvolvimento local
-* **Pandas + OpenPyXL + LXML** para processamento de planilhas e extração da árvore PCDM
+* **Módulos Isolados (SRP):** `/core`, `/models`, `/schemas`, `/services`, `/routers`
 
 ### Infraestrutura DevOps (`/deploy`)
 * **Ubuntu Server 24.04 LTS**
@@ -58,7 +58,7 @@ O **FCJA Docs** atua de forma integrada ao ecossistema de preservação e difus�
 
 ## 🚀 Implantação no Servidor Ubuntu 24.04 LTS (Produção)
 
-### 1. Instalação Completa Automatizada (Fases 1 a 5)
+### 1. Instalação Completa Automatizada
 No terminal do servidor Ubuntu:
 
 ```bash
@@ -67,14 +67,14 @@ sudo chown -R $USER:$USER /opt/fcja-docs
 git clone https://github.com/manocoelho/FCJA-Docs.git /opt/fcja-docs
 
 cd /opt/fcja-docs
-chmod +x *.sh gerar_pastas.py
-./implantar_ubuntu.sh
+chmod +x scripts/linux/*.sh
+./scripts/linux/implantar_ubuntu.sh
 ```
 
-O orquestrador `implantar_ubuntu.sh` executa automaticamente:
-1. [`instalar_dependencias.sh`](./instalar_dependencias.sh): Instala pacotes base via `apt`, sobe e provisiona o banco MySQL (`fcja_ged` / `ged_admin`) via [`setup_mysql.sql`](./setup_mysql.sql), cria o `.venv` do Python e instala pacotes do Frontend com `bun install`.
-2. [`instalar_servicos.sh`](./instalar_servicos.sh): Compila a build de produção do Frontend, provisiona `/var/lib/fcja_dados` com permissões `2775` via [`gerar_pastas.py`](./gerar_pastas.py) e registra/inicia os serviços `fcja-ged-backend` e `fcja-ged-frontend` no Systemd.
-3. [`configurar_nginx.sh`](./configurar_nginx.sh): Ativa o IP dedicado `192.168.1.115` via Netplan e configura o Proxy Reverso Nginx na porta `80`.
+O orquestrador `scripts/linux/implantar_ubuntu.sh` executa automaticamente:
+1. [`scripts/linux/instalar_dependencias.sh`](./scripts/linux/instalar_dependencias.sh): Instala pacotes base via `apt`, provisiona o banco MySQL (`fcja_ged` / `ged_admin`) via [`scripts/database/setup_mysql.sql`](./scripts/database/setup_mysql.sql), cria o `.venv` do Python e instala pacotes do Frontend com `bun install`.
+2. [`scripts/linux/instalar_servicos.sh`](./scripts/linux/instalar_servicos.sh): Compila a build de produção do Frontend, provisiona `/var/lib/fcja_dados` com permissões `2775` via [`scripts/linux/gerar_pastas.py`](./scripts/linux/gerar_pastas.py) e registra/inicia os serviços `fcja-ged-backend` e `fcja-ged-frontend` no Systemd.
+3. [`scripts/linux/configurar_nginx.sh`](./scripts/linux/configurar_nginx.sh): Ativa o IP dedicado `192.168.1.115` via Netplan e configura o Proxy Reverso Nginx na porta `80`.
 
 ### 2. Comandos de Manutenção e Atualização no Servidor
 Para atualizar o sistema no servidor após um novo `git push`:
@@ -93,37 +93,42 @@ sudo journalctl -u fcja-ged-backend -u fcja-ged-frontend -f
 
 ## 💻 Execução em Ambiente Local (Desenvolvimento)
 
-* **No Linux:** `./iniciar_fcja.sh`
-* **No Windows:** Duplo clique em `instalar_dependencias.bat` (primeira vez) e depois em `Iniciar_FCJA.bat`.
+* **No Linux:** `./scripts/linux/iniciar_fcja.sh`
+* **No Windows:** Duplo clique em `scripts\windows\instalar_dependencias.bat` (primeira vez) e depois em `scripts\windows\Iniciar_FCJA.bat`.
 
 ---
 
-## 🗂️ Estrutura de Diretórios
+## 🗂️ Estrutura de Diretórios Organizada
 
 ```text
 FCJA-Docs/
 ├── backend/                  # API Python/FastAPI, modelos SQLAlchemy e rotas modulares
-│   ├── routers/              # Módulos SRP: auth.py, documentos.py, sistema.py
-│   ├── database.py           # Engine SQLAlchemy (MySQL + fallback SQLite)
+│   ├── core/                 # Segurança (PBKDF2, JWT HS256) e Dependências RBAC
+│   ├── models/               # Entidades: Documento, Componente, Evento, PCD/TTD, Dossiê, SIP, Usuário
+│   ├── schemas/              # Pydantic Schemas tipados
+│   ├── services/             # Regras de Negócio: Fixidade, Protocolo, Auditoria, TTD, Dossiês, SIP Builder
+│   ├── routers/              # Endpoints: auth, documentos, pcd_ttd, dossies, archivematica, auditoria, sistema
+│   ├── database.py           # Conexão MySQL com fallback SQLite e auto-migração
 │   ├── main.py               # Entrypoint FastAPI e configuração CORS LAN
-│   ├── requirements.txt      # Dependências Python do Backend
-│   └── .env.example          # Modelo de variáveis de ambiente
-├── frontend/                 # Aplicação React/TypeScript/Vite
+│   └── requirements.txt      # Dependências Python do Backend
+├── frontend/                 # Aplicação React/TypeScript/Vite/Bun
 │   └── src/
-│       ├── components/ged/   # Módulos do GED (Dashboard, Explorador, Upload, Login, Admin)
-│       ├── lib/api.ts        # Cliente dinâmico de resolução de IP/Proxy
-│       └── routes/index.tsx  # Layout principal Web Desktop
-├── deploy/
+│       ├── components/ged/   # Módulos: Dashboard, Explorador, Upload, Gestão PCD/TTD, Archivematica, Auditoria
+│       ├── lib/              # Clientes de API e Formatadores (api, auth, sigad-api, pcd-dossie-api, archivematica-api)
+│       ├── hooks/            # Hooks de Estado (useAcervoSigad, useGestaoArquivistica, useArchivematicaSigad)
+│       └── routes/index.tsx  # Layout principal Web Desktop do SIGAD FCJA
+├── deploy/                   # Configurações de infraestrutura
 │   ├── nginx/fcja-ged        # Configuração do Proxy Reverso Nginx (Porta 80)
 │   └── systemd/              # Unidades fcja-ged-backend.service e fcja-ged-frontend.service
-├── gerar_pastas.py           # Extrator PCDM e provisionador de diretórios POSIX (2775)
-├── setup_mysql.sql           # Provisionamento do banco fcja_ged e usuário ged_admin
-├── instalar_dependencias.sh  # Instalador automatizado Ubuntu (apt, MySQL, venv, Bun)
-├── instalar_servicos.sh      # Instalador de serviços Systemd e build de produção
-├── configurar_nginx.sh       # Configurador de IP secundário (Netplan) e Nginx
-├── implantar_ubuntu.sh       # Orquestrador completo de implantação Linux
-└── MANUAL_USO_PESQUISADORES.md # Guia de acesso e operação para a equipe da FCJA
+├── docs/                     # Manuais, guias e referências arquivísticas
+│   ├── manuais/              # MANUAL_USO_PESQUISADORES.md e LEIA-ME.txt
+│   └── referencias/          # Planilhas base de PCDM APEPB e Tipologias Documentais (.xlsx)
+├── scripts/                  # Scripts operacionais e de automação
+│   ├── linux/                # implantar_ubuntu.sh, instalar_dependencias.sh, instalar_servicos.sh, iniciar_fcja.sh, gerar_pastas.py, etc.
+│   ├── windows/              # Iniciar_FCJA.bat e instalar_dependencias.bat
+│   └── database/             # Scripts SQL de provisionamento (setup_mysql.sql)
+└── README.md                 # Documentação técnica geral do repositório
 ```
 
 ---
-*Desenvolvido por **Antonio Rocha Lima Filho** para a **Fundação Casa de José Américo (FCJA)**.*
+*Desenvolvido para a **Fundação Casa de José Américo (FCJA)**.*

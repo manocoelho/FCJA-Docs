@@ -16,9 +16,23 @@ from pathlib import Path
 import pandas as pd
 
 # Configurações de caminhos e permissões
-FILE_FUNCOES = "APEPB_PCDM - FUNÇÃO 1 2 3 4 5 6 7 - CORES.xlsx"
-FILE_TIPOS = "Tipos Atividades Meio.xlsx"
-OUTPUT_TS = Path("frontend/src/components/ged/codigos.ts")
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parent.parent if SCRIPT_DIR.parent.name == "scripts" else SCRIPT_DIR.parent
+
+def _localizar_planilha(nome: str) -> Path:
+    candidatos = [
+        REPO_ROOT / "docs" / "referencias" / nome,
+        REPO_ROOT / nome,
+        SCRIPT_DIR / nome,
+    ]
+    for c in candidatos:
+        if c.exists():
+            return c
+    return REPO_ROOT / "docs" / "referencias" / nome
+
+FILE_FUNCOES = _localizar_planilha("APEPB_PCDM - FUNÇÃO 1 2 3 4 5 6 7 - CORES.xlsx")
+FILE_TIPOS = _localizar_planilha("Tipos Atividades Meio.xlsx")
+OUTPUT_TS = REPO_ROOT / "frontend" / "src" / "components" / "ged" / "codigos.ts"
 
 # No Linux usa /var/lib/fcja_dados (ou variável de ambiente FCJA_PASTA_DADOS)
 DEFAULT_DATA_DIR = (
@@ -167,12 +181,12 @@ def provisionar_estrutura_armazenamento(pasta_base: Path, pasta_arquivos: Path) 
 
 
 def main() -> None:
-    if Path(FILE_TIPOS).exists() and Path(FILE_FUNCOES).exists():
-        tipos = extrair_tipologias(FILE_TIPOS)
-        hierarchy = mapear_hierarquia_pcdm(FILE_FUNCOES)
+    if FILE_TIPOS.exists() and FILE_FUNCOES.exists():
+        tipos = extrair_tipologias(str(FILE_TIPOS))
+        hierarchy = mapear_hierarquia_pcdm(str(FILE_FUNCOES))
         exportar_codigos_ts(tipos, hierarchy, OUTPUT_TS)
     else:
-        print("[AVISO] Planilhas base não encontradas no diretório atual; pulando geração do codigos.ts.")
+        print(f"[AVISO] Planilhas base não encontradas ({FILE_TIPOS} / {FILE_FUNCOES}); pulando geração do codigos.ts.")
 
     provisionar_estrutura_armazenamento(PASTA_DADOS, PASTA_ARQUIVOS)
     print("Sucesso! Estrutura e permissões do GED configuradas.")

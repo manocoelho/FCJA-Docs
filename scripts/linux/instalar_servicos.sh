@@ -5,7 +5,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_DIR"
 
 REAL_USER="${SUDO_USER:-$USER}"
 REAL_HOME="$(getent passwd "$REAL_USER" | cut -d: -f6)"
@@ -23,7 +24,7 @@ echo " [1/4] Preparando binário do Bun e Build Frontend  "
 echo "==================================================="
 BUN_BIN="$(command -v bun || echo "${REAL_HOME}/.bun/bin/bun")"
 if [ ! -x "$BUN_BIN" ]; then
-    echo "[ERRO] Bun não encontrado em $BUN_BIN. Rode ./instalar_dependencias.sh primeiro."
+    echo "[ERRO] Bun não encontrado em $BUN_BIN. Rode ./scripts/linux/instalar_dependencias.sh primeiro."
     exit 1
 fi
 
@@ -32,7 +33,7 @@ sudo ln -sf "$BUN_BIN" /usr/local/bin/bun
 log_info "Bun vinculado em /usr/local/bin/bun"
 
 echo "Gerando build de produção do Frontend..."
-sudo -u "$REAL_USER" bash -c "cd '$SCRIPT_DIR/frontend' && /usr/local/bin/bun run build"
+sudo -u "$REAL_USER" bash -c "cd '$REPO_DIR/frontend' && /usr/local/bin/bun run build"
 log_info "Build de produção concluída."
 
 echo ""
@@ -40,7 +41,7 @@ echo "==================================================="
 echo " [2/4] Ajustando permissões de pastas do GED       "
 echo "==================================================="
 sudo usermod -aG "$SERVICE_GROUP" "$REAL_USER" || true
-sudo "$SCRIPT_DIR/backend/.venv/bin/python" "$SCRIPT_DIR/gerar_pastas.py"
+sudo "$REPO_DIR/backend/.venv/bin/python" "$SCRIPT_DIR/gerar_pastas.py"
 log_info "Permissões do diretório de dados aplicadas."
 
 echo ""
@@ -59,10 +60,10 @@ Type=simple
 User=${REAL_USER}
 Group=${SERVICE_GROUP}
 UMask=0002
-WorkingDirectory=${SCRIPT_DIR}/backend
-Environment="PATH=${SCRIPT_DIR}/backend/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-EnvironmentFile=${SCRIPT_DIR}/backend/.env
-ExecStart=${SCRIPT_DIR}/backend/.venv/bin/gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 120 --access-logfile - --error-logfile -
+WorkingDirectory=${REPO_DIR}/backend
+Environment="PATH=${REPO_DIR}/backend/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+EnvironmentFile=${REPO_DIR}/backend/.env
+ExecStart=${REPO_DIR}/backend/.venv/bin/gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 120 --access-logfile - --error-logfile -
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -83,7 +84,7 @@ Wants=fcja-ged-backend.service
 Type=simple
 User=${REAL_USER}
 Group=${SERVICE_GROUP}
-WorkingDirectory=${SCRIPT_DIR}/frontend
+WorkingDirectory=${REPO_DIR}/frontend
 Environment="NODE_ENV=production"
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"
 ExecStart=/usr/local/bin/bun run preview -- --host 0.0.0.0 --port 8080

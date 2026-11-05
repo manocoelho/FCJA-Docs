@@ -6,7 +6,8 @@ set -euo pipefail
 
 # Garante execução a partir da raiz do projeto
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+REPO_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+cd "$REPO_DIR"
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -43,11 +44,11 @@ setup_mysql_db() {
     echo " [2/5] Configurando Banco de Dados MySQL..."
     echo "==================================================="
     sudo systemctl enable --now mysql
-    if [ -f "$SCRIPT_DIR/setup_mysql.sql" ]; then
-        sudo mysql < "$SCRIPT_DIR/setup_mysql.sql"
+    if [ -f "$REPO_DIR/scripts/database/setup_mysql.sql" ]; then
+        sudo mysql < "$REPO_DIR/scripts/database/setup_mysql.sql"
         log_info "Banco 'fcja_ged' e usuário 'ged_admin' configurados no MySQL."
     else
-        log_warn "Arquivo setup_mysql.sql não encontrado. Pulando provisionamento automático SQL."
+        log_warn "Arquivo setup_mysql.sql não encontrado em $REPO_DIR/scripts/database/setup_mysql.sql. Pulando provisionamento automático SQL."
     fi
 }
 
@@ -70,7 +71,7 @@ setup_backend() {
     echo "==================================================="
     echo " [4/5] Configurando ambiente virtual Python (venv)..."
     echo "==================================================="
-    cd "$SCRIPT_DIR/backend"
+    cd "$REPO_DIR/backend"
 
     if [ ! -f ".env" ] && [ -f ".env.example" ]; then
         cp .env.example .env
@@ -87,7 +88,7 @@ setup_backend() {
     pip install -r requirements.txt
     deactivate
 
-    cd "$SCRIPT_DIR"
+    cd "$REPO_DIR"
     log_info "Backend Python (FastAPI + SQLAlchemy + PyMySQL) configurado!"
 }
 
@@ -96,9 +97,9 @@ setup_frontend() {
     echo "==================================================="
     echo " [5/5] Instalando dependências do Frontend (Bun)..."
     echo "==================================================="
-    cd "$SCRIPT_DIR/frontend"
+    cd "$REPO_DIR/frontend"
     bun install
-    cd "$SCRIPT_DIR"
+    cd "$REPO_DIR"
     log_info "Frontend React/Vite configurado com sucesso!"
 }
 
@@ -115,7 +116,7 @@ main() {
     echo ""
     echo "==================================================="
     log_info "SUCESSO! O ambiente foi montado perfeitamente."
-    echo "Execute ./iniciar_fcja.sh para iniciar o sistema."
+    echo "Execute ./scripts/linux/iniciar_fcja.sh para iniciar o sistema."
     echo "==================================================="
 }
 
