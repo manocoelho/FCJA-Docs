@@ -9,12 +9,17 @@ echo      INSTALADOR AUTOMATICO - FCJA DOCS
 echo ===================================================
 echo.
 
-echo [1/3] Verificando ferramentas base...
-python --version >nul 2>&1
+echo [1/3] Localizando interpretador Python e Node.js...
+set "PYTHON_BIN=python"
+if exist "%LOCALAPPDATA%\Python\bin\python.exe" (
+    set "PYTHON_BIN=%LOCALAPPDATA%\Python\bin\python.exe"
+)
+
+"%PYTHON_BIN%" --version >nul 2>&1
 if %errorlevel% neq 0 (
     color 0C
-    echo [X] ERRO: Python nao encontrado! 
-    echo Por favor, baixe em python.org e lembre-se de marcar a caixa "Add Python to PATH" na instalacao.
+    echo [X] ERRO: Python nao encontrado!
+    echo Por favor, baixe em python.org e marque a caixa "Add Python to PATH".
     echo.
     pause
     exit /b
@@ -23,19 +28,19 @@ if %errorlevel% neq 0 (
 call npm --version >nul 2>&1
 if %errorlevel% neq 0 (
     color 0C
-    echo [X] ERRO: Node.js - npm nao encontrado! 
+    echo [X] ERRO: Node.js - npm nao encontrado!
     echo Por favor, baixe e instale a versao LTS em nodejs.org.
     echo.
     pause
     exit /b
 )
-echo [OK] Python e Node.js encontrados!
+echo [OK] Python (%PYTHON_BIN%) e Node.js encontrados!
 echo.
 
 echo [2/3] Instalando bibliotecas do Backend (Python)...
 cd backend
-python -m pip install --upgrade pip >nul 2>&1
-pip install -r requirements.txt
+"%PYTHON_BIN%" -m pip install --upgrade pip --no-warn-script-location >nul 2>&1
+"%PYTHON_BIN%" -m pip install -r requirements.txt --no-warn-script-location
 cd ..
 echo [OK] Backend configurado!
 echo.

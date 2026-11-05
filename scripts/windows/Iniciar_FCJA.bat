@@ -3,8 +3,13 @@ chcp 65001 > NUL
 :: Garante que o script rode a partir da raiz do repositorio
 cd /d "%~dp0\..\.."
 
+set "PYTHON_BIN=python"
+if exist "%LOCALAPPDATA%\Python\bin\python.exe" (
+    set "PYTHON_BIN=%LOCALAPPDATA%\Python\bin\python.exe"
+)
+
 echo ==========================================
-echo    PREPARANDO O SISTEMA GED - FCJA
+echo    PREPARANDO O SISTEMA SIGAD - FCJA
 echo ==========================================
 echo.
 echo 1/4 - Verificando e limpando sessoes antigas...
@@ -16,7 +21,7 @@ echo 2/4 - Limpando o cache temporario...
 if exist "frontend\.vinxi" rmdir /s /q "frontend\.vinxi"
 
 echo 3/4 - Ligando os motores de forma limpa...
-start "FCJA_Backend" /MIN cmd /c "title FCJA_Backend && cd backend && python -m uvicorn main:app"
+start "FCJA_Backend" /MIN cmd /c "title FCJA_Backend && cd backend && "%PYTHON_BIN%" -m uvicorn main:app --host 0.0.0.0 --port 8000"
 start "FCJA_Frontend" /MIN cmd /c "title FCJA_Frontend && cd frontend && npm run dev"
 
 echo Aguardando inicializacao dos modulos...
