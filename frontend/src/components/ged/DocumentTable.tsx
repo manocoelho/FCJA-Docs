@@ -6,16 +6,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  Download as DownloadIcon,
   Eye,
+  FileDown,
   FileSpreadsheet,
   FileText,
   FileType2,
+  Fingerprint,
   Image as ImageIcon,
+  Lock,
   Pencil,
   Search,
+  ShieldAlert,
+  ShieldCheck,
   Trash2,
 } from "lucide-react";
-import { Download as DownloadIcon, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -63,8 +68,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ANOS, NUCLEOS, type Doc } from "./data";
+import {
+  ANOS,
+  NIVEIS_ACESSO_OPCOES,
+  NUCLEOS,
+  STATUS_DOCUMENTO_OPCOES,
+  type Doc,
+} from "./data";
 import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
+import { ModalMetadadosEarq } from "@/components/ged/ModalMetadadosEarq";
+import {
+  formatarHashCurto,
+  rotuloNivelAcesso,
+  rotuloStatusDocumento,
+} from "@/lib/formatters";
+import type { DadosEdicaoDoc } from "@/hooks/useAcervoSigad";
 
 type Coluna = "nome" | "categoria" | "ano" | "nucleo";
 
@@ -102,6 +120,7 @@ export function DocumentTable({
   onDeleteMany,
   onRename,
   onEdit,
+  onVerifyFixity,
 }: {
   docs: Doc[];
   onView?: (doc: Doc) => void;
@@ -109,7 +128,8 @@ export function DocumentTable({
   onDelete?: (doc: Doc) => void;
   onDeleteMany?: (docs: Doc[]) => void;
   onRename?: (doc: Doc, nome: string) => void;
-  onEdit?: (doc: Doc, dados: { nome: string; categoria: string; ano: number; nucleo: string }) => void;
+  onEdit?: ((doc: Doc, dados: DadosEdicaoDoc) => void) | undefined;
+  onVerifyFixity?: ((doc: Doc) => Promise<unknown>) | undefined;
 }) {
   const [busca, setBusca] = useState("");
   const [coluna, setColuna] = useState<Coluna>("nome");
@@ -118,11 +138,24 @@ export function DocumentTable({
   const [porPagina, setPorPagina] = useState(10);
   const [selecionados, setSelecionados] = useState<string[]>([]);
   const [confirmar, setConfirmar] = useState(false);
+
+  // Estado da Ficha Arquivística e-ARQ v2 & PREMIS
+  const [fichaDocId, setFichaDocId] = useState<string | null>(null);
+  const docFicha = useMemo(
+    () => (fichaDocId ? docs.find((d) => d.id === fichaDocId) || null : null),
+    [docs, fichaDocId]
+  );
+
+  // Estados de edição de metadados
   const [editando, setEditando] = useState<Doc | null>(null);
   const [novoNome, setNovoNome] = useState("");
   const [novaCategoria, setNovaCategoria] = useState("");
   const [novoAno, setNovoAno] = useState<number>(new Date().getFullYear());
   const [novoNucleo, setNovoNucleo] = useState("");
+  const [novoAutor, setNovoAutor] = useState("");
+  const [novoStatusDoc, setNovoStatusDoc] = useState("ORIGINAL");
+  const [novoNivelAcesso, setNovoNivelAcesso] = useState("OSTENSIVO");
+  const [novaHipoteseLegal, setNovaHipoteseLegal] = useState("");
 
   const anosDisponiveis = useMemo(() => {
     const base = new Set<number>([...ANOS, ...docs.map((d) => d.ano), novoAno]);
@@ -135,6 +168,10 @@ export function DocumentTable({
     setNovaCategoria(doc.categoria);
     setNovoAno(doc.ano);
     setNovoNucleo(doc.nucleo);
+    setNovoAutor(doc.autor || "Fundação Casa de José Américo (FCJA)");
+    setNovoStatusDoc(doc.statusDocumento || "ORIGINAL");
+    setNovoNivelAcesso(doc.nivelAcesso || "OSTENSIVO");
+    setNovaHipoteseLegal(doc.hipoteseLegal || "");
   }
 
   function salvarEdicao() {
@@ -148,8 +185,20 @@ export function DocumentTable({
       toast.error("Dados incompletos", { description: "Informe tipologia e núcleo de pesquisa." });
       return;
     }
-    if (onEdit) onEdit(editando, { nome, categoria: novaCategoria, ano: novoAno, nucleo: novoNucleo });
-    else onRename?.(editando, nome);
+    if (onEdit) {
+      onEdit(editando, {
+        nome,
+        categoria: novaCategoria,
+        ano: novoAno,
+        nucleo: novoNucleo,
+        autor: novoAutor.trim() || "Fundação Casa de José Américo (FCJA)",
+        statusDocumento: novoStatusDoc,
+        nivelAcesso: novoNivelAcesso,
+        hipoteseLegal: novaHipoteseLegal.trim(),
+      });
+    } else {
+      onRename?.(editando, nome);
+    }
     setEditando(null);
   }
 
@@ -166,19 +215,22 @@ export function DocumentTable({
     const filtrados = termo
       ? docs.filter((d) =>
           [
-            d.id, 
-            d.codigoClassificacao || "", 
-            d.descricaoCodigo || "", 
-            d.nome, 
-            d.categoria, 
-            d.nucleo, 
-            d.sigla || "", 
-            String(d.ano), 
-            d.upload
+            d.id,
+            d.numeroProtocolo || "",
+            d.hashSha256 || "",
+            d.autor || "",
+            d.codigoClassificacao || "",
+            d.descricaoCodigo || "",
+            d.nome,
+            d.categoria,
+            d.nucleo,
+            d.sigla || "",
+            String(d.ano),
+            d.upload,
           ]
             .join(" ")
             .toLowerCase()
-            .includes(termo),
+            .includes(termo)
         )
       : docs;
 
@@ -204,7 +256,7 @@ export function DocumentTable({
 
   const marcados = useMemo(
     () => lista.filter((d) => selecionados.includes(d.id)),
-    [lista, selecionados],
+    [lista, selecionados]
   );
   const todosDaPagina = visiveis.length > 0 && visiveis.every((d) => selecionados.includes(d.id));
 
@@ -215,13 +267,12 @@ export function DocumentTable({
   function alternarPagina(valor: boolean) {
     const ids = visiveis.map((d) => d.id);
     setSelecionados((prev) =>
-      valor ? Array.from(new Set([...prev, ...ids])) : prev.filter((x) => !ids.includes(x)),
+      valor ? Array.from(new Set([...prev, ...ids])) : prev.filter((x) => !ids.includes(x))
     );
   }
 
   function exportar(formato: "csv" | "xls" | "pdf", escopo: "filtrados" | "pagina" | "marcados") {
-    const alvo =
-      escopo === "pagina" ? visiveis : escopo === "marcados" ? marcados : lista;
+    const alvo = escopo === "pagina" ? visiveis : escopo === "marcados" ? marcados : lista;
     if (alvo.length === 0) {
       toast.error("Nada para exportar", { description: "Nenhum documento no escopo escolhido." });
       return;
@@ -263,9 +314,9 @@ export function DocumentTable({
     <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-[var(--shadow-card)]">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-4">
         <div className="min-w-0">
-          <h3 className="truncate text-base font-semibold">Resultados da Busca</h3>
+          <h3 className="truncate text-base font-semibold">Resultados do Acervo SIGAD</h3>
           <p className="text-xs text-muted-foreground">
-            {lista.length} documento(s) listado(s)
+            {lista.length} documento(s) arquivístico(s) listado(s)
             {marcados.length > 0 ? ` · ${marcados.length} selecionado(s)` : ""}
           </p>
         </div>
@@ -297,15 +348,15 @@ export function DocumentTable({
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="relative w-full sm:w-72">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por ID, código, nome, tipologia..."
-            aria-label="Busca global de documentos"
-            className="pl-9"
-          />
+          <div className="relative w-full sm:w-80">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Buscar protocolo, SHA-256, código, nome..."
+              aria-label="Busca global de documentos"
+              className="pl-9"
+            />
           </div>
         </div>
       </div>
@@ -320,105 +371,183 @@ export function DocumentTable({
                   aria-label="Selecionar documentos desta página"
                 />
               </TableHead>
-              <TableHead className="w-16">Tipo</TableHead>
-              <TableHead className="w-24">ID</TableHead>
-              <TableHead>Atividade</TableHead>
-              <TableHead>Código</TableHead>
-              <TableHead>Descrição</TableHead>
+              <TableHead className="w-14">Tipo</TableHead>
+              <TableHead className="w-44">Protocolo SIGAD</TableHead>
+              <TableHead>Código PCD</TableHead>
               <TableHead>
-                <Cabecalho c="nome" label="Nome do Arquivo" />
+                <Cabecalho c="nome" label="Documento Arquivístico" />
               </TableHead>
               <TableHead>
                 <Cabecalho c="categoria" label="Tipologia" />
               </TableHead>
+              <TableHead>Status / Acesso</TableHead>
+              <TableHead>Fixidade (PREMIS)</TableHead>
               <TableHead>
                 <Cabecalho c="ano" label="Ano" />
               </TableHead>
               <TableHead>
                 <Cabecalho c="nucleo" label="Núcleo" />
               </TableHead>
-              <TableHead>Data de Upload</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {visiveis.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={12} className="py-12 text-center text-sm text-muted-foreground">
+                <TableCell colSpan={11} className="py-12 text-center text-sm text-muted-foreground">
                   Nenhum documento encontrado para os filtros ou busca informados.
                 </TableCell>
               </TableRow>
             ) : (
-              visiveis.map((doc) => (
-                <TableRow key={doc.id} className="transition-colors hover:bg-accent/50">
-                  <TableCell>
-                    <Checkbox
-                      checked={selecionados.includes(doc.id)}
-                      onCheckedChange={() => alternar(doc.id)}
-                      aria-label={`Selecionar ${doc.nome}`}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <TipoIcone ext={doc.ext} />
-                  </TableCell>
-                  <TableCell className="font-mono text-xs text-muted-foreground uppercase cursor-help" title={doc.id}>
-                    {doc.id.slice(0, 8)}
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{doc.tipoAtividade || "-"}</TableCell>
-                  <TableCell className="text-muted-foreground font-mono">{doc.codigoClassificacao || "-"}</TableCell>
-                  <TableCell className="text-muted-foreground max-w-[150px] truncate" title={doc.descricaoCodigo}>{doc.descricaoCodigo || "-"}</TableCell>
-                  <TableCell className="max-w-[280px] truncate font-medium">{doc.nome}</TableCell>
-                  <TableCell>
-                    <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
-                      {doc.categoria}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{doc.ano}</TableCell>
-                  <TableCell className="max-w-[240px] text-muted-foreground">
-                    <span className="line-clamp-2 leading-snug" title={doc.nucleo}>
-                      {doc.nucleo}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{doc.upload}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Editar documento"
-                        onClick={() => abrirEdicao(doc)}
+              visiveis.map((doc) => {
+                const integro = doc.fixidadeVerificada !== false;
+                return (
+                  <TableRow key={doc.id} className="transition-colors hover:bg-accent/50">
+                    <TableCell>
+                      <Checkbox
+                        checked={selecionados.includes(doc.id)}
+                        onCheckedChange={() => alternar(doc.id)}
+                        aria-label={`Selecionar ${doc.nome}`}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <TipoIcone ext={doc.ext} />
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() => setFichaDocId(doc.id)}
+                        className="font-mono text-xs font-semibold text-blue-700 hover:underline text-left"
+                        title="Clique para abrir a Ficha Arquivística e-ARQ v2 & PREMIS"
                       >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Visualizar"
-                        onClick={() => onView?.(doc)}
+                        {doc.numeroProtocolo || `ID-${doc.id.slice(0, 8)}`}
+                      </button>
+                      <span className="block text-[10px] text-muted-foreground">
+                        {doc.upload} {doc.hora ? `· ${doc.hora}` : ""}
+                      </span>
+                    </TableCell>
+                    <TableCell
+                      className="text-muted-foreground font-mono text-xs"
+                      title={doc.descricaoCodigo || doc.tipoAtividade}
+                    >
+                      {doc.codigoClassificacao || "-"}
+                    </TableCell>
+                    <TableCell className="max-w-[260px]">
+                      <p className="truncate font-medium" title={doc.nome}>
+                        {doc.nome}
+                      </p>
+                      {doc.autor && (
+                        <p className="truncate text-[11px] text-muted-foreground" title={doc.autor}>
+                          {doc.autor}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
+                        {doc.categoria}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span className="inline-flex rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700">
+                          {rotuloStatusDocumento(doc.statusDocumento)}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium ${
+                            doc.nivelAcesso === "RESTRITO_LGPD" ||
+                            doc.nivelAcesso === "SIGILOSO_LAI"
+                              ? "bg-amber-50 text-amber-800"
+                              : "bg-emerald-50 text-emerald-700"
+                          }`}
+                        >
+                          <Lock className="h-2.5 w-2.5" />
+                          {rotuloNivelAcesso(doc.nivelAcesso)}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <button
+                        type="button"
+                        onClick={() => setFichaDocId(doc.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[11px] font-medium transition-colors ${
+                          integro
+                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 ring-1 ring-emerald-200"
+                            : "bg-red-50 text-red-700 hover:bg-red-100 ring-1 ring-red-200"
+                        }`}
+                        title={
+                          doc.hashSha256
+                            ? `SHA-256: ${doc.hashSha256} (Clique para inspecionar e verificar)`
+                            : "Clique para inspecionar e calcular fixidade SHA-256"
+                        }
                       >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Baixar"
-                        onClick={() => onDownload?.(doc)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label="Remover"
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => onDelete?.(doc)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
+                        {integro ? (
+                          <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                        ) : (
+                          <ShieldAlert className="h-3.5 w-3.5 shrink-0" />
+                        )}
+                        {doc.hashSha256 ? formatarHashCurto(doc.hashSha256, 8) : "Íntegro"}
+                      </button>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{doc.ano}</TableCell>
+                    <TableCell className="max-w-[200px] text-muted-foreground">
+                      <span className="line-clamp-2 text-xs leading-snug" title={doc.nucleo}>
+                        {doc.nucleo}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Ficha e-ARQ v2 & Fixidade PREMIS"
+                          title="Ficha Arquivística e-ARQ v2 & Fixidade SHA-256"
+                          onClick={() => setFichaDocId(doc.id)}
+                          className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
+                        >
+                          <Fingerprint className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Editar documento"
+                          title="Editar metadados"
+                          onClick={() => abrirEdicao(doc)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Visualizar"
+                          title="Visualizar documento"
+                          onClick={() => onView?.(doc)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Baixar"
+                          title="Baixar arquivo"
+                          onClick={() => onDownload?.(doc)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Remover"
+                          title="Remover documento"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => onDelete?.(doc)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
             )}
           </TableBody>
         </Table>
@@ -467,18 +596,28 @@ export function DocumentTable({
           </Button>
         </div>
       </div>
+
+      {/* Modal Ficha Arquivística e-ARQ Brasil v2 & PREMIS */}
+      <ModalMetadadosEarq
+        doc={docFicha}
+        onClose={() => setFichaDocId(null)}
+        onVerificarFixidade={onVerifyFixity}
+      />
+
+      {/* Confirmação de Remoção */}
       <AlertDialog open={confirmar} onOpenChange={setConfirmar}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remover {marcados.length} documento(s)?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta ação remove os documentos selecionados do acervo desta demonstração e não pode
-              ser desfeita.
+              Esta ação removerá o(s) documento(s) do armazenamento ativo e registrará um evento
+              permanente de eliminação na Trilha de Auditoria e-ARQ Brasil v2.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg bg-secondary/60 p-3 text-xs text-muted-foreground">
             {marcados.slice(0, 20).map((d) => (
               <li key={d.id} className="truncate">
+                {d.numeroProtocolo ? `[${d.numeroProtocolo}] ` : ""}
                 {d.nome}
               </li>
             ))}
@@ -490,17 +629,20 @@ export function DocumentTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Modal de Edição de Metadados Descritivos e e-ARQ v2 */}
       <Dialog open={editando !== null} onOpenChange={(o) => !o && setEditando(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Editar documento</DialogTitle>
+            <DialogTitle>Retificar Metadados do Documento (e-ARQ v2)</DialogTitle>
             <DialogDescription>
-              Altere nome, tipologia, ano e núcleo de pesquisa do documento.
+              Toda alteração de metadados gera automaticamente um evento procedimental (
+              <code>EarqEventoProc</code>) na Trilha de Auditoria.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="novo-nome">Nome do arquivo</Label>
+              <Label htmlFor="novo-nome">Nome do arquivo / Título</Label>
               <Input
                 id="novo-nome"
                 value={novoNome}
@@ -508,9 +650,20 @@ export function DocumentTable({
                 onKeyDown={(e) => e.key === "Enter" && salvarEdicao()}
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="novo-autor">Autor / Produtor Arquivístico</Label>
+              <Input
+                id="novo-autor"
+                value={novoAutor}
+                onChange={(e) => setNovoAutor(e.target.value)}
+                placeholder="Ex: Fundação Casa de José Américo (FCJA)"
+              />
+            </div>
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Tipologia</Label>
+                <Label>Tipologia Documental</Label>
                 <Select value={novaCategoria} onValueChange={setNovaCategoria}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -525,7 +678,7 @@ export function DocumentTable({
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Ano</Label>
+                <Label>Ano de Produção</Label>
                 <Select value={String(novoAno)} onValueChange={(v) => setNovoAno(Number(v))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione" />
@@ -540,16 +693,58 @@ export function DocumentTable({
                 </Select>
               </div>
             </div>
-            {/* O "grid" e "min-w-0" impedem que a caixa cresça além do limite da tela */}
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Status do Documento (e-ARQ)</Label>
+                <Select value={novoStatusDoc} onValueChange={setNovoStatusDoc}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STATUS_DOCUMENTO_OPCOES.map((op) => (
+                      <SelectItem key={op.valor} value={op.valor}>
+                        {op.rotulo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Nível de Acesso (LAI / LGPD)</Label>
+                <Select value={novoNivelAcesso} onValueChange={setNovoNivelAcesso}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {NIVEIS_ACESSO_OPCOES.map((op) => (
+                      <SelectItem key={op.valor} value={op.valor}>
+                        {op.rotulo}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {novoNivelAcesso !== "OSTENSIVO" && (
+              <div className="space-y-2">
+                <Label htmlFor="hipotese-legal">Fundamentação / Hipótese Legal (LGPD / LAI)</Label>
+                <Input
+                  id="hipotese-legal"
+                  value={novaHipoteseLegal}
+                  onChange={(e) => setNovaHipoteseLegal(e.target.value)}
+                  placeholder="Ex: Art. 31 da Lei 12.527/2011 (Informação Pessoal)"
+                />
+              </div>
+            )}
+
             <div className="space-y-2 grid min-w-0">
               <Label>Núcleo de pesquisa</Label>
               <Select value={novoNucleo} onValueChange={setNovoNucleo}>
-                
-                {/* Aqui forçamos a largura máxima e o corte do texto diretamente no flexbox */}
                 <SelectTrigger className="w-full max-w-full overflow-hidden [&>span]:truncate [&>span]:min-w-0 text-left">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
-                
                 <SelectContent className="max-w-[min(90vw,42rem)]">
                   {NUCLEOS.filter((n) => n !== "Todos").map((n) => (
                     <SelectItem key={n} value={n} className="whitespace-normal">
@@ -564,7 +759,7 @@ export function DocumentTable({
             <Button variant="outline" onClick={() => setEditando(null)}>
               Cancelar
             </Button>
-            <Button onClick={salvarEdicao}>Salvar</Button>
+            <Button onClick={salvarEdicao}>Salvar e Auditar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

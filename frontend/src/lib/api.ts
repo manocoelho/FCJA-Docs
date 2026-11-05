@@ -6,8 +6,9 @@
  * 3. Sobrescrita explícita via VITE_API_URL.
  */
 export const getApiBaseUrl = (): string => {
-  if (import.meta.env.VITE_API_URL) {
-    return import.meta.env.VITE_API_URL.replace(/\/+$/, "");
+  const envUrl = import.meta.env["VITE_API_URL"];
+  if (envUrl) {
+    return String(envUrl).replace(/\/+$/, "");
   }
   if (typeof window !== "undefined") {
     const { hostname, host, port, protocol } = window.location;

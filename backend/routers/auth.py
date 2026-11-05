@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 from sqlalchemy.exc import IntegrityError
 import database
-from database import UsuarioModel
+from models.usuario import UsuarioModel
+from services.auditoria_service import registrar_evento
 
 router = APIRouter()
 
@@ -31,7 +32,8 @@ class UsuarioEdicao(BaseModel):
 
 
 @router.post("/api/login")
-def fazer_login(dados: LoginRequest):
+def fazer_login(dados: LoginRequest, request: Request = None):
+    ip_cliente = request.client.host if (request and request.client) else ""
     with database.SessionLocal() as db:
         user = (
             db.query(UsuarioModel)
@@ -39,7 +41,29 @@ def fazer_login(dados: LoginRequest):
             .first()
         )
         if user:
-            return {"sucesso": True, "nome": user.nome, "papel": user.papel}
+            registrar_evento(
+                db=db,
+                categoria_evento="PROCEDIMENTAL",
+                tipo_evento="AUTENTICACAO_USUARIO",
+                usuario_responsavel=user.nome,
+                papel_usuario=user.papel,
+                resultado="SUCESSO",
+                ip_origem=ip_cliente,
+                detalhes=f"Sessão autenticada no SIGAD para o usuário '{user.login}' (papel: {user.papel}).",
+            )
+            db.commit()
+            return {"sucesso": True, "nome": user.nome, "papel": user.papel, "login": user.login}
+
+        registrar_evento(
+            db=db,
+            categoria_evento="PROCEDIMENTAL",
+            tipo_evento="FALHA_AUTENTICACAO",
+            usuario_responsavel=dados.login,
+            resultado="FALHA",
+            ip_origem=ip_cliente,
+            detalhes=f"Tentativa de login mal-sucedida para o identificador '{dados.login}'.",
+        )
+        db.commit()
     return {"sucesso": False, "erro": "Usuário ou senha incorretos"}
 
 
@@ -68,6 +92,15 @@ def criar_usuario(dados: NovoUsuario):
                 papel=dados.papel,
             )
             db.add(novo)
+            registrar_evento(
+                db=db,
+                categoria_evento="PROCEDIMENTAL",
+                tipo_evento="CADASTRO_USUARIO",
+                usuario_responsavel="admin",
+                papel_usuario="admin",
+                resultado="SUCESSO",
+                detalhes=f"Novo agente cadastrado no SIGAD: '{dados.nome}' (login: {dados.login}, papel: {dados.papel}).",
+            )
             db.commit()
             return {"sucesso": True, "mensagem": "Usuário cadastrado com sucesso!"}
         except IntegrityError:
@@ -80,6 +113,15 @@ def deletar_usuario(login: str):
     with database.SessionLocal() as db:
         user = db.query(UsuarioModel).filter(UsuarioModel.login == login).first()
         if user:
+            registrar_evento(
+                db=db,
+                categoria_evento="PROCEDIMENTAL",
+                tipo_evento="REMOCAO_USUARIO",
+                usuario_responsavel="admin",
+                papel_usuario="admin",
+                resultado="ALERTA",
+                detalhes=f"Agente '{user.nome}' (login: {login}) removido do controle de acesso.",
+            )
             db.delete(user)
             db.commit()
     return {"sucesso": True}

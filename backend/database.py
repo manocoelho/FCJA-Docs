@@ -1,115 +1,67 @@
 import os
 import platform
-from pathlib import Path
-from dotenv import load_dotenv
-from sqlalchemy import create_engine, Column, String, Integer, BigInteger, Text
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
-from sqlalchemy.exc import OperationalError
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-# Carrega variáveis do arquivo .env localizado na pasta backend/
-ENV_PATH = Path(__file__).resolve().parent / ".env"
-load_dotenv(dotenv_path=ENV_PATH)
-
+# 1. DEFINIÇÃO DINÂMICA DA PASTA DE DADOS
 DEFAULT_DATA_DIR = "C:/FCJA_Dados" if platform.system() == "Windows" else "/var/lib/fcja_dados"
 PASTA_DADOS = os.getenv("FCJA_PASTA_DADOS", DEFAULT_DATA_DIR)
 PASTA_ARQUIVOS = os.path.join(PASTA_DADOS, "arquivos")
-DB_FILE = os.path.join(PASTA_DADOS, "fcja_ged.db")
+os.makedirs(PASTA_ARQUIVOS, exist_ok=True)
 
-# String de conexão principal (MySQL via PyMySQL por padrão)
-DEFAULT_MYSQL_URL = "mysql+pymysql://ged_admin:fcja_ged_2026@localhost:3306/fcja_ged?charset=utf8mb4"
-DATABASE_URL = os.getenv("DATABASE_URL", DEFAULT_MYSQL_URL)
-ALLOW_SQLITE_FALLBACK = os.getenv("FCJA_ALLOW_SQLITE_FALLBACK", "true").lower() == "true"
+# 2. CONFIGURAÇÃO DA CONEXÃO COM O BANCO DE DADOS (MySQL com fallback para SQLite)
+DB_USER = os.getenv("FCJA_DB_USER", "fcja_user")
+DB_PASS = os.getenv("FCJA_DB_PASS", "fcja_senha_segura_2026")
+DB_HOST = os.getenv("FCJA_DB_HOST", "localhost")
+DB_PORT = os.getenv("FCJA_DB_PORT", "3306")
+DB_NAME = os.getenv("FCJA_DB_NAME", "fcja_ged")
 
-Base = declarative_base()
+DEFAULT_MYSQL_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
+DATABASE_URL = os.getenv("FCJA_DATABASE_URL", DEFAULT_MYSQL_URL)
 
-
-class DocumentoModel(Base):
-    __tablename__ = "documentos"
-
-    id = Column(String(64), primary_key=True, index=True)
-    tipo_atividade = Column(String(255), default="")
-    codigo_classificacao = Column(String(100), default="")
-    descricao_codigo = Column(Text, default="")
-    nome = Column(String(512), nullable=False)
-    ext = Column(String(32), nullable=False)
-    categoria = Column(String(255), nullable=False)
-    ano = Column(Integer, nullable=False, index=True)
-    nucleo = Column(String(255), nullable=False, index=True)
-    sigla = Column(String(64), default="")
-    upload = Column(String(32), default="")
-    hora = Column(String(32), default="")
-    url = Column(Text, default="")
-    tamanho = Column(BigInteger, default=0)
-
-
-class UsuarioModel(Base):
-    __tablename__ = "usuarios"
-
-    login = Column(String(100), primary_key=True, index=True)
-    senha = Column(String(255), nullable=False)
-    nome = Column(String(255), nullable=False)
-    papel = Column(String(64), nullable=False, default="pesquisador")
-
-
-def _criar_engine(url: str):
-    if url.startswith("sqlite"):
-        return create_engine(url, connect_args={"check_same_thread": False})
-    return create_engine(
-        url,
-        pool_pre_ping=True,
-        pool_recycle=3600,
-        pool_size=10,
-        max_overflow=20,
+try:
+    if DATABASE_URL.startswith("sqlite"):
+        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+    else:
+        engine = create_engine(
+            DATABASE_URL,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+        )
+        with engine.connect() as _:
+            pass
+except Exception as erro_mysql:
+    print(f"[AVISO] MySQL indisponível ({erro_mysql}). Usando fallback SQLite local.")
+    CAMINHO_BANCO_SQLITE = os.path.join(PASTA_DADOS, "fcja_acervo.db")
+    engine = create_engine(
+        f"sqlite:///{CAMINHO_BANCO_SQLITE}",
+        connect_args={"check_same_thread": False},
     )
 
-
-engine = _criar_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-
-def get_db():
-    """Dependency injection de sessão SQLAlchemy para rotas do FastAPI."""
-    db: Session = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# Re-exporta os modelos isolados (models/) mantendo compatibilidade total
+from models.documento import DocumentoModel  # noqa: E402
+from models.componente_digital import ComponenteDigitalModel  # noqa: E402
+from models.evento import EventoArquivisticoModel  # noqa: E402
+from models.usuario import UsuarioModel  # noqa: E402
 
 
 def iniciar_banco():
-    """
-    Inicializa diretórios físicos de armazenamento, cria as tabelas no MySQL
-    (com fallback opcional para SQLite em desenvolvimento) e popula usuários iniciais.
-    """
-    global engine, SessionLocal, DATABASE_URL
+    from services.migracao_service import migrar_esquema_banco, sincronizar_legado_earq
 
-    os.makedirs(PASTA_DADOS, exist_ok=True)
-    os.makedirs(PASTA_ARQUIVOS, exist_ok=True)
-
-    try:
-        Base.metadata.create_all(bind=engine)
-    except (OperationalError, Exception) as err:
-        if ALLOW_SQLITE_FALLBACK and not DATABASE_URL.startswith("sqlite"):
-            sqlite_url = f"sqlite:///{DB_FILE}"
-            print(f"[AVISO] MySQL indisponível ({err}). Usando fallback SQLite em: {sqlite_url}")
-            DATABASE_URL = sqlite_url
-            engine = _criar_engine(DATABASE_URL)
-            SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-            Base.metadata.create_all(bind=engine)
-        else:
-            raise err
-
-    usuarios_equipe = [
-        ("barbara", "1980", "Bárbara", "pesquisador"),
-        ("andre", "1980", "André", "pesquisador"),
-        ("antonio", "1980", "Antonio", "admin"),
-        ("pablo", "1980", "Pablo", "pesquisador"),
-        ("josilene", "1980", "Josilene", "pesquisador"),
-    ]
+    Base.metadata.create_all(bind=engine)
+    migrar_esquema_banco(engine)
 
     with SessionLocal() as db:
-        for login, senha, nome, papel in usuarios_equipe:
-            existente = db.query(UsuarioModel).filter(UsuarioModel.login == login).first()
-            if not existente:
-                db.add(UsuarioModel(login=login, senha=senha, nome=nome, papel=papel))
-        db.commit()
+        if db.query(UsuarioModel).count() == 0:
+            usuarios_padrao = [
+                UsuarioModel(login="pesquisador", senha="1980", nome="Pesquisador FCJA", papel="pesquisador"),
+                UsuarioModel(login="arquivista", senha="1980", nome="Arquivista SIGAD FCJA", papel="arquivista"),
+                UsuarioModel(login="admin", senha="1980", nome="Administrador Geral", papel="admin"),
+            ]
+            db.add_all(usuarios_padrao)
+            db.commit()
+
+        sincronizar_legado_earq(db, PASTA_ARQUIVOS)

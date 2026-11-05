@@ -1,9 +1,43 @@
 import type { Doc } from "./data";
 
-const COLUNAS = ["ID", "Tipo de Atividade", "Código", "Descrição do Código", "Nome do Arquivo", "Tipologia", "Ano", "Núcleo", "Sigla", "Data de Upload", "Hora de Cadastro"] as const;
+const COLUNAS = [
+  "Protocolo SIGAD",
+  "ID Interno",
+  "Tipo de Atividade",
+  "Código PCD",
+  "Descrição do Código",
+  "Nome do Arquivo",
+  "Autor / Produtor",
+  "Tipologia",
+  "Status (e-ARQ)",
+  "Nível de Acesso",
+  "Ano",
+  "Núcleo",
+  "Sigla NOBRADE",
+  "Hash SHA-256 (PREMIS)",
+  "Data de Captura",
+  "Hora de Captura",
+] as const;
 
 function linhas(docs: Doc[]) {
-  return docs.map((d) => [d.id, d.tipoAtividade || "-", d.codigoClassificacao || "-", d.descricaoCodigo || "-", d.nome, d.categoria, String(d.ano), d.nucleo, d.sigla || "-", d.upload, d.hora || ""]);
+  return docs.map((d) => [
+    d.numeroProtocolo || "-",
+    d.id,
+    d.tipoAtividade || "-",
+    d.codigoClassificacao || "-",
+    d.descricaoCodigo || "-",
+    d.nome,
+    d.autor || "Fundação Casa de José Américo (FCJA)",
+    d.categoria,
+    d.statusDocumento || "ORIGINAL",
+    d.nivelAcesso || "OSTENSIVO",
+    String(d.ano),
+    d.nucleo,
+    d.sigla || "-",
+    d.hashSha256 || "-",
+    d.upload,
+    d.hora || "",
+  ]);
 }
 
 function baixar(conteudo: BlobPart, nome: string, mime: string) {
@@ -30,34 +64,34 @@ function tabelaHtml(docs: Doc[], titulo: string) {
 body{font-family:Arial,Helvetica,sans-serif;color:#1f2937;padding:24px}
 h1{font-size:18px;margin:0 0 4px}
 p{font-size:12px;color:#6b7280;margin:0 0 16px}
-table{border-collapse:collapse;width:100%;font-size:11px}
-th,td{border:1px solid #d1d5db;padding:6px 8px;text-align:left;vertical-align:top}
+table{border-collapse:collapse;width:100%;font-size:10px}
+th,td{border:1px solid #d1d5db;padding:5px 7px;text-align:left;vertical-align:top}
 th{background:#eff6ff;color:#1e3a8a}
 </style></head><body>
 <h1>${escaparHtml(titulo)}</h1>
-<p>Fundação Casa de José Américo · ${docs.length} documento(s) · gerado em ${new Date().toLocaleString("pt-BR")}</p>
+<p>SIGAD — Fundação Casa de José Américo (e-ARQ Brasil v2) · ${docs.length} documento(s) · gerado em ${new Date().toLocaleString("pt-BR")}</p>
 <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
 </body></html>`;
 }
 
-export function exportarCsv(docs: Doc[], nome = "documentos.csv") {
+export function exportarCsv(docs: Doc[], nome = "documentos-sigad.csv") {
   const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
   const csv = [COLUNAS.map(esc).join(";"), ...linhas(docs).map((l) => l.map(esc).join(";"))].join(
-    "\r\n",
+    "\r\n"
   );
   baixar("\uFEFF" + csv, nome, "text/csv;charset=utf-8");
 }
 
-export function exportarExcel(docs: Doc[], nome = "documentos.xls") {
+export function exportarExcel(docs: Doc[], nome = "documentos-sigad.xls") {
   baixar(
-    "\uFEFF" + tabelaHtml(docs, "Documentos"),
+    "\uFEFF" + tabelaHtml(docs, "Relatório de Documentos Arquivísticos (SIGAD FCJA)"),
     nome,
-    "application/vnd.ms-excel;charset=utf-8",
+    "application/vnd.ms-excel;charset=utf-8"
   );
 }
 
-export function exportarPdf(docs: Doc[], titulo = "Documentos") {
-  const janela = window.open("", "_blank", "noopener,noreferrer,width=1024,height=768");
+export function exportarPdf(docs: Doc[], titulo = "Relatório de Documentos Arquivísticos (SIGAD FCJA)") {
+  const janela = window.open("", "_blank", "noopener,noreferrer,width=1120,height=768");
   if (!janela) return false;
   janela.document.write(tabelaHtml(docs, titulo));
   janela.document.close();
