@@ -59,7 +59,7 @@ export function TelaLogin({ onLoginSuccess }: TelaLoginProps) {
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-slate-900">SIGAD FCJA</h1>
           <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-blue-600">
-            e-ARQ Brasil v2 · Autenticação JWT
+            Sistema de Gestão Arquivística Digital
           </p>
         </div>
 
