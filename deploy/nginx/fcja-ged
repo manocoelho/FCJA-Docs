@@ -1,14 +1,19 @@
 # ==============================================================================
 # CONFIGURAÇÃO DE PROXY REVERSO NGINX - FCJA DOCS
 # Destino no Ubuntu: /etc/nginx/sites-available/fcja-ged
+# Coexiste de forma 100% segura com o AtoM (192.168.1.110) respondendo no IP
+# dedicado 192.168.1.115 (Porta 80) e também na porta auxiliar 8085.
 # ==============================================================================
 
 server {
     listen 80;
     listen [::]:80;
+    listen 8085;
+    listen [::]:8085;
 
-    # Aceita requisições por qualquer IP da rede local (ex: 192.168.1.X) ou domínio interno
-    server_name _;
+    # Responde exclusivamente pelo IP dedicado do GED (192.168.1.115) na porta 80
+    # (deixando 192.168.1.110 livre para o AtoM) ou por qualquer IP na porta 8085
+    server_name 192.168.1.115 ged.fcja.local localhost;
 
     # Permite upload de documentos de até 50MB (o limite do GED é 25MB; o padrão do Nginx é apenas 1MB)
     client_max_body_size 50M;

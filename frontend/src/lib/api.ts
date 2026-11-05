@@ -1,7 +1,7 @@
 /**
  * Utilitário central de comunicação com a API Backend (SRP).
  * Suporta:
- * 1. Proxy Reverso Nginx na porta 80/443 (mesma origem, sem sufixo de porta).
+ * 1. Proxy Reverso Nginx na porta 80/443 (ex: http://192.168.1.115) ou porta auxiliar 8085.
  * 2. Acesso direto em desenvolvimento/preview na rede local (ex: porta 8080/5173 -> backend 8000).
  * 3. Sobrescrita explícita via VITE_API_URL.
  */
@@ -10,11 +10,10 @@ export const getApiBaseUrl = (): string => {
     return import.meta.env.VITE_API_URL.replace(/\/+$/, "");
   }
   if (typeof window !== "undefined") {
-    const { hostname, port, protocol } = window.location;
-    // Se acessado via Nginx na porta 80 ou 443 (porta omitida pelo navegador),
-    // usa caminho relativo para passar pelo Proxy Reverso (/api e /arquivos).
-    if (!port || port === "80" || port === "443") {
-      return `${protocol}//${hostname}`;
+    const { hostname, host, port, protocol } = window.location;
+    // Se acessado via Nginx (porta 80, 443 ou auxiliar 8085), usa a própria origem do Nginx
+    if (!port || port === "80" || port === "443" || port === "8085") {
+      return `${protocol}//${host}`;
     }
     return `${protocol}//${hostname}:8000`;
   }
