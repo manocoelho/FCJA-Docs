@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import database
-from routers import auth, documentos, sistema, auditoria
+from routers import auth, documentos, sistema, auditoria, pcd_ttd, dossies
 
 # 1. INICIALIZAÇÃO DO BANCO DE DADOS E MIGRAÇÃO AUTOMÁTICA e-ARQ v2
 database.iniciar_banco()
@@ -9,7 +9,7 @@ database.iniciar_banco()
 # 2. CONFIGURAÇÃO DO SERVIDOR WEB (SIGAD FCJA)
 app = FastAPI(
     title="SIGAD FCJA — API Arquivística (e-ARQ Brasil v2)",
-    version="2.0.0",
+    version="3.0.0",
 )
 
 # 3. LIBERAÇÃO DO CORS (Restrito à Rede Local da FCJA e Localhost)
@@ -34,6 +34,8 @@ app.add_middleware(
 # 4. REGISTRO DAS ROTAS (MODULARIZAÇÃO SRP)
 app.include_router(auth.router)
 app.include_router(documentos.router)
+app.include_router(pcd_ttd.router)
+app.include_router(dossies.router)
 app.include_router(auditoria.router)
 app.include_router(sistema.router)
 

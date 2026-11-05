@@ -17,6 +17,8 @@ from services.auditoria_service import registrar_evento
 
 COLUNAS_NOVAS_DOCUMENTOS = [
     ("numero_protocolo", "VARCHAR(80) DEFAULT ''"),
+    ("dossie_id", "VARCHAR(50) DEFAULT ''"),
+    ("codigo_dossie", "VARCHAR(80) DEFAULT ''"),
     ("autor", "VARCHAR(255) DEFAULT 'Fundação Casa de José Américo (FCJA)'"),
     ("redator", "VARCHAR(255) DEFAULT ''"),
     ("originador", "VARCHAR(255) DEFAULT ''"),
@@ -25,6 +27,10 @@ COLUNAS_NOVAS_DOCUMENTOS = [
     ("status_documento", "VARCHAR(50) DEFAULT 'ORIGINAL'"),
     ("meio", "VARCHAR(50) DEFAULT 'DIGITAL'"),
     ("fase_arquivistica", "VARCHAR(50) DEFAULT 'CORRENTE'"),
+    ("prazo_corrente_anos", "INTEGER DEFAULT 2"),
+    ("prazo_intermediaria_anos", "INTEGER DEFAULT 3"),
+    ("ano_destinacao_final", "INTEGER DEFAULT 2031"),
+    ("destinacao_prevista", "VARCHAR(40) DEFAULT 'GUARDA_PERMANENTE'"),
     ("nivel_acesso", "VARCHAR(50) DEFAULT 'OSTENSIVO'"),
     ("hipotese_legal", "VARCHAR(255) DEFAULT ''"),
     ("formato_mime", "VARCHAR(120) DEFAULT ''"),
@@ -101,8 +107,10 @@ def migrar_senhas_e_papeis_usuarios(db: Session) -> None:
 def sincronizar_legado_earq(db: Session, pasta_arquivos: str) -> None:
     """
     Responsabilidade única: Preencher retroativamente número de protocolo, hash SHA-256,
-    formato MIME e ComponenteDigitalModel para documentos que foram cadastrados antes da Fase 1.
+    formato MIME, temporalidade e ComponenteDigitalModel para documentos preexistentes.
     """
+    from services.temporalidade_service import calcular_temporalidade_documento
+
     documentos = db.query(DocumentoModel).all()
     alterados = False
     agora_str = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -131,8 +139,19 @@ def sincronizar_legado_earq(db: Session, pasta_arquivos: str) -> None:
             doc.meio = "DIGITAL"
             mudou_doc = True
 
-        if not doc.fase_arquivistica:
-            doc.fase_arquivistica = "CORRENTE"
+        if not doc.destinacao_prevista or not doc.ano_destinacao_final:
+            calc = calcular_temporalidade_documento(
+                db=db,
+                ano_producao=doc.ano or 2026,
+                codigo_classificacao=doc.codigo_classificacao or "",
+                tipo_atividade=doc.tipo_atividade or "Atividade-Meio",
+                categoria=doc.categoria or "",
+            )
+            doc.prazo_corrente_anos = calc["prazo_corrente_anos"]
+            doc.prazo_intermediaria_anos = calc["prazo_intermediaria_anos"]
+            doc.ano_destinacao_final = calc["ano_destinacao_final"]
+            doc.destinacao_prevista = calc["destinacao_prevista"]
+            doc.fase_arquivistica = calc["fase_arquivistica"]
             mudou_doc = True
 
         if not doc.nivel_acesso:

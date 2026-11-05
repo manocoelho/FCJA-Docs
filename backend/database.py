@@ -46,6 +46,8 @@ from models.documento import DocumentoModel  # noqa: E402
 from models.componente_digital import ComponenteDigitalModel  # noqa: E402
 from models.evento import EventoArquivisticoModel  # noqa: E402
 from models.termo_eliminacao import TermoEliminacaoModel  # noqa: E402
+from models.pcd_ttd import ClassePcdModel  # noqa: E402
+from models.dossie import UnidadeArquivamentoModel  # noqa: E402
 from models.usuario import UsuarioModel  # noqa: E402
 
 
@@ -56,6 +58,8 @@ def iniciar_banco():
         migrar_senhas_e_papeis_usuarios,
         sincronizar_legado_earq,
     )
+    from services.temporalidade_service import popular_classes_pcd_iniciais
+    from services.dossie_service import popular_dossies_iniciais
 
     Base.metadata.create_all(bind=engine)
     migrar_esquema_banco(engine)
@@ -73,4 +77,6 @@ def iniciar_banco():
         else:
             migrar_senhas_e_papeis_usuarios(db)
 
+        popular_classes_pcd_iniciais(db)
         sincronizar_legado_earq(db, PASTA_ARQUIVOS)
+        popular_dossies_iniciais(db)

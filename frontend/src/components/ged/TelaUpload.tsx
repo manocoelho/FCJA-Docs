@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import { toast } from "sonner";
 import {
   AlertCircle,
@@ -6,6 +6,7 @@ import {
   Trash2,
   SlidersHorizontal,
   ShieldCheck,
+  FolderKanban,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ import {
   SIGLA_POR_NUCLEO,
   STATUS_DOCUMENTO_OPCOES,
   NIVEIS_ACESSO_OPCOES,
+  CLASSES_FIM_PADRAO,
   type Doc,
 } from "@/components/ged/data";
 import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
@@ -41,6 +43,12 @@ import { SeletorHierarquico } from "@/components/ged/SeletorHierarquico";
 import { API_BASE_URL } from "@/lib/api";
 import { obterHeadersAuth } from "@/lib/auth";
 import { formatarTamanho } from "@/lib/formatters";
+import {
+  buscarClassesPcd,
+  buscarDossies,
+  type ClassePcdItem,
+  type DossieItem,
+} from "@/lib/pcd-dossie-api";
 import type { DadosEdicaoDoc } from "@/hooks/useAcervoSigad";
 
 const EXT_POR_SUFIXO: Record<string, "pdf" | "xlsx" | "docx" | "tiff"> = {
@@ -88,6 +96,7 @@ type Pendente = {
   statusDocumento: string;
   nivelAcesso: string;
   hipoteseLegal: string;
+  dossieId: number | null;
   progresso: number;
   status: "aguardando" | "enviando" | "concluido";
   editado?: boolean;
@@ -136,6 +145,45 @@ export function TelaUpload({
   const [cadStatusDoc, setCadStatusDoc] = useState<string>("ORIGINAL");
   const [cadNivelAcesso, setCadNivelAcesso] = useState<string>("OSTENSIVO");
   const [cadHipoteseLegal, setCadHipoteseLegal] = useState<string>("");
+  const [cadDossieId, setCadDossieId] = useState<number | null>(null);
+
+  // Fase 3: Classes de Atividade-Fim (PCD/TTD) e Dossiês Abertos
+  const [classesFim, setClassesFim] = useState<
+    ReadonlyArray<{
+      codigo: string;
+      titulo: string;
+      destinacaoFinal: string;
+      observacoesTtd?: string | undefined;
+    }>
+  >(CLASSES_FIM_PADRAO);
+  const [dossiesAbertos, setDossiesAbertos] = useState<DossieItem[]>([]);
+
+  useEffect(() => {
+    buscarClassesPcd("Atividade-Fim")
+      .then((lista: ClassePcdItem[]) => {
+        if (lista && lista.length > 0) {
+          setClassesFim(
+            lista.map((c) => ({
+              codigo: c.codigo,
+              titulo: c.titulo,
+              destinacaoFinal: c.destinacaoFinal,
+              observacoesTtd: c.observacoesTtd,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        // Mantém CLASSES_FIM_PADRAO em caso de falha
+      });
+
+    buscarDossies()
+      .then((lista: DossieItem[]) => {
+        setDossiesAbertos(lista.filter((d) => d.statusDossie === "ABERTO"));
+      })
+      .catch(() => {
+        setDossiesAbertos([]);
+      });
+  }, []);
 
   const [erros, setErros] = useState<string[]>([]);
   const [enviando, setEnviando] = useState(false);
@@ -186,6 +234,7 @@ export function TelaUpload({
         statusDocumento: cadStatusDoc,
         nivelAcesso: cadNivelAcesso,
         hipoteseLegal: cadHipoteseLegal,
+        dossieId: cadDossieId,
         progresso: 0,
         status: "aguardando",
       });
@@ -214,6 +263,9 @@ export function TelaUpload({
           ? {
               ...p,
               data: cadData,
+              tipoAtividade: cadTipoAtividade,
+              codigo: cadCodigo,
+              descricao: cadDescricao,
               tipo: cadTipo,
               nucleo: cadNucleo,
               sigla: cadSigla,
@@ -221,6 +273,7 @@ export function TelaUpload({
               statusDocumento: cadStatusDoc,
               nivelAcesso: cadNivelAcesso,
               hipoteseLegal: cadHipoteseLegal,
+              dossieId: cadDossieId,
               sel: false,
               editado: true,
             }
@@ -265,6 +318,9 @@ export function TelaUpload({
       formData.append("status_documento", p.statusDocumento || "ORIGINAL");
       formData.append("nivel_acesso", p.nivelAcesso || "OSTENSIVO");
       formData.append("hipotese_legal", p.hipoteseLegal || "");
+      if (p.dossieId !== null && p.dossieId !== undefined) {
+        formData.append("dossie_id", String(p.dossieId));
+      }
       formData.append("usuario_responsavel", usuarioLogado || "sistema");
       formData.append("papel_usuario", usuarioPapel || "");
 
@@ -305,6 +361,12 @@ export function TelaUpload({
           fixidadeVerificada: resp.fixidadeVerificada,
           ultimaVerificacaoFixidade: resp.ultimaVerificacaoFixidade,
           usuarioCaptura: usuarioLogado || "sistema",
+          dossieId: resp.dossieId ?? null,
+          codigoDossie: resp.codigoDossie || "",
+          prazoCorrenteAnos: resp.prazoCorrenteAnos,
+          prazoIntermediariaAnos: resp.prazoIntermediariaAnos,
+          anoDestinacaoFinal: resp.anoDestinacaoFinal,
+          destinacaoPrevista: resp.destinacaoPrevista,
         });
         setPendentes((prev) =>
           prev.map((x) => (x.id === p.id ? { ...x, status: "concluido", progresso: 100 } : x))
@@ -732,19 +794,69 @@ export function TelaUpload({
                   </div>
                 )}
 
+                {/* Seletor de Dossiê / Processo (Unidade de Arquivamento — Fase 3) */}
+                <div className="space-y-2 flex-1 min-w-[280px]">
+                  <Label className="flex items-center gap-1.5">
+                    <FolderKanban className="h-3.5 w-3.5 text-purple-600" />
+                    Dossiê / Processo (Unidade de Arquivamento)
+                  </Label>
+                  <Select
+                    value={cadDossieId !== null ? String(cadDossieId) : "AVULSO"}
+                    onValueChange={(v) => {
+                      const novoId = v === "AVULSO" ? null : Number(v);
+                      setCadDossieId(novoId);
+                      setPendentes((prev) =>
+                        prev.map((p) => (p.sel ? { ...p, dossieId: novoId } : p))
+                      );
+                    }}
+                  >
+                    <SelectTrigger className="[&>span]:truncate">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-72 w-[min(36rem,95vw)]">
+                      <SelectItem value="AVULSO">
+                        Documento Avulso (Sem juntada imediata a Dossiê)
+                      </SelectItem>
+                      {dossiesAbertos.map((d) => (
+                        <SelectItem key={d.id} value={String(d.id)}>
+                          {d.codigoDossie} — {d.titulo}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="space-y-2 w-40">
                   <Label>Atividade</Label>
                   <Select
                     value={cadTipoAtividade}
                     onValueChange={(v) => {
                       setCadTipoAtividade(v);
-                      setCadCodigo("");
-                      setCadDescricao("");
-                      setPendentes((prev) =>
-                        prev.map((p) =>
-                          p.sel ? { ...p, tipoAtividade: v, codigo: "", descricao: "" } : p
-                        )
-                      );
+                      if (v === "Atividade-Fim" && classesFim.length > 0) {
+                        const primeira = classesFim[0]!;
+                        setCadCodigo(primeira.codigo);
+                        setCadDescricao(primeira.titulo);
+                        setPendentes((prev) =>
+                          prev.map((p) =>
+                            p.sel
+                              ? {
+                                  ...p,
+                                  tipoAtividade: v,
+                                  codigo: primeira.codigo,
+                                  descricao: primeira.titulo,
+                                }
+                              : p
+                          )
+                        );
+                      } else {
+                        setCadCodigo("");
+                        setCadDescricao("");
+                        setPendentes((prev) =>
+                          prev.map((p) =>
+                            p.sel ? { ...p, tipoAtividade: v, codigo: "", descricao: "" } : p
+                          )
+                        );
+                      }
                     }}
                   >
                     <SelectTrigger>
@@ -752,7 +864,7 @@ export function TelaUpload({
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Atividade-Meio">Atividade-Meio</SelectItem>
-                      <SelectItem value="Atividade-Fim">Atividade-Fim</SelectItem>
+                      <SelectItem value="Atividade-Fim">Atividade-Fim (FCJA)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -821,13 +933,56 @@ export function TelaUpload({
                     </div>
                   </SeletorHierarquico>
                 ) : (
-                  <div className="col-span-full w-full flex flex-col md:flex-row gap-6 p-6 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300 items-center justify-between mt-4">
-                    <span className="text-muted-foreground">
-                      As classificações e códigos para <strong>Atividade-Fim</strong> serão
-                      expandidos na Fase 3 (PCD/TTD).
-                    </span>
-                    <div className="space-y-2 w-full md:w-64 text-left">
-                      <Label>Tipologia (Geral)</Label>
+                  <div className="col-span-full w-full grid grid-cols-1 md:grid-cols-3 gap-4 p-5 bg-purple-50/40 rounded-2xl border border-purple-200 mt-4">
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-purple-800">
+                        Classe de Atividade-Fim da FCJA (PCD / TTD)
+                      </Label>
+                      <Select
+                        value={cadCodigo || classesFim[0]?.codigo || "FIM.100.01"}
+                        onValueChange={(cod) => {
+                          const cl = classesFim.find((c) => c.codigo === cod);
+                          const desc = cl?.titulo || "";
+                          setCadCodigo(cod);
+                          setCadDescricao(desc);
+                          setPendentes((prev) =>
+                            prev.map((p) =>
+                              p.sel ? { ...p, codigo: cod, descricao: desc } : p
+                            )
+                          );
+                        }}
+                      >
+                        <SelectTrigger className="[&>span]:truncate bg-white">
+                          <SelectValue placeholder="Selecione a classe finalística da FCJA..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-80 w-[min(42rem,95vw)] overflow-y-auto p-2">
+                          {classesFim.map((c) => (
+                            <SelectItem
+                              key={c.codigo}
+                              value={c.codigo}
+                              className="items-start whitespace-normal py-2.5 px-3"
+                            >
+                              <span className="block font-mono text-xs font-bold text-purple-700">
+                                {c.codigo} — {c.titulo}
+                              </span>
+                              <span className="block text-[11px] text-slate-500">
+                                Destinação TTD: {c.destinacaoFinal} (
+                                {c.observacoesTtd || "Guarda Permanente — RDC-Arq / Archivematica"})
+                              </span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-[11px] text-purple-700 font-medium">
+                        Regra TTD Atividade-Fim FCJA: <strong>Guarda Permanente Automática</strong>{" "}
+                        (Recolhimento ao RDC-Arq / Archivematica).
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-xs font-bold uppercase tracking-wider text-purple-800">
+                        Tipologia Finalística
+                      </Label>
                       <Select
                         value={cadTipo}
                         onValueChange={(v) => {

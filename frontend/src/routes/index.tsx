@@ -5,6 +5,7 @@ import { TelaDashboard } from "@/components/ged/TelaDashboard";
 import { TelaExplorador } from "@/components/ged/TelaExplorador";
 import { TelaUpload } from "@/components/ged/TelaUpload";
 import { TelaAuditoriaSigad } from "@/components/ged/TelaAuditoriaSigad";
+import { TelaGestaoArquivistica } from "@/components/ged/TelaGestaoArquivistica";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -16,6 +17,7 @@ import {
   Shield,
   ExternalLink,
   Fingerprint,
+  FolderKanban,
 } from "lucide-react";
 import {
   Dialog,
@@ -70,7 +72,7 @@ function Index() {
   });
 
   const [abaAtiva, setAbaAtiva] = useState<
-    "dashboard" | "explorador" | "upload" | "auditoria" | "permissoes"
+    "dashboard" | "explorador" | "upload" | "gestao" | "auditoria" | "permissoes"
   >("dashboard");
 
   // Estados do Visualizador
@@ -184,6 +186,16 @@ function Index() {
               <CloudUpload className="h-5 w-5" /> Captura & Acervo
             </button>
             <button
+              onClick={() => setAbaAtiva("gestao")}
+              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                abaAtiva === "gestao"
+                  ? "bg-primary text-white"
+                  : "hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              <FolderKanban className="h-5 w-5 text-purple-400" /> PCD, TTD & Dossiês
+            </button>
+            <button
               onClick={() => setAbaAtiva("auditoria")}
               className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                 abaAtiva === "auditoria"
@@ -246,6 +258,13 @@ function Index() {
             onDeleteMany={removerDocs}
             onEdit={editarDoc}
             onVerifyFixity={auditarFixidadeDoc}
+          />
+        )}
+        {abaAtiva === "gestao" && (
+          <TelaGestaoArquivistica
+            acervo={acervo}
+            usuarioPapel={usuarioPapel}
+            onDocumentosAlterados={recarregarDocumentos}
           />
         )}
         {abaAtiva === "auditoria" && (

@@ -146,16 +146,31 @@ export function ModalMetadadosEarq({
             </div>
           </section>
 
-          {/* 2. Ciclo de Vida e Acesso */}
+          {/* 2. Ciclo de Vida, Temporalidade (TTD) e Acesso */}
           <section className="rounded-xl border border-border bg-slate-50/60 p-4 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              2. Ciclo de Vida, Captura e Restrição de Acesso (LAI / LGPD)
+              2. Relação Orgânica (Dossiê), Temporalidade (TTD) e Acesso (LAI / LGPD)
             </h4>
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
-                <p className="text-xs text-muted-foreground">Fase Arquivística</p>
+                <p className="text-xs text-muted-foreground">Dossiê / Unidade de Arquivamento</p>
+                <p className="mt-0.5 font-mono text-xs font-semibold text-blue-700">
+                  {doc.codigoDossie || "Documento Avulso (Sem Dossiê)"}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Destinação Final (TTD)</p>
+                <p className="mt-0.5 font-semibold text-emerald-700">
+                  {doc.destinacaoPrevista === "ELIMINACAO"
+                    ? `Eliminação Controlada (${doc.anoDestinacaoFinal || doc.ano + 5})`
+                    : `Guarda Permanente — RDC-Arq (${doc.anoDestinacaoFinal || doc.ano + 2})`}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Fase Arquivística Atual</p>
                 <p className="mt-0.5 font-semibold text-blue-700">
-                  {doc.faseArquivistica || "CORRENTE"}
+                  {doc.faseArquivistica || "CORRENTE"} (Corrente: {doc.prazoCorrenteAnos ?? 2}a | Interm.:{" "}
+                  {doc.prazoIntermediariaAnos ?? 0}a)
                 </p>
               </div>
               <div>

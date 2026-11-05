@@ -1,6 +1,8 @@
 export type Doc = {
   id: string;
   numeroProtocolo?: string | undefined;
+  dossieId?: string | undefined;
+  codigoDossie?: string | undefined;
   tipoAtividade?: string | undefined;
   codigoClassificacao?: string | undefined;
   descricaoCodigo?: string | undefined;
@@ -14,7 +16,7 @@ export type Doc = {
   hora?: string | undefined;
   url?: string | undefined;
   tamanho?: number | undefined;
-  // Metadados e-ARQ Brasil v2 & PREMIS (Fase 1)
+  // Metadados e-ARQ Brasil v2, TTD & PREMIS (Fases 1 a 3)
   autor?: string | undefined;
   redator?: string | undefined;
   originador?: string | undefined;
@@ -23,6 +25,10 @@ export type Doc = {
   statusDocumento?: "ORIGINAL" | "MINUTA" | "COPIA" | string | undefined;
   meio?: "DIGITAL" | "NAO_DIGITAL" | "HIBRIDO" | string | undefined;
   faseArquivistica?: "CORRENTE" | "INTERMEDIARIA" | "PERMANENTE" | string | undefined;
+  prazoCorrenteAnos?: number | undefined;
+  prazoIntermediariaAnos?: number | undefined;
+  anoDestinacaoFinal?: number | undefined;
+  destinacaoPrevista?: "GUARDA_PERMANENTE" | "ELIMINACAO" | string | undefined;
   nivelAcesso?: "OSTENSIVO" | "RESTRITO_LGPD" | "SIGILOSO_LAI" | string | undefined;
   hipoteseLegal?: string | undefined;
   formatoMime?: string | undefined;
@@ -31,6 +37,65 @@ export type Doc = {
   ultimaVerificacaoFixidade?: string | undefined;
   usuarioCaptura?: string | undefined;
 };
+
+export const CLASSES_FIM_PADRAO = [
+  {
+    codigo: "FIM.100.01.001",
+    titulo: "Inventário, Identificação e Descrição de Manuscritos de José Américo de Almeida",
+    funcao: "FUNÇÃO FIM 100 — PESQUISA HISTÓRICA, LITERÁRIA E MEMÓRIA",
+    prazoCorrenteAnos: 2,
+    prazoIntermediariaAnos: 0,
+    destinacaoFinal: "GUARDA_PERMANENTE",
+  },
+  {
+    codigo: "FIM.100.02.001",
+    titulo: "Dossiê e Estudos Críticos sobre o Modernismo na Paraíba e Revista Era Nova",
+    funcao: "FUNÇÃO FIM 100 — PESQUISA HISTÓRICA, LITERÁRIA E MEMÓRIA",
+    prazoCorrenteAnos: 2,
+    prazoIntermediariaAnos: 2,
+    destinacaoFinal: "GUARDA_PERMANENTE",
+  },
+  {
+    codigo: "FIM.100.03.001",
+    titulo: "Partituras, Registros Sonoros e Memória Musical (Maestro José Siqueira)",
+    funcao: "FUNÇÃO FIM 100 — PESQUISA HISTÓRICA, LITERÁRIA E MEMÓRIA",
+    prazoCorrenteAnos: 1,
+    prazoIntermediariaAnos: 0,
+    destinacaoFinal: "GUARDA_PERMANENTE",
+  },
+  {
+    codigo: "FIM.200.01.001",
+    titulo: "Matriz Digital, Fotografia e Acervo Audiovisual da FCJA (Imagem e Memória)",
+    funcao: "FUNÇÃO FIM 200 — PRESERVAÇÃO DIGITAL, ARQUIVO E MUSEOLOGIA",
+    prazoCorrenteAnos: 1,
+    prazoIntermediariaAnos: 0,
+    destinacaoFinal: "GUARDA_PERMANENTE",
+  },
+  {
+    codigo: "FIM.200.02.001",
+    titulo: "Especificação Técnica, Políticas de Preservação e Pacotes OAIS do RDC-Arq",
+    funcao: "FUNÇÃO FIM 200 — PRESERVAÇÃO DIGITAL, ARQUIVO E MUSEOLOGIA",
+    prazoCorrenteAnos: 2,
+    prazoIntermediariaAnos: 3,
+    destinacaoFinal: "GUARDA_PERMANENTE",
+  },
+  {
+    codigo: "FIM.300.01.001",
+    titulo: "Mapeamento Arqueológico, Cartografia de Lugares de Memória e Educação Patrimonial",
+    funcao: "FUNÇÃO FIM 300 — PATRIMÔNIO CULTURAL, ARQUEOLOGIA E MEIO AMBIENTE",
+    prazoCorrenteAnos: 2,
+    prazoIntermediariaAnos: 2,
+    destinacaoFinal: "GUARDA_PERMANENTE",
+  },
+  {
+    codigo: "FIM.300.02.001",
+    titulo: "Relatório Técnico de Pesquisa-Ação e Sustentabilidade (Mata da Falésia / Cabo Branco)",
+    funcao: "FUNÇÃO FIM 300 — PATRIMÔNIO CULTURAL, ARQUEOLOGIA E MEIO AMBIENTE",
+    prazoCorrenteAnos: 2,
+    prazoIntermediariaAnos: 3,
+    destinacaoFinal: "GUARDA_PERMANENTE",
+  },
+] as const;
 
 export const STATUS_DOCUMENTO_OPCOES = [
   { valor: "ORIGINAL", rotulo: "Original (Capturado Oficial)" },

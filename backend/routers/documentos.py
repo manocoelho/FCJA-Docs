@@ -13,6 +13,7 @@ import platform
 import database
 from models.documento import DocumentoModel
 from models.componente_digital import ComponenteDigitalModel
+from models.dossie import UnidadeArquivamentoModel
 from schemas.documento_schema import DocUpdateSchema, EliminacaoLoteSchema
 from core.dependencies import extrair_agente_requisicao
 from services.fixidade_service import (
@@ -23,6 +24,7 @@ from services.fixidade_service import (
 from services.protocolo_service import gerar_numero_protocolo
 from services.auditoria_service import registrar_evento
 from services.eliminacao_service import executar_eliminacao_controlada
+from services.temporalidade_service import calcular_temporalidade_documento
 
 router = APIRouter()
 
@@ -68,6 +70,8 @@ def listar_documentos(request: Request = None):
             documentos_formatados.append({
                 "id": doc.id or "",
                 "numeroProtocolo": doc.numero_protocolo or "",
+                "dossieId": doc.dossie_id or "",
+                "codigoDossie": doc.codigo_dossie or "",
                 "nome": doc.nome or "",
                 "ext": doc.ext or "",
                 "categoria": doc.categoria or "",
@@ -81,7 +85,7 @@ def listar_documentos(request: Request = None):
                 "tipoAtividade": doc.tipo_atividade or "",
                 "codigoClassificacao": doc.codigo_classificacao or "",
                 "descricaoCodigo": doc.descricao_codigo or "",
-                # Metadados e-ARQ Brasil v2 & PREMIS
+                # Metadados e-ARQ Brasil v2, TTD & PREMIS
                 "autor": doc.autor or "Fundação Casa de José Américo (FCJA)",
                 "redator": doc.redator or "",
                 "originador": doc.originador or "",
@@ -90,6 +94,10 @@ def listar_documentos(request: Request = None):
                 "statusDocumento": doc.status_documento or "ORIGINAL",
                 "meio": doc.meio or "DIGITAL",
                 "faseArquivistica": doc.fase_arquivistica or "CORRENTE",
+                "prazoCorrenteAnos": doc.prazo_corrente_anos if doc.prazo_corrente_anos is not None else 2,
+                "prazoIntermediariaAnos": doc.prazo_intermediaria_anos if doc.prazo_intermediaria_anos is not None else 3,
+                "anoDestinacaoFinal": doc.ano_destinacao_final or ((doc.ano or 2026) + 5),
+                "destinacaoPrevista": doc.destinacao_prevista or "GUARDA_PERMANENTE",
                 "nivelAcesso": doc.nivel_acesso or "OSTENSIVO",
                 "hipoteseLegal": doc.hipotese_legal or "",
                 "formatoMime": doc.formato_mime or "",
@@ -114,6 +122,7 @@ def upload_documento(
     ano: int = Form(...),
     nucleo: str = Form(...),
     sigla: str = Form(""),
+    dossie_id: str = Form(""),
     autor: str = Form("Fundação Casa de José Américo (FCJA)"),
     redator: str = Form(""),
     originador: str = Form(""),
@@ -163,10 +172,40 @@ def upload_documento(
 
     with database.SessionLocal() as db:
         numero_protocolo = gerar_numero_protocolo(db=db, sigla=sigla, nucleo=nucleo, ano=ano)
+        calc_ttd = calcular_temporalidade_documento(
+            db=db,
+            ano_producao=ano,
+            codigo_classificacao=codigo_classificacao,
+            tipo_atividade=tipo_atividade,
+            categoria=categoria,
+        )
+
+        # Vinculação orgânica com Dossiê / Processo (Unidade de Arquivamento)
+        dossie_vinculado = None
+        if dossie_id:
+            dossie_vinculado = (
+                db.query(UnidadeArquivamentoModel)
+                .filter(UnidadeArquivamentoModel.id == dossie_id)
+                .first()
+            )
+        if not dossie_vinculado and nucleo:
+            dossie_vinculado = (
+                db.query(UnidadeArquivamentoModel)
+                .filter(
+                    UnidadeArquivamentoModel.nucleo == nucleo,
+                    UnidadeArquivamentoModel.status_dossie == "ABERTO",
+                )
+                .first()
+            )
+
+        dossie_id_final = dossie_vinculado.id if dossie_vinculado else ""
+        codigo_dossie_final = dossie_vinculado.codigo_dossie if dossie_vinculado else ""
 
         novo_doc = DocumentoModel(
             id=doc_id,
             numero_protocolo=numero_protocolo,
+            dossie_id=dossie_id_final,
+            codigo_dossie=codigo_dossie_final,
             tipo_atividade=tipo_atividade,
             codigo_classificacao=codigo_classificacao,
             descricao_codigo=descricao_codigo,
@@ -187,7 +226,11 @@ def upload_documento(
             genero=genero_doc,
             status_documento=status_documento or "ORIGINAL",
             meio=meio or "DIGITAL",
-            fase_arquivistica="CORRENTE",
+            fase_arquivistica=calc_ttd["fase_arquivistica"],
+            prazo_corrente_anos=calc_ttd["prazo_corrente_anos"],
+            prazo_intermediaria_anos=calc_ttd["prazo_intermediaria_anos"],
+            ano_destinacao_final=calc_ttd["ano_destinacao_final"],
+            destinacao_prevista=calc_ttd["destinacao_prevista"],
             nivel_acesso=nivel_acesso or "OSTENSIVO",
             hipotese_legal=hipotese_legal or "",
             formato_mime=formato_mime,
@@ -245,8 +288,8 @@ def upload_documento(
             ip_origem=ip_cliente,
             detalhes=(
                 f"Documento '{nome}' capturado no SIGAD sob protocolo {numero_protocolo} "
-                f"[Status: {status_documento or 'ORIGINAL'} | Acesso: {nivel_acesso or 'OSTENSIVO'} | "
-                f"Classe: {codigo_classificacao or 'N/A'}]."
+                f"[Dossiê: {codigo_dossie_final or 'Avulso'} | Destinação TTD: {calc_ttd['destinacao_prevista']} "
+                f"({calc_ttd['ano_destinacao_final']}) | Classe: {codigo_classificacao or 'N/A'}]."
             ),
         )
 
@@ -256,6 +299,8 @@ def upload_documento(
         "mensagem": "Captura arquivística concluída",
         "id": doc_id,
         "numeroProtocolo": numero_protocolo,
+        "dossieId": dossie_id_final,
+        "codigoDossie": codigo_dossie_final,
         "upload": data_upload,
         "hora": hora_upload,
         "sigla": sigla,
@@ -267,7 +312,11 @@ def upload_documento(
         "autor": autor or "Fundação Casa de José Américo (FCJA)",
         "statusDocumento": status_documento or "ORIGINAL",
         "meio": meio or "DIGITAL",
-        "faseArquivistica": "CORRENTE",
+        "faseArquivistica": calc_ttd["fase_arquivistica"],
+        "prazoCorrenteAnos": calc_ttd["prazo_corrente_anos"],
+        "prazoIntermediariaAnos": calc_ttd["prazo_intermediaria_anos"],
+        "anoDestinacaoFinal": calc_ttd["ano_destinacao_final"],
+        "destinacaoPrevista": calc_ttd["destinacao_prevista"],
         "nivelAcesso": nivel_acesso or "OSTENSIVO",
         "hipoteseLegal": hipotese_legal or "",
         "fixidadeVerificada": True,
