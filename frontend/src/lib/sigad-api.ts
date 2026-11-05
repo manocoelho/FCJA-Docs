@@ -1,4 +1,28 @@
 import { API_BASE_URL } from "@/lib/api";
+import { obterHeadersAuth } from "@/lib/auth";
+
+export const MOTIVOS_ELIMINACAO_OPCOES = [
+  {
+    valor: "CUMPRIMENTO_PRAZO_TTD",
+    rotulo: "Cumprimento de Prazo de Guarda na TTD (Destinação Final)",
+  },
+  {
+    valor: "DUPLICIDADE_CAPTURA",
+    rotulo: "Duplicidade Comprovada de Captura no Acervo",
+  },
+  {
+    valor: "ERRO_MATERIAL_CAPTURA",
+    rotulo: "Erro Material / Inconsistência Técnica na Captura",
+  },
+  {
+    valor: "SUBSTITUICAO_FORMATO_PRESERVACAO",
+    rotulo: "Substituição por Formato de Preservação (Migração)",
+  },
+  {
+    valor: "DESCARTE_MINUTA_RASCUNHO",
+    rotulo: "Descarte de Minuta / Rascunho de Trabalho",
+  },
+] as const;
 
 export interface EventoArquivistico {
   id: string;
@@ -15,6 +39,27 @@ export interface EventoArquivistico {
   detalhes: string;
   hashEvidencia: string;
   ipOrigem: string;
+}
+
+export interface TermoEliminacaoItem {
+  id: string;
+  numeroTermo: string;
+  documentoId: string;
+  numeroProtocolo: string;
+  nomeDocumento: string;
+  categoria: string;
+  codigoClassificacao: string;
+  nucleo: string;
+  anoDocumento: number;
+  statusDocumentoOriginal: string;
+  hashSha256Original: string;
+  motivoEliminacao: string;
+  descricaoMotivo: string;
+  justificativa: string;
+  autorizadoPor: string;
+  papelAutorizador: string;
+  dataEliminacao: string;
+  horaEliminacao: string;
 }
 
 export interface ResumoAuditoriaEarq {
@@ -86,14 +131,27 @@ export async function buscarEventosAuditoria(params?: {
 
   const queryStr = search.toString();
   const url = `${API_BASE_URL}/api/auditoria/eventos${queryStr ? `?${queryStr}` : ""}`;
-  const res = await fetch(url);
+  const res = await fetch(url, { headers: obterHeadersAuth() });
   if (!res.ok) throw new Error("Falha ao carregar trilha de auditoria e-ARQ");
   return res.json();
 }
 
 export async function buscarResumoAuditoria(): Promise<ResumoAuditoriaEarq> {
-  const res = await fetch(`${API_BASE_URL}/api/auditoria/resumo`);
+  const res = await fetch(`${API_BASE_URL}/api/auditoria/resumo`, {
+    headers: obterHeadersAuth(),
+  });
   if (!res.ok) throw new Error("Falha ao carregar resumo de auditoria e-ARQ");
+  return res.json();
+}
+
+export async function buscarTermosEliminacao(
+  limite: number = 100
+): Promise<TermoEliminacaoItem[]> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/auditoria/termos-eliminacao?limite=${limite}`,
+    { headers: obterHeadersAuth() }
+  );
+  if (!res.ok) throw new Error("Falha ao carregar Termos de Eliminação");
   return res.json();
 }
 
@@ -108,7 +166,7 @@ export async function verificarFixidadeIndividual(
   });
   const res = await fetch(
     `${API_BASE_URL}/api/documentos/${encodeURIComponent(docId)}/verificar-fixidade?${search.toString()}`,
-    { method: "POST" }
+    { method: "POST", headers: obterHeadersAuth() }
   );
   if (!res.ok) throw new Error("Não foi possível verificar a fixidade do documento");
   return res.json();
@@ -124,7 +182,7 @@ export async function verificarFixidadeEmLote(
   });
   const res = await fetch(
     `${API_BASE_URL}/api/documentos/verificar-fixidade-lote?${search.toString()}`,
-    { method: "POST" }
+    { method: "POST", headers: obterHeadersAuth() }
   );
   if (!res.ok) throw new Error("Falha ao executar auditoria de fixidade em lote");
   return res.json();

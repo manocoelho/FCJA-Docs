@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, Query
 import database
 from services.auditoria_service import listar_eventos, obter_resumo_auditoria
+from services.eliminacao_service import listar_termos_eliminacao
 
 router = APIRouter()
 
@@ -36,3 +37,12 @@ def get_resumo_auditoria():
     """
     with database.SessionLocal() as db:
         return obter_resumo_auditoria(db=db)
+
+
+@router.get("/api/auditoria/termos-eliminacao")
+def get_termos_eliminacao(limite: int = Query(100)):
+    """
+    Lista todos os Termos de Eliminação emitidos pelo SIGAD (e-ARQ Brasil v2 Cap. 3.2).
+    """
+    with database.SessionLocal() as db:
+        return listar_termos_eliminacao(db=db, limite=limite)

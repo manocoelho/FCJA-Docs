@@ -3,17 +3,20 @@ import { toast } from "sonner";
 import {
   buscarEventosAuditoria,
   buscarResumoAuditoria,
+  buscarTermosEliminacao,
   verificarFixidadeEmLote,
   type EventoArquivistico,
   type ResumoAuditoriaEarq,
+  type TermoEliminacaoItem,
 } from "@/lib/sigad-api";
 
 export function useAuditoriaEarq(
   usuarioLogado: string | null,
   usuarioPapel: string | null,
-  onFixidadeLoteConcluida?: () => void
+  onFixidadeLoteConcluida?: (() => void) | undefined
 ) {
   const [eventos, setEventos] = useState<EventoArquivistico[]>([]);
+  const [termosEliminacao, setTermosEliminacao] = useState<TermoEliminacaoItem[]>([]);
   const [resumo, setResumo] = useState<ResumoAuditoriaEarq | null>(null);
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>("TODOS");
   const [buscaFiltro, setBuscaFiltro] = useState<string>("");
@@ -23,16 +26,18 @@ export function useAuditoriaEarq(
   const carregarDadosAuditoria = useCallback(async () => {
     setCarregando(true);
     try {
-      const [listaEventos, dadosResumo] = await Promise.all([
+      const [listaEventos, dadosResumo, listaTermos] = await Promise.all([
         buscarEventosAuditoria({
           categoriaEvento: categoriaFiltro,
           busca: buscaFiltro,
           limite: 200,
         }),
         buscarResumoAuditoria(),
+        buscarTermosEliminacao(100),
       ]);
       setEventos(listaEventos);
       setResumo(dadosResumo);
+      setTermosEliminacao(listaTermos);
     } catch (erro) {
       console.error("Erro ao carregar auditoria e-ARQ:", erro);
     } finally {
@@ -72,6 +77,7 @@ export function useAuditoriaEarq(
 
   return {
     eventos,
+    termosEliminacao,
     resumo,
     categoriaFiltro,
     setCategoriaFiltro,

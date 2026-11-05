@@ -39,6 +39,7 @@ import {
 import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
 import { SeletorHierarquico } from "@/components/ged/SeletorHierarquico";
 import { API_BASE_URL } from "@/lib/api";
+import { obterHeadersAuth } from "@/lib/auth";
 import { formatarTamanho } from "@/lib/formatters";
 import type { DadosEdicaoDoc } from "@/hooks/useAcervoSigad";
 
@@ -100,8 +101,8 @@ interface TelaUploadProps {
   onDocsUploaded: (novosDocs: Doc[]) => void;
   onView: (doc: Doc) => void;
   onDownload: (doc: Doc) => void;
-  onDelete: (doc: Doc) => void;
-  onDeleteMany: (docs: Doc[]) => void;
+  onDelete: (doc: Doc, motivoEliminacao?: string, justificativa?: string) => Promise<void> | void;
+  onDeleteMany: (docs: Doc[], motivoEliminacao?: string, justificativa?: string) => Promise<void> | void;
   onEdit: (doc: Doc, dados: DadosEdicaoDoc) => void;
   onVerifyFixity?: ((doc: Doc) => Promise<unknown>) | undefined;
 }
@@ -270,6 +271,7 @@ export function TelaUpload({
       try {
         const res = await fetch(`${API_BASE_URL}/api/upload`, {
           method: "POST",
+          headers: obterHeadersAuth(),
           body: formData,
         });
         if (!res.ok) throw new Error("Erro na rede");
@@ -908,6 +910,7 @@ export function TelaUpload({
         <FilterChips chips={chipsUpload} onLimpar={() => setFiltrosUpload(INICIAL)} />
         <DocumentTable
           docs={documentosUpload}
+          usuarioPapel={usuarioPapel}
           onView={onView}
           onDownload={onDownload}
           onDelete={onDelete}

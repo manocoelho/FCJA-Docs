@@ -26,6 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Doc } from "@/components/ged/data";
 import { API_BASE_URL, resolveUrl } from "@/lib/api";
+import { limparSessaoAuth, rotuloPapelSigad } from "@/lib/auth";
 import { useAcervoSigad } from "@/hooks/useAcervoSigad";
 
 export const Route = createFileRoute("/")({
@@ -213,14 +214,13 @@ function Index() {
             <p className="font-semibold text-white">{usuarioLogado}</p>
             {usuarioPapel && (
               <span className="mt-0.5 inline-block rounded bg-white/10 px-1.5 py-0.5 text-[10px] uppercase tracking-wider text-blue-300">
-                {usuarioPapel}
+                {rotuloPapelSigad(usuarioPapel)}
               </span>
             )}
           </div>
           <button
             onClick={() => {
-              sessionStorage.removeItem("fcja_user");
-              sessionStorage.removeItem("fcja_role");
+              limparSessaoAuth();
               setUsuarioLogado(null);
               setUsuarioPapel(null);
             }}

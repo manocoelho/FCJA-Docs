@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from models.documento import DocumentoModel
 from models.componente_digital import ComponenteDigitalModel
+from models.usuario import UsuarioModel
+from core.security import eh_hash_seguro, gerar_hash_senha
 from services.fixidade_service import calcular_hash_sha256, identificar_formato_e_genero
 from services.protocolo_service import gerar_numero_protocolo
 from services.auditoria_service import registrar_evento
@@ -39,24 +41,61 @@ def _limpar_nome_pasta(texto: str) -> str:
 
 def migrar_esquema_banco(engine: Engine) -> None:
     """
-    Responsabilidade única: Garantir migração transparente e não-destrutiva da tabela
-    'documentos' tanto em MySQL quanto em SQLite, adicionando as novas colunas do e-ARQ v2
-    caso ainda não existam.
+    Responsabilidade única: Garantir migração transparente e não-destrutiva das tabelas
+    'documentos' e 'usuarios' tanto em MySQL quanto em SQLite.
     """
     inspetor = inspect(engine)
-    if not inspetor.has_table("documentos"):
-        return
 
-    colunas_existentes = {col["name"] for col in inspetor.get_columns("documentos")}
+    if inspetor.has_table("documentos"):
+        colunas_existentes = {col["name"] for col in inspetor.get_columns("documentos")}
+        with engine.begin() as conn:
+            for nome_coluna, definicao_sql in COLUNAS_NOVAS_DOCUMENTOS:
+                if nome_coluna not in colunas_existentes:
+                    try:
+                        conn.execute(
+                            text(f"ALTER TABLE documentos ADD COLUMN {nome_coluna} {definicao_sql}")
+                        )
+                        print(f"[MIGRACAO e-ARQ v2] Coluna adicionada em documentos: {nome_coluna}")
+                    except Exception as exc:
+                        print(f"[AVISO MIGRACAO] Nao foi possivel adicionar coluna {nome_coluna}: {exc}")
 
-    with engine.begin() as conn:
-        for nome_coluna, definicao_sql in COLUNAS_NOVAS_DOCUMENTOS:
-            if nome_coluna not in colunas_existentes:
-                try:
-                    conn.execute(text(f"ALTER TABLE documentos ADD COLUMN {nome_coluna} {definicao_sql}"))
-                    print(f"[MIGRACAO e-ARQ v2] Coluna adicionada em documentos: {nome_coluna}")
-                except Exception as exc:
-                    print(f"[AVISO MIGRACAO] Nao foi possivel adicionar coluna {nome_coluna}: {exc}")
+    # Expande a coluna senha em MySQL caso tenha sido criada originalmente como VARCHAR(100)
+    if inspetor.has_table("usuarios") and engine.dialect.name == "mysql":
+        with engine.begin() as conn:
+            try:
+                conn.execute(text("ALTER TABLE usuarios MODIFY COLUMN senha VARCHAR(255)"))
+            except Exception:
+                pass
+
+
+def migrar_senhas_e_papeis_usuarios(db: Session) -> None:
+    """
+    Responsabilidade única: Converter automaticamente senhas legadas em texto puro
+    para hashes criptográficos PBKDF2-HMAC-SHA256 e garantir a presença do perfil
+    'arquivista' no banco de dados.
+    """
+    arquivista = db.query(UsuarioModel).filter(UsuarioModel.login == "arquivista").first()
+    alterou = False
+
+    if not arquivista:
+        db.add(
+            UsuarioModel(
+                login="arquivista",
+                senha=gerar_hash_senha("1980"),
+                nome="Arquivista SIGAD FCJA",
+                papel="arquivista",
+            )
+        )
+        alterou = True
+
+    usuarios = db.query(UsuarioModel).all()
+    for user in usuarios:
+        if user.senha and not eh_hash_seguro(user.senha):
+            user.senha = gerar_hash_senha(user.senha)
+            alterou = True
+
+    if alterou:
+        db.commit()
 
 
 def sincronizar_legado_earq(db: Session, pasta_arquivos: str) -> None:

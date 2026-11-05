@@ -15,6 +15,14 @@ class DocUpdateSchema(BaseModel):
     papel_usuario: Optional[str] = ""
 
 
+class EliminacaoLoteSchema(BaseModel):
+    ids_documentos: list[str]
+    motivo_eliminacao: str = "CUMPRIMENTO_PRAZO_TTD"
+    justificativa: str = ""
+    usuario_responsavel: Optional[str] = "sistema"
+    papel_usuario: Optional[str] = ""
+
+
 class VerificacaoFixidadeResponseSchema(BaseModel):
     sucesso: bool
     documento_id: str

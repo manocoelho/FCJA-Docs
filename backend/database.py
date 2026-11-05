@@ -45,23 +45,32 @@ Base = declarative_base()
 from models.documento import DocumentoModel  # noqa: E402
 from models.componente_digital import ComponenteDigitalModel  # noqa: E402
 from models.evento import EventoArquivisticoModel  # noqa: E402
+from models.termo_eliminacao import TermoEliminacaoModel  # noqa: E402
 from models.usuario import UsuarioModel  # noqa: E402
 
 
 def iniciar_banco():
-    from services.migracao_service import migrar_esquema_banco, sincronizar_legado_earq
+    from core.security import gerar_hash_senha
+    from services.migracao_service import (
+        migrar_esquema_banco,
+        migrar_senhas_e_papeis_usuarios,
+        sincronizar_legado_earq,
+    )
 
     Base.metadata.create_all(bind=engine)
     migrar_esquema_banco(engine)
 
     with SessionLocal() as db:
         if db.query(UsuarioModel).count() == 0:
+            senha_hash = gerar_hash_senha("1980")
             usuarios_padrao = [
-                UsuarioModel(login="pesquisador", senha="1980", nome="Pesquisador FCJA", papel="pesquisador"),
-                UsuarioModel(login="arquivista", senha="1980", nome="Arquivista SIGAD FCJA", papel="arquivista"),
-                UsuarioModel(login="admin", senha="1980", nome="Administrador Geral", papel="admin"),
+                UsuarioModel(login="pesquisador", senha=senha_hash, nome="Pesquisador FCJA", papel="pesquisador"),
+                UsuarioModel(login="arquivista", senha=senha_hash, nome="Arquivista SIGAD FCJA", papel="arquivista"),
+                UsuarioModel(login="admin", senha=senha_hash, nome="Administrador Geral", papel="admin"),
             ]
             db.add_all(usuarios_padrao)
             db.commit()
+        else:
+            migrar_senhas_e_papeis_usuarios(db)
 
         sincronizar_legado_earq(db, PASTA_ARQUIVOS)

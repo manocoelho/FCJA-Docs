@@ -1,4 +1,5 @@
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException, Request, Query
+from typing import Optional
+from fastapi import APIRouter, File, UploadFile, Form, Header, HTTPException, Request, Query
 from fastapi.responses import FileResponse
 import os
 import shutil
@@ -12,7 +13,8 @@ import platform
 import database
 from models.documento import DocumentoModel
 from models.componente_digital import ComponenteDigitalModel
-from schemas.documento_schema import DocUpdateSchema
+from schemas.documento_schema import DocUpdateSchema, EliminacaoLoteSchema
+from core.dependencies import extrair_agente_requisicao
 from services.fixidade_service import (
     calcular_hash_sha256,
     identificar_formato_e_genero,
@@ -20,6 +22,7 @@ from services.fixidade_service import (
 )
 from services.protocolo_service import gerar_numero_protocolo
 from services.auditoria_service import registrar_evento
+from services.eliminacao_service import executar_eliminacao_controlada
 
 router = APIRouter()
 
@@ -78,7 +81,7 @@ def listar_documentos(request: Request = None):
                 "tipoAtividade": doc.tipo_atividade or "",
                 "codigoClassificacao": doc.codigo_classificacao or "",
                 "descricaoCodigo": doc.descricao_codigo or "",
-                # Metadados e-ARQ Brasil v2 & PREMIS (Fase 1)
+                # Metadados e-ARQ Brasil v2 & PREMIS
                 "autor": doc.autor or "Fundação Casa de José Américo (FCJA)",
                 "redator": doc.redator or "",
                 "originador": doc.originador or "",
@@ -121,8 +124,17 @@ def upload_documento(
     hipotese_legal: str = Form(""),
     usuario_responsavel: str = Form("sistema"),
     papel_usuario: str = Form(""),
+    authorization: Optional[str] = Header(None),
     request: Request = None,
 ):
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=usuario_responsavel,
+        papel_fallback=papel_usuario,
+    )
+    responsavel_efetivo = agente["nome"]
+    papel_efetivo = agente["papel"]
+
     nucleo_limpo = limpar_nome_pasta(nucleo)
     categoria_limpa = limpar_nome_pasta(categoria)
     nome_limpo = limpar_nome_pasta(nome)
@@ -182,7 +194,7 @@ def upload_documento(
             hash_sha256=hash_sha256,
             fixidade_verificada=1,
             ultima_verificacao_fixidade=data_hora_str,
-            usuario_captura=usuario_responsavel or "sistema",
+            usuario_captura=responsavel_efetivo,
         )
         db.add(novo_doc)
 
@@ -203,15 +215,14 @@ def upload_documento(
         )
         db.add(componente)
 
-        # Evento 1: Preservação Digital PREMIS (Fixidade e Formato)
         registrar_evento(
             db=db,
             categoria_evento="PRESERVACAO",
             tipo_evento="CALCULO_HASH_SHA256",
             documento_id=doc_id,
             numero_protocolo=numero_protocolo,
-            usuario_responsavel=usuario_responsavel or "sistema",
-            papel_usuario=papel_usuario,
+            usuario_responsavel=responsavel_efetivo,
+            papel_usuario=papel_efetivo,
             resultado="SUCESSO",
             hash_evidencia=hash_sha256,
             ip_origem=ip_cliente,
@@ -221,15 +232,14 @@ def upload_documento(
             ),
         )
 
-        # Evento 2: Ciclo de Vida e-ARQ Brasil v2 (Captura Arquivística)
         registrar_evento(
             db=db,
             categoria_evento="CICLO_VIDA",
             tipo_evento="CAPTURA_ARQUIVISTICA",
             documento_id=doc_id,
             numero_protocolo=numero_protocolo,
-            usuario_responsavel=usuario_responsavel or "sistema",
-            papel_usuario=papel_usuario,
+            usuario_responsavel=responsavel_efetivo,
+            papel_usuario=papel_efetivo,
             resultado="SUCESSO",
             hash_evidencia=hash_sha256,
             ip_origem=ip_cliente,
@@ -268,47 +278,99 @@ def upload_documento(
 @router.delete("/api/documentos/{doc_id}")
 def deletar_documento(
     doc_id: str,
+    motivo_eliminacao: str = Query("CUMPRIMENTO_PRAZO_TTD"),
+    justificativa: str = Query(""),
     usuario_responsavel: str = Query("sistema"),
     papel_usuario: str = Query(""),
+    authorization: Optional[str] = Header(None),
     request: Request = None,
 ):
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=usuario_responsavel,
+        papel_fallback=papel_usuario,
+    )
     ip_cliente = get_ip_cliente(request)
+
     with database.SessionLocal() as db:
         doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
-        if doc:
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+        caminho_fisico = montar_caminho_fisico(doc)
+        termo_info = executar_eliminacao_controlada(
+            db=db,
+            doc=doc,
+            caminho_fisico=caminho_fisico,
+            usuario_responsavel=agente["nome"],
+            papel_usuario=agente["papel"],
+            motivo_eliminacao=motivo_eliminacao,
+            justificativa=justificativa,
+            ip_origem=ip_cliente,
+        )
+        db.commit()
+
+    return {
+        "sucesso": True,
+        "mensagem": "Documento eliminado com emissão de Termo de Eliminação",
+        "termo": termo_info,
+    }
+
+
+@router.post("/api/documentos/eliminar-lote")
+def eliminar_documentos_lote(
+    dados: EliminacaoLoteSchema,
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=dados.usuario_responsavel or "sistema",
+        papel_fallback=dados.papel_usuario or "",
+    )
+    ip_cliente = get_ip_cliente(request)
+    termos_gerados = []
+
+    with database.SessionLocal() as db:
+        for doc_id in dados.ids_documentos:
+            doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
+            if not doc:
+                continue
             caminho_fisico = montar_caminho_fisico(doc)
-            if os.path.exists(caminho_fisico):
-                os.remove(caminho_fisico)
-
-            registrar_evento(
+            termo = executar_eliminacao_controlada(
                 db=db,
-                categoria_evento="CICLO_VIDA",
-                tipo_evento="ELIMINACAO_DOCUMENTO",
-                documento_id=doc.id,
-                numero_protocolo=doc.numero_protocolo or "",
-                usuario_responsavel=usuario_responsavel or "sistema",
-                papel_usuario=papel_usuario,
-                resultado="ALERTA",
-                hash_evidencia=doc.hash_sha256 or "",
+                doc=doc,
+                caminho_fisico=caminho_fisico,
+                usuario_responsavel=agente["nome"],
+                papel_usuario=agente["papel"],
+                motivo_eliminacao=dados.motivo_eliminacao,
+                justificativa=dados.justificativa,
                 ip_origem=ip_cliente,
-                detalhes=(
-                    f"Documento '{doc.nome}' (Protocolo: {doc.numero_protocolo or 'S/N'}, "
-                    f"Núcleo: {doc.nucleo}) removido do armazenamento ativo."
-                ),
             )
+            termos_gerados.append(termo)
+        db.commit()
 
-            db.query(ComponenteDigitalModel).filter(
-                ComponenteDigitalModel.documento_id == doc_id
-            ).delete()
-            db.delete(doc)
-            db.commit()
-
-    return {"mensagem": "Documento apagado com sucesso"}
+    return {
+        "sucesso": True,
+        "totalEliminados": len(termos_gerados),
+        "termos": termos_gerados,
+    }
 
 
 @router.put("/api/documentos/{doc_id}")
-def atualizar_documento(doc_id: str, dados: DocUpdateSchema, request: Request = None):
+def atualizar_documento(
+    doc_id: str,
+    dados: DocUpdateSchema,
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=dados.usuario_responsavel or "sistema",
+        papel_fallback=dados.papel_usuario or "",
+    )
     ip_cliente = get_ip_cliente(request)
+
     with database.SessionLocal() as db:
         doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
         if not doc:
@@ -362,8 +424,8 @@ def atualizar_documento(doc_id: str, dados: DocUpdateSchema, request: Request = 
             tipo_evento="ATUALIZACAO_METADADOS",
             documento_id=doc.id,
             numero_protocolo=doc.numero_protocolo or "",
-            usuario_responsavel=dados.usuario_responsavel or "sistema",
-            papel_usuario=dados.papel_usuario or "",
+            usuario_responsavel=agente["nome"],
+            papel_usuario=agente["papel"],
             resultado="SUCESSO",
             hash_evidencia=doc.hash_sha256 or "",
             ip_origem=ip_cliente,
@@ -384,9 +446,16 @@ def verificar_fixidade_documento(
     doc_id: str,
     usuario_responsavel: str = Query("sistema"),
     papel_usuario: str = Query(""),
+    authorization: Optional[str] = Header(None),
     request: Request = None,
 ):
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=usuario_responsavel,
+        papel_fallback=papel_usuario,
+    )
     ip_cliente = get_ip_cliente(request)
+
     with database.SessionLocal() as db:
         doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
         if not doc:
@@ -416,8 +485,8 @@ def verificar_fixidade_documento(
             tipo_evento="VERIFICACAO_FIXIDADE",
             documento_id=doc.id,
             numero_protocolo=doc.numero_protocolo or "",
-            usuario_responsavel=usuario_responsavel or "sistema",
-            papel_usuario=papel_usuario,
+            usuario_responsavel=agente["nome"],
+            papel_usuario=agente["papel"],
             resultado="SUCESSO" if resultado["integro"] else "FALHA",
             hash_evidencia=resultado["hash_calculado"] or doc.hash_sha256 or "",
             ip_origem=ip_cliente,
@@ -444,9 +513,16 @@ def verificar_fixidade_documento(
 def verificar_fixidade_lote(
     usuario_responsavel: str = Query("sistema"),
     papel_usuario: str = Query(""),
+    authorization: Optional[str] = Header(None),
     request: Request = None,
 ):
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=usuario_responsavel,
+        papel_fallback=papel_usuario,
+    )
     ip_cliente = get_ip_cliente(request)
+
     with database.SessionLocal() as db:
         documentos = db.query(DocumentoModel).all()
         integros = 0
@@ -485,8 +561,8 @@ def verificar_fixidade_lote(
             db=db,
             categoria_evento="PRESERVACAO",
             tipo_evento="AUDITORIA_FIXIDADE_LOTE",
-            usuario_responsavel=usuario_responsavel or "sistema",
-            papel_usuario=papel_usuario,
+            usuario_responsavel=agente["nome"],
+            papel_usuario=agente["papel"],
             resultado="SUCESSO" if (violados == 0 and ausentes == 0) else "ALERTA",
             ip_origem=ip_cliente,
             detalhes=(

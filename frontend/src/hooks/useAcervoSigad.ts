@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { API_BASE_URL } from "@/lib/api";
+import { obterHeadersAuth } from "@/lib/auth";
 import { DOCUMENTOS, type Doc } from "@/components/ged/data";
 import { verificarFixidadeIndividual } from "@/lib/sigad-api";
 
@@ -16,10 +17,10 @@ export interface DadosEdicaoDoc {
   categoria: string;
   ano: number;
   nucleo: string;
-  autor?: string;
-  statusDocumento?: string;
-  nivelAcesso?: string;
-  hipoteseLegal?: string;
+  autor?: string | undefined;
+  statusDocumento?: string | undefined;
+  nivelAcesso?: string | undefined;
+  hipoteseLegal?: string | undefined;
 }
 
 export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: string | null) {
@@ -30,7 +31,7 @@ export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: strin
   const [edicoes, setEdicoes] = useState<Record<string, Partial<Doc>>>({});
 
   const atualizarStatusHD = useCallback(() => {
-    fetch(`${API_BASE_URL}/api/sistema/status`)
+    fetch(`${API_BASE_URL}/api/sistema/status`, { headers: obterHeadersAuth() })
       .then((res) => res.json())
       .then((data) => {
         if (data.sucesso) {
@@ -41,7 +42,7 @@ export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: strin
   }, []);
 
   const recarregarDocumentos = useCallback(() => {
-    fetch(`${API_BASE_URL}/api/documentos`)
+    fetch(`${API_BASE_URL}/api/documentos`, { headers: obterHeadersAuth() })
       .then((res) => {
         if (!res.ok) throw new Error("Falha na rede");
         return res.json();
@@ -80,65 +81,88 @@ export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: strin
   );
 
   const removerDoc = useCallback(
-    async (doc: Doc) => {
+    async (
+      doc: Doc,
+      motivoEliminacao: string = "CUMPRIMENTO_PRAZO_TTD",
+      justificativa: string = "Eliminação autorizada via SIGAD."
+    ) => {
       try {
         const params = new URLSearchParams({
+          motivo_eliminacao: motivoEliminacao,
+          justificativa,
           usuario_responsavel: usuarioLogado || "sistema",
           papel_usuario: usuarioPapel || "",
         });
         const res = await fetch(`${API_BASE_URL}/api/documentos/${doc.id}?${params.toString()}`, {
           method: "DELETE",
+          headers: obterHeadersAuth(),
         });
-        if (!res.ok) throw new Error("Falha ao apagar no backend");
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(payload.detail || "Falha ao eliminar no backend");
+        }
 
         setDocumentosApi((prev) => prev.filter((d) => d.id !== doc.id));
         setEnviados((prev) => prev.filter((d) => d.id !== doc.id));
         setRemovidos((prev) => [...prev, doc.id]);
-        toast.success("Documento removido e evento registrado na auditoria", {
-          description: `${doc.numeroProtocolo ? `[${doc.numeroProtocolo}] ` : ""}${doc.nome}`,
-        });
+
+        const numTermo = payload?.termo?.numeroTermo;
+        toast.success(
+          numTermo ? `Termo de Eliminação emitido: ${numTermo}` : "Documento eliminado",
+          {
+            description: `${doc.numeroProtocolo ? `[${doc.numeroProtocolo}] ` : ""}${doc.nome}`,
+          }
+        );
         atualizarStatusHD();
-      } catch (erro) {
+      } catch (erro: unknown) {
         console.error(erro);
-        toast.error("Erro ao remover", { description: "Não foi possível apagar o documento." });
+        const msg = erro instanceof Error ? erro.message : "Não foi possível eliminar o documento.";
+        toast.error("Eliminação não autorizada", { description: msg });
       }
     },
     [usuarioLogado, usuarioPapel, atualizarStatusHD]
   );
 
   const removerDocs = useCallback(
-    async (lista: Doc[]) => {
+    async (
+      lista: Doc[],
+      motivoEliminacao: string = "CUMPRIMENTO_PRAZO_TTD",
+      justificativa: string = "Eliminação em lote autorizada via SIGAD."
+    ) => {
       if (lista.length === 0) return;
       try {
-        const params = new URLSearchParams({
-          usuario_responsavel: usuarioLogado || "sistema",
-          papel_usuario: usuarioPapel || "",
+        const res = await fetch(`${API_BASE_URL}/api/documentos/eliminar-lote`, {
+          method: "POST",
+          headers: obterHeadersAuth({ "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            ids_documentos: lista.map((d) => d.id),
+            motivo_eliminacao: motivoEliminacao,
+            justificativa,
+            usuario_responsavel: usuarioLogado || "sistema",
+            papel_usuario: usuarioPapel || "",
+          }),
         });
-        await Promise.all(
-          lista.map((doc) =>
-            fetch(`${API_BASE_URL}/api/documentos/${doc.id}?${params.toString()}`, {
-              method: "DELETE",
-            })
-          )
-        );
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(payload.detail || "Falha na eliminação em lote");
+        }
+
         const ids = lista.map((d) => d.id);
         setDocumentosApi((prev) => prev.filter((d) => !ids.includes(d.id)));
         setEnviados((prev) => prev.filter((d) => !ids.includes(d.id)));
         setRemovidos((prev) => [...prev, ...ids]);
 
-        toast.success(`${lista.length} documento(s) removido(s) com registro em auditoria`, {
-          description:
-            lista.length <= 3
-              ? lista.map((d) => d.nome).join(", ")
-              : `${lista
-                  .slice(0, 3)
-                  .map((d) => d.nome)
-                  .join(", ")} e mais ${lista.length - 3}.`,
+        const primeiroTermo = payload?.termos?.[0]?.numeroTermo;
+        toast.success(`${lista.length} Termo(s) de Eliminação emitido(s)`, {
+          description: primeiroTermo
+            ? `Iniciado em ${primeiroTermo} · Registrado na Trilha de Auditoria.`
+            : "Eliminação em lote registrada com sucesso.",
         });
         atualizarStatusHD();
-      } catch (erro) {
+      } catch (erro: unknown) {
         console.error(erro);
-        toast.error("Erro na remoção em lote", { description: "Ocorreu um erro na comunicação." });
+        const msg = erro instanceof Error ? erro.message : "Ocorreu um erro na comunicação.";
+        toast.error("Eliminação em lote bloqueada", { description: msg });
       }
     },
     [usuarioLogado, usuarioPapel, atualizarStatusHD]
@@ -149,7 +173,7 @@ export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: strin
       try {
         const res = await fetch(`${API_BASE_URL}/api/documentos/${doc.id}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: obterHeadersAuth({ "Content-Type": "application/json" }),
           body: JSON.stringify({
             nome: dados.nome,
             categoria: dados.categoria,

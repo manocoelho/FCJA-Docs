@@ -33,16 +33,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -77,6 +67,7 @@ import {
 } from "./data";
 import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
 import { ModalMetadadosEarq } from "@/components/ged/ModalMetadadosEarq";
+import { ModalEliminacaoControlada } from "@/components/ged/ModalEliminacaoControlada";
 import {
   formatarHashCurto,
   rotuloNivelAcesso,
@@ -114,6 +105,7 @@ function TipoIcone({ ext }: { ext: Doc["ext"] }) {
 
 export function DocumentTable({
   docs,
+  usuarioPapel,
   onView,
   onDownload,
   onDelete,
@@ -123,11 +115,12 @@ export function DocumentTable({
   onVerifyFixity,
 }: {
   docs: Doc[];
-  onView?: (doc: Doc) => void;
-  onDownload?: (doc: Doc) => void;
-  onDelete?: (doc: Doc) => void;
-  onDeleteMany?: (docs: Doc[]) => void;
-  onRename?: (doc: Doc, nome: string) => void;
+  usuarioPapel?: string | null | undefined;
+  onView?: ((doc: Doc) => void) | undefined;
+  onDownload?: ((doc: Doc) => void) | undefined;
+  onDelete?: ((doc: Doc, motivoEliminacao?: string, justificativa?: string) => Promise<void> | void) | undefined;
+  onDeleteMany?: ((docs: Doc[], motivoEliminacao?: string, justificativa?: string) => Promise<void> | void) | undefined;
+  onRename?: ((doc: Doc, nome: string) => void) | undefined;
   onEdit?: ((doc: Doc, dados: DadosEdicaoDoc) => void) | undefined;
   onVerifyFixity?: ((doc: Doc) => Promise<unknown>) | undefined;
 }) {
@@ -137,7 +130,9 @@ export function DocumentTable({
   const [pagina, setPagina] = useState(1);
   const [porPagina, setPorPagina] = useState(10);
   const [selecionados, setSelecionados] = useState<string[]>([]);
-  const [confirmar, setConfirmar] = useState(false);
+
+  // Alvos para Eliminação Controlada com Termo de Eliminação (e-ARQ Cap. 3.2)
+  const [alvosEliminacao, setAlvosEliminacao] = useState<Doc[]>([]);
 
   // Estado da Ficha Arquivística e-ARQ v2 & PREMIS
   const [fichaDocId, setFichaDocId] = useState<string | null>(null);
@@ -290,10 +285,16 @@ export function DocumentTable({
     });
   }
 
-  function confirmarRemocao() {
-    onDeleteMany?.(marcados);
-    setSelecionados([]);
-    setConfirmar(false);
+  async function processarEliminacaoControlada(motivo: string, justificativa: string) {
+    if (alvosEliminacao.length === 0) return;
+    if (alvosEliminacao.length === 1 && onDelete) {
+      await onDelete(alvosEliminacao[0]!, motivo, justificativa);
+    } else if (onDeleteMany) {
+      await onDeleteMany(alvosEliminacao, motivo, justificativa);
+    }
+    const idsEliminados = new Set(alvosEliminacao.map((d) => d.id));
+    setSelecionados((prev) => prev.filter((id) => !idsEliminados.has(id)));
+    setAlvosEliminacao([]);
   }
 
   function Cabecalho({ c, label }: { c: Coluna; label: string }) {
@@ -322,9 +323,13 @@ export function DocumentTable({
         </div>
         <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
           {marcados.length > 0 && (
-            <Button variant="destructive" size="sm" onClick={() => setConfirmar(true)}>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => setAlvosEliminacao(marcados)}
+            >
               <Trash2 className="h-4 w-4" />
-              Remover ({marcados.length})
+              Eliminar ({marcados.length})
             </Button>
           )}
           <DropdownMenu>
@@ -536,10 +541,10 @@ export function DocumentTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="Remover"
-                          title="Remover documento"
+                          aria-label="Eliminar com Termo"
+                          title="Emitir Termo de Eliminação (e-ARQ v2)"
                           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => onDelete?.(doc)}
+                          onClick={() => setAlvosEliminacao([doc])}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -604,31 +609,14 @@ export function DocumentTable({
         onVerificarFixidade={onVerifyFixity}
       />
 
-      {/* Confirmação de Remoção */}
-      <AlertDialog open={confirmar} onOpenChange={setConfirmar}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Remover {marcados.length} documento(s)?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação removerá o(s) documento(s) do armazenamento ativo e registrará um evento
-              permanente de eliminação na Trilha de Auditoria e-ARQ Brasil v2.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <ul className="max-h-40 space-y-1 overflow-y-auto rounded-lg bg-secondary/60 p-3 text-xs text-muted-foreground">
-            {marcados.slice(0, 20).map((d) => (
-              <li key={d.id} className="truncate">
-                {d.numeroProtocolo ? `[${d.numeroProtocolo}] ` : ""}
-                {d.nome}
-              </li>
-            ))}
-            {marcados.length > 20 && <li>e mais {marcados.length - 20} arquivo(s)…</li>}
-          </ul>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmarRemocao}>Remover</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Modal de Governança de Eliminação e Emissão de Termo (e-ARQ Cap. 3.2 & RBAC) */}
+      <ModalEliminacaoControlada
+        alvos={alvosEliminacao}
+        aberto={alvosEliminacao.length > 0}
+        usuarioPapel={usuarioPapel}
+        onFechar={() => setAlvosEliminacao([])}
+        onConfirmar={processarEliminacaoControlada}
+      />
 
       {/* Modal de Edição de Metadados Descritivos e e-ARQ v2 */}
       <Dialog open={editando !== null} onOpenChange={(o) => !o && setEditando(null)}>
