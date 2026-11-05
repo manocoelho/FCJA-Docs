@@ -4,11 +4,10 @@ import { NUCLEOS, type Doc } from "@/components/ged/data";
 
 interface TelaExploradorProps {
   acervo: Doc[];
-  modoStorage: "LOCAL" | "EXTERNO";
   onAbrirDoc: (doc: Doc) => void;
 }
 
-export function TelaExplorador({ acervo, modoStorage, onAbrirDoc }: TelaExploradorProps) {
+export function TelaExplorador({ acervo, onAbrirDoc }: TelaExploradorProps) {
   const [pastaSelecionada, setPastaSelecionada] = useState<string>("Todos");
   const [subPastaAno, setSubPastaAno] = useState<number | null>(null);
   const [subPastaTipo, setSubPastaTipo] = useState<string | null>(null);
@@ -21,8 +20,8 @@ export function TelaExplorador({ acervo, modoStorage, onAbrirDoc }: TelaExplorad
   return (
     <div className="mx-auto flex h-[calc(100vh-6rem)] max-w-7xl flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="mb-6 shrink-0">
-        <h2 className="text-3xl font-semibold tracking-tight">Arquivos Locais</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Navegação estruturada: Núcleo {'>'} Ano {'>'} Tipologia. (Duplo clique para abrir)</p>
+        <h2 className="text-3xl font-semibold tracking-tight">Explorador do Acervo</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Navegação estruturada no servidor: Núcleo {'>'} Ano {'>'} Tipologia. (Duplo clique para abrir)</p>
       </header>
       
       <div className="flex min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
@@ -37,7 +36,7 @@ export function TelaExplorador({ acervo, modoStorage, onAbrirDoc }: TelaExplorad
                 className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors ${pastaSelecionada === "Todos" ? "bg-primary/10 font-semibold text-primary" : "text-slate-600 hover:bg-slate-200/50"}`}
               >
                 <HardDrive className="h-4 w-4 shrink-0" /> 
-                {modoStorage === "EXTERNO" ? "Armazenamento Externo" : "Disco Local (C:)"}
+                Armazenamento no Servidor
               </button>
             </li>
             {NUCLEOS.filter(n => n !== "Todos").map(nucleo => (
@@ -61,7 +60,7 @@ export function TelaExplorador({ acervo, modoStorage, onAbrirDoc }: TelaExplorad
           <div className="flex shrink-0 items-center gap-1.5 border-b border-border bg-slate-50/50 px-4 py-2.5 text-sm text-slate-600">
             <button onClick={() => { setPastaSelecionada("Todos"); setSubPastaAno(null); setSubPastaTipo(null); }} className="flex items-center gap-1.5 hover:text-primary transition-colors">
               <HardDrive className="h-4 w-4 text-slate-400" />
-              <span className="font-medium">FCJA_Dados</span>
+              <span className="font-medium">Servidor FCJA</span>
             </button>
             
             {pastaSelecionada !== "Todos" && (

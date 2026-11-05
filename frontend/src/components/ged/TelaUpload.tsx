@@ -368,7 +368,6 @@ export function TelaUpload({ acervo, onDocsUploaded, onView, onDownload, onDelet
             <p className="text-sm text-muted-foreground">Visualize, edite ou exporte os documentos já cadastrados no banco de dados.</p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={abrirPastaWindows} className="gap-2 bg-white"><FolderOpen className="h-4 w-4" /> Abrir Pasta no Windows</Button>
             <Button variant="outline" onClick={() => setModalFiltrosUpload(true)} className="gap-2 bg-white"><SlidersHorizontal className="h-4 w-4" /> Filtrar Tabela</Button>
           </div>
         </div>

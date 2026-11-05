@@ -61,7 +61,6 @@ function Index() {
   });
 
   const [abaAtiva, setAbaAtiva] = useState<"dashboard" | "explorador" | "upload" | "permissoes">("dashboard");
-  const [modoStorage, setModoStorage] = useState<"LOCAL" | "EXTERNO">("LOCAL");
   
   const [sysStatus, setSysStatus] = useState<{ total_bytes: number; usado_bytes: number; livre_bytes: number; acervo_bytes: number } | null>(null);
 
@@ -81,7 +80,6 @@ function Index() {
       .then(data => { 
         if (data.sucesso) {
           setSysStatus(data);
-          setModoStorage(data.modo);
         }
       })
       .catch(err => console.error("Erro ao ler HD:", err));
@@ -90,39 +88,6 @@ function Index() {
   useEffect(() => {
     atualizarStatusHD();
   }, []);
-
-  async function alternarArmazenamento(novoModo: "LOCAL" | "EXTERNO") {
-    if (modoStorage === novoModo) return;
-    const toastId = toast.loading(`Iniciando conexão com o disco ${novoModo}...`);
-    
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/sistema/armazenamento`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modo: novoModo })
-      });
-      const data = await res.json();
-      
-      if (data.sucesso) {
-        setModoStorage(data.modo);
-        toast.success("Banco de Dados transferido!", { id: toastId, description: `Lendo informações da pasta: ${data.pasta}` });
-        
-        const resDocs = await fetch(`${API_BASE_URL}/api/documentos`);
-        const docs = await resDocs.json();
-        setDocumentosApi(docs);
-        setEnviados([]); 
-        
-        const resStatus = await fetch(`${API_BASE_URL}/api/sistema/status`);
-        const statusData = await resStatus.json();
-        if(statusData.sucesso) setSysStatus(statusData);
-        
-      } else {
-        toast.error("Falha na transição", { id: toastId, description: data.erro });
-      }
-    } catch (e) {
-      toast.error("Erro de Rede", { id: toastId, description: "O servidor Backend não respondeu." });
-    }
-  }
 
   useEffect(() => {
     fetch(`${API_BASE_URL}/api/documentos`)
@@ -304,23 +269,6 @@ function Index() {
         </div>
         
         <div className="border-t border-white/10 p-4">
-          <div className="mb-6 rounded-xl bg-white/5 p-3">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">Banco de Dados Ativo</p>
-            <div className="flex rounded-lg bg-slate-950 p-1 text-xs">
-              <button
-                onClick={() => alternarArmazenamento("LOCAL")}
-                className={`flex-1 rounded-md py-2 text-center font-medium transition-all ${modoStorage === "LOCAL" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-              >
-                Disco (C:)
-              </button>
-              <button
-                onClick={() => alternarArmazenamento("EXTERNO")}
-                className={`flex-1 rounded-md py-2 text-center font-medium transition-all ${modoStorage === "EXTERNO" ? "bg-blue-600 text-white shadow-md" : "text-slate-400 hover:text-white"}`}
-              >
-                HD Externo
-              </button>
-            </div>
-          </div>
           <div className="mb-4 px-4 text-xs">
             <p className="text-slate-500">Conectado como:</p>
             <p className="font-semibold text-white">{usuarioLogado}</p>
@@ -336,7 +284,7 @@ function Index() {
 
       <main className="flex-1 overflow-y-auto p-8">
         {abaAtiva === "dashboard" && <TelaDashboard acervo={acervo} sysStatus={sysStatus} />}
-        {abaAtiva === "explorador" && <TelaExplorador acervo={acervo} modoStorage={modoStorage} onAbrirDoc={abrirDoc} />}
+        {abaAtiva === "explorador" && <TelaExplorador acervo={acervo} onAbrirDoc={abrirDoc} />}
         {abaAtiva === "upload" && (
           <TelaUpload 
             acervo={acervo} 
@@ -392,26 +340,14 @@ function Index() {
               </div>
             ) : (
               <div className="flex flex-col h-full items-center justify-center gap-4 text-slate-500">
-                <p>Este formato ({viewDoc?.ext}) não possui visualização no navegador.</p>
+                <p>Este formato ({viewDoc?.ext}) não possui visualização direta no navegador.</p>
                 <Button 
                   variant="outline" 
-                  onClick={async () => {
-                    try {
-                      const res = await fetch(`${API_BASE_URL}/api/documentos/${viewDoc?.id}/abrir-local`, { method: "POST" });
-                      const data = await res.json();
-                      if (data.sucesso) {
-                        toast.success("Arquivo aberto no Windows!");
-                      } else {
-                        toast.error("Erro ao abrir", { description: data.erro });
-                      }
-                    } catch(e) {
-                      toast.error("Erro de conexão", { description: "Não foi possível acionar o backend local." });
-                    }
-                  }}
+                  onClick={() => viewDoc && baixarDoc(viewDoc)}
                   className="gap-2"
                 >
                   <ExternalLink className="h-4 w-4" />
-                  Abrir no Visualizador do Windows
+                  Baixar Arquivo para Visualizar
                 </Button>
               </div>
             )}
