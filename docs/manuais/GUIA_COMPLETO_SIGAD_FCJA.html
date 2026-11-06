@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Guia Oficial de Operação e Referência Completa — SIGAD FCJA</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm 15mm 16mm 15mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.55;
+      font-size: 10.5pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+    /* Capa / Cabeçalho Institucional */
+    .capa {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      padding: 28px 32px;
+      border-radius: 14px;
+      margin-bottom: 22px;
+      border-bottom: 5px solid #3b82f6;
+    }
+    .capa-topo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+      padding-bottom: 14px;
+      margin-bottom: 16px;
+    }
+    .capa-sigla {
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .capa-badge {
+      background: rgba(59, 130, 246, 0.25);
+      border: 1px solid rgba(147, 197, 253, 0.4);
+      color: #e0f2fe;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 8.5pt;
+      font-weight: 600;
+    }
+    .capa h1 {
+      font-size: 20pt;
+      font-weight: 800;
+      margin: 0 0 8px 0;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+    }
+    .capa p {
+      margin: 4px 0;
+      font-size: 10pt;
+      color: #cbd5e1;
+    }
+    .capa-meta {
+      margin-top: 14px;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+      font-size: 8.5pt;
+      color: #e2e8f0;
+    }
+    .capa-meta span {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* Títulos */
+    h2 {
+      font-size: 14pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-top: 24px;
+      margin-bottom: 12px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 11.5pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 18px;
+      margin-bottom: 8px;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+    p {
+      margin: 0 0 8px 0;
+    }
+    ul, ol {
+      margin: 0 0 10px 0;
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 4px;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9pt;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 1.5px 5px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Alertas / Callouts */
+    .alerta {
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin: 12px 0;
+      page-break-inside: avoid;
+      font-size: 9.5pt;
+    }
+    .alerta-importante {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      color: #1e3a8a;
+    }
+    .alerta-dica {
+      background: #ecfdf5;
+      border-left: 4px solid #059669;
+      color: #065f46;
+    }
+    .alerta-aviso {
+      background: #fffbeb;
+      border-left: 4px solid #d97706;
+      color: #92400e;
+    }
+    .alerta-titulo {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 8.5pt;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    /* Tabelas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0 16px 0;
+      font-size: 9pt;
+    }
+    tr {
+      page-break-inside: avoid;
+    }
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 600;
+      text-align: left;
+      padding: 7px 9px;
+      border: 1px solid #0f172a;
+    }
+    td {
+      padding: 6px 9px;
+      border: 1px solid #cbd5e1;
+      vertical-align: top;
+    }
+    tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 8pt;
+      font-weight: 700;
+    }
+    .badge-azul { background: #dbeafe; color: #1e40af; }
+    .badge-verde { background: #d1fae5; color: #065f46; }
+    .badge-ambar { background: #fef3c7; color: #92400e; }
+    .badge-vermelho { background: #fee2e2; color: #991b1b; }
+    .badge-roxo { background: #f3e8ff; color: #6b21a8; }
+    .badge-cinza { background: #f1f5f9; color: #334155; }
+
+    /* Fluxograma Visual OAIS */
+    .fluxo-oais {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 14px 0;
+      page-break-inside: avoid;
+    }
+    .fluxo-card {
+      flex: 1;
+      border-radius: 10px;
+      padding: 12px 14px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+    }
+    .fluxo-card-1 { border-top: 4px solid #2563eb; background: #eff6ff; }
+    .fluxo-card-2 { border-top: 4px solid #059669; background: #ecfdf5; }
+    .fluxo-card-3 { border-top: 4px solid #7c3aed; background: #f5f3ff; }
+    .fluxo-seta {
+      display: flex;
+      align-items: center;
+      font-weight: 800;
+      font-size: 16pt;
+      color: #64748b;
+    }
+
+    /* Sumário em duas colunas */
+    .sumario-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      page-break-inside: avoid;
+    }
+    .sumario-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px 24px;
+      font-size: 9.5pt;
+    }
+    .sumario-item {
+      color: #1e3a8a;
+      font-weight: 600;
+    }
+    .quebra-pagina {
+      page-break-before: always;
+    }
+    .rodape-doc {
+      margin-top: 28px;
+      padding-top: 12px;
+      border-top: 1px solid #cbd5e1;
+      font-size: 8.5pt;
+      color: #64748b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- CAPA INSTITUCIONAL -->
+  <div class="capa">
+    <div class="capa-topo">
+      <span class="capa-sigla">Fundação Casa de José Américo (FCJA) · Paraíba</span>
+      <span class="capa-badge">Código CONARQ: BR-PBFCJA-RADC</span>
+    </div>
+    <h1>Guia Oficial de Operação e Referência — SIGAD FCJA</h1>
+    <p>Sistema Informatizado de Gestão Arquivística de Documentos e Conector OAIS para o Archivematica &amp; AtoM</p>
+    <div class="capa-meta">
+      <span><strong>Acesso Principal:</strong> http://192.168.1.115</span>
+      <span><strong>Contingência:</strong> http://192.168.1.110:8085</span>
+      <span><strong>Público-Alvo:</strong> Pesquisadores, Arquivistas e Administradores</span>
+    </div>
+  </div>
+
+  <!-- SUMÁRIO -->
+  <div class="sumario-box">
+    <h3 style="margin-top:0; margin-bottom:8px;">Sumário Geral do Guia</h3>
+    <div class="sumario-grid">
+      <div>1. Apresentação Institucional e Visão Geral do Sistema</div>
+      <div>5.4. Aba 4 — PCD, TTD &amp; Dossiês (Gestão Arquivística)</div>
+      <div>2. O Ecossistema Digital (SIGAD → Archivematica → AtoM)</div>
+      <div>5.5. Aba 5 — Conector Archivematica (Recolhimento OAIS)</div>
+      <div>3. Acesso, Credenciais e Perfis de Permissão (RBAC)</div>
+      <div>5.6. Aba 6 — Auditoria &amp; Fixidade (Governança e Termos)</div>
+      <div>4. Dicionário Completo: O Que Cada Termo e Campo Significa</div>
+      <div>5.7. Aba 7 — Gerenciar Acessos (Administração RBAC)</div>
+      <div>5.1. Aba 1 — Dashboard Analítico</div>
+      <div>6. Modais e Janelas Especializadas (Ficha &amp; Eliminação)</div>
+      <div>5.2. Aba 2 — Explorador do Acervo</div>
+      <div>7. Tabelas Institucionais (16 Núcleos e Classes Fim)</div>
+      <div>5.3. Aba 3 — Captura &amp; Acervo (Central de Trabalho)</div>
+      <div>8. Roteiros Práticos Passo a Passo e Perguntas Frequentes</div>
+    </div>
+  </div>
+
+  <div class="alerta alerta-importante">
+    <span class="alerta-titulo">Importante — Propósito deste Guia</span>
+    Este documento foi elaborado como manual definitivo de consulta para todos os membros da Fundação Casa de José Américo. Ele descreve detalhadamente cada conceito arquivístico, cada tela, cada botão, cada ícone e cada campo de preenchimento do sistema.
+  </div>
+
+  <!-- SEÇÃO 1 -->
+  <h2>1. Apresentação Institucional e Visão Geral do Sistema</h2>
+  <p>
+    O <strong>SIGAD FCJA</strong> é o <strong>Sistema Informatizado de Gestão Arquivística de Documentos</strong> da <strong>Fundação Casa de José Américo</strong>. Diferente de uma pasta comum de arquivos ou de um simples GED, o SIGAD FCJA controla todo o <strong>ciclo de vida documental</strong> desde a sua produção e captura até a sua destinação final (guarda permanente ou eliminação controlada), garantindo:
+  </p>
+  <ul>
+    <li><strong>Autenticidade e Fixidade Criptográfica:</strong> Cada arquivo capturado recebe um número único de protocolo e tem sua impressão digital matemática (<code>Hash SHA-256</code>) calculada e monitorada continuamente.</li>
+    <li><strong>Relação Orgânica:</strong> Os documentos podem ser agrupados em <strong>Dossiês</strong> ou <strong>Processos</strong> que refletem as pesquisas e ações culturais da Fundação.</li>
+    <li><strong>Classificação e Temporalidade Automática:</strong> Integra tanto o Plano de Classificação de <strong>Atividades-Meio</strong> do Estado da Paraíba (PCDM/APEPB) quanto o Plano de Classificação de <strong>Atividades-Fim</strong> da própria FCJA, calculando automaticamente os prazos de guarda.</li>
+    <li><strong>Rastreabilidade e Auditoria Imutável:</strong> Todas as operações (captura, edição de metadados, verificação de integridade, abertura de dossiês, eliminação e transferência ao Archivematica) ficam registradas em uma trilha de auditoria perpétua.</li>
+    <li><strong>Zero Retrabalho na Preservação:</strong> Os metadados preenchidos no momento do cadastro são empacotados automaticamente no padrão internacional <strong>OAIS / BagIt</strong> para envio direto ao <strong>Archivematica</strong>, eliminando a necessidade de redigitar informações.</li>
+  </ul>
+
+  <h4>Formatos Aceitos e Limites Técnicos</h4>
+  <ul>
+    <li><strong>Extensões suportadas na captura:</strong> <code>PDF</code> (<code>.pdf</code>), <code>Word</code> (<code>.docx</code>), <code>Excel / Planilhas</code> (<code>.xlsx</code> e <code>.csv</code>) e <code>TIFF</code> (<code>.tiff</code> / <code>.tif</code> — matrizes fotográficas e iconográficas de preservação).</li>
+    <li><strong>Tamanho máximo por arquivo:</strong> Até <strong>25 MB</strong> por componente digital.</li>
+    <li><strong>Validação de segurança:</strong> O servidor inspeciona a assinatura binária real (<em>magic bytes</em>) de cada arquivo enviado, impedindo que arquivos executáveis ou corrompidos disfarçados com outra extensão entrem no acervo.</li>
+  </ul>
+
+  <!-- SEÇÃO 2 -->
+  <h2>2. O Ecossistema Digital da Fundação (SIGAD → Archivematica → AtoM)</h2>
+  <p>
+    A infraestrutura do <strong>Repositório Arquivístico Digital Confiável (RDC-Arq)</strong> da Fundação Casa de José Américo é composta por três sistemas integrados que atuam em cadeia na rede local:
+  </p>
+
+  <div class="fluxo-oais">
+    <div class="fluxo-card fluxo-card-1">
+      <strong style="color:#1e40af; font-size:10pt;">1. SIGAD FCJA (192.168.1.115)</strong>
+      <p style="font-size:8.5pt; margin-top:4px; margin-bottom:0;">
+        Porta de entrada da produção documental: Captura, Protocolo Único, Classificação PCD/TTD, Dossiês, Fixidade SHA-256 e geração do <strong>Pacote SIP (BagIt)</strong>.
+      </p>
+    </div>
+    <div class="fluxo-seta">➔</div>
+    <div class="fluxo-card fluxo-card-2">
+      <strong style="color:#065f46; font-size:10pt;">2. Archivematica (192.168.1.132)</strong>
+      <p style="font-size:8.5pt; margin-top:4px; margin-bottom:0;">
+        Recebe o SIP do SIGAD sem retrabalho, executa microsserviços de preservação digital e gera o pacote permanente <strong>AIP (RDC-Arq)</strong>.
+      </p>
+    </div>
+    <div class="fluxo-seta">➔</div>
+    <div class="fluxo-card fluxo-card-3">
+      <strong style="color:#5b21b6; font-size:10pt;">3. AtoM (192.168.1.110)</strong>
+      <p style="font-size:8.5pt; margin-top:4px; margin-bottom:0;">
+        Portal de descrição arquivística multinível (NOBRADE/ISAD-G) e difusão pública para consulta aos pacotes derivados <strong>DIP</strong>.
+      </p>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:22%;">Sistema</th>
+        <th style="width:50%;">Papel Arquivístico na Fundação</th>
+        <th style="width:28%;">Endereço no Navegador</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>SIGAD FCJA</strong></td>
+        <td>Gestão arquivística de documentos, captura, dossiês, temporalidade, auditoria e conector SIP</td>
+        <td><code>http://192.168.1.115</code><br/><small>(Contingência: <code>http://192.168.1.110:8085</code>)</small></td>
+      </tr>
+      <tr>
+        <td><strong>Archivematica</strong></td>
+        <td>Processamento de preservação digital sistêmica e guarda permanente (pacotes AIP)</td>
+        <td><code>http://192.168.1.132</code></td>
+      </tr>
+      <tr>
+        <td><strong>Storage Service</strong></td>
+        <td>Gerenciamento de espaço e áreas de transferência do Archivematica</td>
+        <td><code>http://192.168.1.132:8000</code></td>
+      </tr>
+      <tr>
+        <td><strong>AtoM</strong></td>
+        <td>Catalogação, descrição arquivística e difusão (pacotes DIP)</td>
+        <td><code>http://192.168.1.110</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SEÇÃO 3 -->
+  <h2>3. Acesso ao Sistema, Credenciais e Perfis de Permissão (RBAC)</h2>
+
+  <h3>3.1. Como Entrar no Sistema (Tela de Login)</h3>
+  <ol>
+    <li>Conecte seu computador ou notebook à <strong>rede interna da Fundação</strong> (via cabo ou Wi-Fi institucional).</li>
+    <li>Abra qualquer navegador atualizado (Chrome, Edge, Firefox ou Brave) e digite <code>http://192.168.1.115</code>.</li>
+    <li>Na tela central <strong>SIGAD FCJA</strong>, informe seu <strong>Usuário (Identificador)</strong> e sua <strong>Senha de Acesso</strong>.</li>
+    <li>Clique no botão azul <strong>Entrar no Sistema</strong>.</li>
+  </ol>
+
+  <h3>3.2. Os 3 Perfis de Permissão do Sistema (Governança RBAC)</h3>
+  <p>Cada membro da Fundação possui um perfil que define exatamente quais operações estão liberadas:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:20%;">Perfil no Sistema</th>
+        <th style="width:22%;">Quem Utiliza</th>
+        <th style="width:33%;">O Que Pode Fazer</th>
+        <th style="width:25%;">Restrições de Segurança</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-cinza">Pesquisador FCJA</span><br/><code>pesquisador</code></td>
+        <td>Pesquisadores e bolsistas dos núcleos de pesquisa</td>
+        <td>• Acessar Dashboard e Explorador;<br/>• Capturar (upload) documentos;<br/>• Abrir Dossiês e juntar documentos;<br/>• Visualizar, baixar e exportar relatórios;<br/>• Retificar metadados descritivos;<br/>• Descartar rascunhos em status <strong><code>MINUTA</code></strong>.</td>
+        <td><strong>Bloqueio de Imutabilidade:</strong> Não pode excluir documentos oficiais (<code>ORIGINAL</code> ou <code>CÓPIA</code>), não altera a TTD e não emite pacotes SIP ou Termos de Eliminação.</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-azul">Arquivista SIGAD</span><br/><code>arquivista</code></td>
+        <td>Arquivistas, coordenadores de preservação e CPAD</td>
+        <td>Tudo o que o Pesquisador faz, <strong>mais</strong>:<br/>• Cadastrar e ativar/inativar classes no PCD/TTD;<br/>• Auditar Fixidade SHA-256 em lote;<br/>• Eliminar documentos oficiais mediante <strong>Termo de Eliminação</strong>;<br/>• Construir e enviar pacotes <strong>SIP</strong> ao Archivematica e consolidar <strong>AIPs</strong>.</td>
+        <td>Não gerencia o cadastro de usuários/senhas (exclusivo do Administrador).</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-verde">Administrador Geral</span><br/><code>admin</code></td>
+        <td>Coordenação de TI e Administração Geral do Repositório</td>
+        <td><strong>Acesso Total e Irrestrito</strong> a todos os módulos operacionais, arquivísticos, conectores e à aba exclusiva <strong>Gerenciar Acessos</strong> (criação de contas, senhas e alteração de perfis RBAC).</td>
+        <td>Nenhuma restrição no sistema.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.3. Credenciais Iniciais Cadastradas</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Membro da Equipe</th>
+        <th>Usuário (Login)</th>
+        <th>Senha Inicial</th>
+        <th>Perfil Inicial</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Antonio</strong></td><td><code>antonio</code></td><td><code>1980</code></td><td>Administrador Geral</td></tr>
+      <tr><td><strong>Bárbara</strong></td><td><code>barbara</code></td><td><code>1980</code></td><td>Pesquisador FCJA</td></tr>
+      <tr><td><strong>André</strong></td><td><code>andre</code></td><td><code>1980</code></td><td>Pesquisador FCJA</td></tr>
+      <tr><td><strong>Pablo</strong></td><td><code>pablo</code></td><td><code>1980</code></td><td>Pesquisador FCJA</td></tr>
+      <tr><td><strong>Josilene</strong></td><td><code>josilene</code></td><td><code>1980</code></td><td>Pesquisador FCJA</td></tr>
+    </tbody>
+  </table>
+
+  <!-- SEÇÃO 4 -->
+  <h2>4. Dicionário Completo do Sistema: O Que Cada Termo e Campo Significa</h2>
+  <p>Para utilizar o sistema com segurança e precisão, compreenda o significado exato de cada conceito exibido nas telas:</p>
+
+  <h3>4.1. Identificação e Proveniência</h3>
+  <ul>
+    <li><strong>Protocolo SIGAD (NUP — Número Único de Protocolo):</strong> Código único e automático gerado pelo sistema no instante em que um documento é capturado. Formato: <code>FCJA.&lt;SIGLA_CURTA_NUCLEO&gt;.&lt;ANO&gt;.&lt;SEQUENCIAL&gt;</code> (Exemplo: <code>FCJA.NMJAA.2026.00001</code>). Garante que nenhum documento seja confundido, mesmo que dois arquivos tenham exatamente o mesmo nome.</li>
+    <li><strong>Núcleo Produtor:</strong> O núcleo de pesquisa ou setor da Fundação responsável pela produção ou acumulação daquele documento.</li>
+    <li><strong>Sigla NOBRADE:</strong> Código padronizado segundo a Norma Brasileira de Descrição Arquivística que identifica hierarquicamente o setor da FCJA (Exemplo: <code>BR_PB_FCJA_GEDA_GOP_PPMD_NMJAA</code>). É preenchido automaticamente assim que você escolhe o Núcleo Produtor.</li>
+    <li><strong>Autor / Entidade Produtora:</strong> Pessoa física, pesquisador ou instituição que produziu intelectualmente o documento (Por padrão: <code>Fundação Casa de José Américo (FCJA)</code> ou o nome do pesquisador/autor).</li>
+  </ul>
+
+  <h3>4.2. Maturidade e Status do Documento</h3>
+  <ul>
+    <li><span class="badge badge-cinza">Original (Capturado Oficial)</span> (<code>ORIGINAL</code>): Documento finalizado, revisado e incorporado oficialmente ao acervo da Fundação. <strong>Regra de Ouro:</strong> Uma vez capturado como <code>Original</code>, torna-se imutável para pesquisadores e só pode ser removido por um Arquivista ou Administrador mediante justificativa formal e emissão de <strong>Termo de Eliminação</strong>.</li>
+    <li><span class="badge badge-azul">Minuta / Rascunho de Pesquisa</span> (<code>MINUTA</code>): Documento ainda em fase de elaboração, versão preliminar ou rascunho de trabalho. Enquanto estiver com o status <code>Minuta</code>, o próprio pesquisador pode descartá-lo caso necessário.</li>
+    <li><span class="badge badge-cinza">Cópia Simples / Referência</span> (<code>COPIA</code>): Reprodução de documento ou material bibliográfico/arquivístico de apoio utilizado como referência pelo núcleo.</li>
+  </ul>
+
+  <div class="alerta alerta-dica">
+    <span class="alerta-titulo">Dica Prática para Pesquisadores</span>
+    Se você estiver enviando uma versão parcial que ainda sofrerá revisões antes de se tornar definitiva, selecione o status <strong>Minuta / Rascunho de Pesquisa</strong>. Quando a versão final estiver pronta, você pode alterar o status para <strong>Original (Capturado Oficial)</strong>.
+  </div>
+
+  <h3>4.3. Sigilo e Restrição de Acesso (LAI e LGPD)</h3>
+  <ul>
+    <li><span class="badge badge-verde">Ostensivo (Acesso Público / Livre)</span> (<code>OSTENSIVO</code>): Documento sem restrições legais de visualização, apto à difusão pública futura no portal AtoM.</li>
+    <li><span class="badge badge-ambar">Restrito — Informação Pessoal (LGPD)</span> (<code>RESTRITO_LGPD</code>): Documento que contém dados pessoais sensíveis (CPF, RG, endereço residencial, dados bancários ou informações de terceiros protegidos pela Lei Geral de Proteção de Dados — Lei nº 13.709/2018).</li>
+    <li><span class="badge badge-vermelho">Sigiloso — Restrição Legal (LAI)</span> (<code>SIGILOSO_LAI</code>): Documento sujeito a restrição temporária de acesso conforme a Lei de Acesso à Informação (Lei nº 12.527/2011), direitos autorais patrimoniais não cedidos ou segurança do acervo.</li>
+    <li><strong>Hipótese Legal de Restrição:</strong> Campo obrigatório sempre que o documento for marcado como <code>Restrito (LGPD)</code> ou <code>Sigiloso (LAI)</code>. Nele você deve informar a base legal da restrição (ex.: <em>"Art. 31 da Lei 12.527/2011 — Contém dados pessoais de entrevistados"</em>).</li>
+  </ul>
+
+  <h3>4.4. Organização Arquivística: Dossiês, Atividades e Temporalidade</h3>
+  <ul>
+    <li><strong>Unidade de Arquivamento (<code>Dossiê</code> ou <code>Processo</code>):</strong> Uma "pasta arquivística lógica" numerada (ex.: <code>DOS-2026-0001</code>) que reúne vários documentos diferentes (ex.: plano de trabalho + planilha de inventário + relatório final) que pertencem a uma mesma pesquisa ou ação cultural. Essa ligação entre os documentos chama-se <strong>Relação Orgânica</strong> ou <strong>Vínculo Arquivístico</strong>.</li>
+    <li><strong>Documento Avulso:</strong> Documento capturado individualmente sem estar amarrado imediatamente a um Dossiê (pode ser juntado a um Dossiê a qualquer momento depois).</li>
+    <li><strong>Escopo de Atividade (<code>Atividade-Meio</code> vs. <code>Atividade-Fim</code>):</strong>
+      <ul>
+        <li><strong>Atividade-Meio:</strong> Atividades de apoio administrativo, financeiro, logístico, compras, recursos humanos e gestão interna (classificadas pela tabela estadual PCDM/APEPB — Funções 1 a 7).</li>
+        <li><strong>Atividade-Fim (FCJA):</strong> Atividades que constituem a missão finalística da Fundação Casa de José Américo: pesquisa histórica, literária, memória musical, audiovisual, arqueologia, educação patrimonial e preservação digital (Funções 100, 200 e 300).</li>
+      </ul>
+    </li>
+    <li><strong>Tabela de Temporalidade de Documentos (TTD):</strong> Define por quanto tempo o documento fica em cada fase antes do seu destino final:
+      <ul>
+        <li><strong>Fase Corrente:</strong> Período (em anos) em que o documento é consultado frequentemente pela equipe que o produziu.</li>
+        <li><strong>Fase Intermediária:</strong> Período (em anos) em que o documento já não é usado no dia a dia, mas aguarda prazos legais ou precaucionais.</li>
+        <li><strong>Destinação Final:</strong>
+          <ol>
+            <li><strong><code>Guarda Permanente (RDC-Arq)</code>:</strong> O documento jamais será eliminado; seu destino é ser empacotado em um <strong>SIP</strong> e recolhido ao <strong>Archivematica</strong> para preservação eterna. <em>(Todos os documentos de Atividade-Fim da FCJA têm Guarda Permanente automática).</em></li>
+            <li><strong><code>Eliminação Controlada</code> (Guarda Temporária):</strong> Documentos administrativos rotineiros que, após cumprirem seu prazo legal de guarda, podem ser descartados mediante Termo de Eliminação oficial.</li>
+          </ol>
+        </li>
+      </ul>
+    </li>
+  </ul>
+
+  <h3>4.5. Preservação Digital (PREMIS, SHA-256, SIP, AIP e DIP)</h3>
+  <ul>
+    <li><strong>Hash SHA-256 (Fixidade PREMIS):</strong> Código hexadecimal de 64 caracteres (ex.: <code>a3f5c8...91b2</code>) calculado a partir de cada bit do arquivo no momento do upload. Se uma única vírgula ou pixel do arquivo for alterado ou corrompido no disco do servidor anos depois, o cálculo dará um resultado diferente e o sistema acusará <strong>Violação de Fixidade</strong>.</li>
+    <li><strong>Pacote SIP (<em>Submission Information Package</em>):</strong> Pacote padronizado no formato <strong>BagIt (RFC 8493)</strong> gerado pelo SIGAD FCJA contendo os arquivos digitais + <code>metadata.csv</code> + histórico de auditoria <code>premis_events.json</code> + manifesto <code>mets_earq_manifest.xml</code> pronto para ingestão no Archivematica.</li>
+    <li><strong>Pacote AIP (<em>Archival Information Package</em>):</strong> O pacote final de preservação permanente gerado pelo <strong>Archivematica</strong> após normalizar e validar o SIP enviado pelo SIGAD. Identificado por um código universal (<code>AIP UUID</code>).</li>
+    <li><strong>Pacote DIP (<em>Dissemination Information Package</em>):</strong> A versão derivada gerada para publicação e consulta pública no sistema <strong>AtoM</strong>.</li>
+  </ul>
+
+  <!-- SEÇÃO 5 -->
+  <h2>5. Guia Detalhado Tela por Tela (As 7 Abas do Sistema)</h2>
+  <p>
+    A barra lateral esquerda (escura) está sempre visível e permite alternar entre os 7 módulos do sistema, além de exibir no rodapé o <strong>Agente conectado</strong>, seu <strong>Perfil RBAC</strong> e o botão vermelho <strong>Sair do Sistema</strong>.
+  </p>
+
+  <!-- ABA 1 -->
+  <h3>5.1. Aba 1 — Dashboard Analítico</h3>
+  <p>Oferece uma visão executiva e estatística em tempo real sobre todo o acervo armazenado no servidor da Fundação.</p>
+  <ul>
+    <li><strong>4 Cartões de Indicadores (Topo):</strong>
+      <ol>
+        <li><strong>Total no Acervo:</strong> Número total de documentos registrados e ativos no banco de dados.</li>
+        <li><strong>Tamanho do Acervo:</strong> Soma exata do espaço em disco ocupado pelos arquivos cadastrados no SIGAD (em KB, MB ou GB).</li>
+        <li><strong>Espaço Utilizado:</strong> Volume total ocupado na partição principal de armazenamento (SSD/HD) do servidor Ubuntu da Fundação.</li>
+        <li><strong>Espaço Livre:</strong> Capacidade livre disponível no servidor para novos uploads.</li>
+      </ol>
+    </li>
+    <li><strong>3 Gráficos Interativos (Centro):</strong>
+      <ul>
+        <li><strong>Distribuição por Núcleo de Pesquisa (Rosca):</strong> Proporção de documentos produzidos por cada núcleo.</li>
+        <li><strong>Volume de Documentos por Ano (Barras Verticais):</strong> Compara a produção documental de cada ano (<code>2022</code> a <code>2027</code>).</li>
+        <li><strong>Distribuição por Tipologia Documental (Barras Horizontais):</strong> Ranking das tipologias mais frequentes no acervo.</li>
+      </ul>
+    </li>
+    <li><strong>Botão "Filtros Avançados" (Canto Superior Direito):</strong> Abre uma janela para refinar os gráficos por <strong>Filtro de Pastas (PCDM)</strong>, <strong>Tipologias</strong> (múltipla escolha), <strong>Núcleo de Pesquisa</strong> e <strong>Ano Inicial / Final</strong>. Os filtros ativos aparecem como etiquetas (<em>Filter Chips</em>) abaixo do título e podem ser removidos individualmente.</li>
+  </ul>
+
+  <!-- ABA 2 -->
+  <h3>5.2. Aba 2 — Explorador do Acervo</h3>
+  <p>Simula um gerenciador de pastas de computador, refletindo exatamente como os arquivos estão organizados por diretórios no servidor.</p>
+  <ul>
+    <li><strong>Painel Esquerdo (Diretórios Raiz):</strong> Clique em <strong>Armazenamento no Servidor</strong> para listar todos os documentos de uma só vez, ou clique sobre qualquer um dos <strong>16 Núcleos de Pesquisa</strong>.</li>
+    <li><strong>Painel Direito (Navegação Hierárquica em 3 Níveis — Núcleo &gt; Ano &gt; Tipologia):</strong>
+      <ol>
+        <li><strong>Barra de Endereço (<em>Breadcrumbs</em>):</strong> Mostra onde você está (ex.: <code>Servidor FCJA &gt; Manuscritos... &gt; 2026 &gt; Relatório</code>). Clique em qualquer etapa para voltar um nível acima.</li>
+        <li><strong>1º Nível (Pastas de Ano):</strong> Dê um <strong>duplo clique</strong> sobre a pasta do ano desejado (ex.: <code>2026</code>).</li>
+        <li><strong>2º Nível (Pastas de Tipologia):</strong> Dê um <strong>duplo clique</strong> sobre a pasta da tipologia (ex.: <code>Relatório</code>, <code>Planilha</code>).</li>
+        <li><strong>3º Nível (Arquivos Finais):</strong> Dê um <strong>duplo clique sobre qualquer arquivo</strong> para abri-lo imediatamente no Visualizador Integrado na tela.</li>
+      </ol>
+    </li>
+  </ul>
+
+  <!-- ABA 3 -->
+  <h3>5.3. Aba 3 — Captura &amp; Acervo (Central de Trabalho)</h3>
+  <p>Esta é a tela principal para a rotina diária dos pesquisadores e arquivistas, dividida em <strong>Captura de Documentos (Topo)</strong> e <strong>Gerenciamento do Acervo SIGAD (Base)</strong>.</p>
+
+  <h4>Parte A: Zona de Seleção e Fila de Arquivos Pendentes</h4>
+  <ul>
+    <li><strong>Área Tracejada de Upload:</strong> Arraste um ou vários arquivos do computador para a área tracejada ou clique em <strong>Selecionar arquivos no PC</strong>.</li>
+    <li><strong>Fila de Preparação para Captura:</strong> Cada arquivo adicionado exibe:
+      <ul>
+        <li><strong>Caixa de Seleção (Checkbox):</strong> Define se o arquivo receberá os metadados em lote (com botão <code>Marcar todos</code> / <code>Desmarcar todos</code> no topo).</li>
+        <li><strong>Campo de Nome do Arquivo (Editável):</strong> Permite renomear o arquivo antes do envio.</li>
+        <li><strong>Botão <code>Personalizar</code> / <code>Ocultar ajuste</code>:</strong> Permite configurar metadados exclusivos para um único arquivo da fila sem afetar os demais do lote.</li>
+        <li><strong>Botão <code>X</code>:</strong> Remove o arquivo da fila antes do envio.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>Parte B: Formulário "Metadados de Captura em Lote" (Explicação Campo a Campo)</h4>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:6%;">#</th>
+        <th style="width:28%;">Nome do Campo na Tela</th>
+        <th style="width:66%;">Para Que Serve e Como Preencher</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1</strong></td>
+        <td><strong>Data e Hora de Captura</strong></td>
+        <td>Define a data de referência/captura do documento. A hora atual é registrada automaticamente ao lado.</td>
+      </tr>
+      <tr>
+        <td><strong>2</strong></td>
+        <td><strong>Ano</strong></td>
+        <td>Ano de produção/referência (<code>2022</code> a <code>2027</code>). É sincronizado automaticamente com a Data escolhida e define a pasta de ano no servidor.</td>
+      </tr>
+      <tr>
+        <td><strong>3</strong></td>
+        <td><strong>Núcleo Produtor</strong></td>
+        <td>Selecione o Núcleo de Pesquisa responsável pelo documento. Define a pasta raiz no servidor e o prefixo do número de protocolo.</td>
+      </tr>
+      <tr>
+        <td><strong>4</strong></td>
+        <td><strong>Sigla NOBRADE</strong></td>
+        <td>Preenchida <strong>automaticamente</strong> ao escolher o Núcleo Produtor (ex.: <code>BR_PB_FCJA_GEDA_GOP_PPMD_NMJAA</code>), permitindo também edição manual.</td>
+      </tr>
+      <tr>
+        <td><strong>5</strong></td>
+        <td><strong>Autor / Entidade Produtora</strong></td>
+        <td>Nome do autor intelectual, pesquisador responsável ou órgão produtor (padrão: <code>Fundação Casa de José Américo (FCJA)</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>6</strong></td>
+        <td><strong>Status do Documento</strong></td>
+        <td>• <code>Original (Capturado Oficial)</code>: Documento definitivo (imutável após captura).<br/>• <code>Minuta / Rascunho de Pesquisa</code>: Versão preliminar passível de descarte pelo pesquisador.<br/>• <code>Cópia Simples / Referência</code>: Cópia de apoio.</td>
+      </tr>
+      <tr>
+        <td><strong>7</strong></td>
+        <td><strong>Nível de Acesso (LAI / LGPD)</strong></td>
+        <td>• <code>Ostensivo (Acesso Público / Livre)</code><br/>• <code>Restrito — Informação Pessoal (LGPD)</code><br/>• <code>Sigiloso — Restrição Legal (LAI)</code></td>
+      </tr>
+      <tr>
+        <td><strong>8</strong></td>
+        <td><strong>Hipótese Legal de Restrição</strong></td>
+        <td><em>(Aparece dinamicamente quando o Nível de Acesso é Restrito ou Sigiloso)</em>. Informe a base legal (ex.: <code>Art. 31 da Lei 12.527/2011 — Dados Pessoais</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>9</strong></td>
+        <td><strong>Dossiê / Processo (Unidade de Arquivamento)</strong></td>
+        <td>Escolha entre <code>Documento Avulso (Sem juntada imediata a Dossiê)</code> ou vincule o arquivo diretamente a um <strong>Dossiê Aberto</strong>.</td>
+      </tr>
+      <tr>
+        <td><strong>10</strong></td>
+        <td><strong>Atividade</strong></td>
+        <td>• <code>Atividade-Meio</code>: Abre os 5 seletores encadeados da tabela administrativa estadual (<strong>1. Função &gt; 2. Subfunção &gt; 3. Atividade &gt; 4. Código e Assunto &gt; 5. Tipologia</strong> com sugestão automática).<br/>• <code>Atividade-Fim (FCJA)</code>: Abre o painel roxo com <strong>Classe de Atividade-Fim da FCJA (PCD / TTD)</strong> e <strong>Tipologia Finalística</strong> (Guarda Permanente automática).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <ul>
+    <li><strong>Botões Finais de Captura:</strong>
+      <ul>
+        <li><code>Aplicar aos X marcados</code>: Reaplica os metadados atuais do formulário a todos os arquivos marcados na fila.</li>
+        <li><code>Limpar Fila</code>: Remove todos os arquivos pendentes da tela sem enviar.</li>
+        <li><code>Capturar X no SIGAD</code>: Valida os arquivos, calcula o <code>Hash SHA-256</code>, gera o <code>Protocolo SIGAD</code>, armazena no servidor e grava o evento na Trilha de Auditoria.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h4>Parte C: Tabela "Gerenciamento do Acervo SIGAD" e os 5 Ícones de Ação</h4>
+  <p>Na parte inferior da tela <strong>Captura &amp; Acervo</strong>, você pode buscar por qualquer termo, filtrar a tabela, exportar inventários (em <code>CSV</code>, <code>Excel .xls</code> ou <code>PDF / Imprimir</code>) e executar 5 ações rápidas à direita de cada linha:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:22%;">Ícone na Tabela</th>
+        <th style="width:28%;">Nome da Ação</th>
+        <th style="width:50%;">O Que Faz Quando Clicado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Impressão Digital Azul</strong></td>
+        <td><strong>Ficha Arquivística &amp; Fixidade SHA-256</strong></td>
+        <td>Abre a ficha completa do documento em 3 seções, permite copiar o protocolo e o hash SHA-256 e verificar a integridade física do arquivo no disco em tempo real.</td>
+      </tr>
+      <tr>
+        <td><strong>Lápis</strong></td>
+        <td><strong>Editar Metadados</strong></td>
+        <td>Abre o modal <strong>Retificar Metadados do Documento</strong> para atualizar nome, autor, tipologia, ano, status, nível de acesso ou núcleo (gera evento procedimental na auditoria).</td>
+      </tr>
+      <tr>
+        <td><strong>Olho</strong></td>
+        <td><strong>Visualizar Documento</strong></td>
+        <td>Abre o documento na própria tela (leitor nativo para <code>PDF</code> ou tabela interativa para planilhas <code>XLSX</code>/<code>CSV</code>).</td>
+      </tr>
+      <tr>
+        <td><strong>Seta para Baixo</strong></td>
+        <td><strong>Baixar Arquivo</strong></td>
+        <td>Baixa uma cópia exata do arquivo original do servidor para o seu computador.</td>
+      </tr>
+      <tr>
+        <td><strong>Lixeira Vermelha</strong></td>
+        <td><strong>Emitir Termo de Eliminação</strong></td>
+        <td>Abre o modal de <strong>Governança de Eliminação</strong> (bloqueia exclusão de originais por pesquisadores; permite eliminação justificada por Arquivistas/Administradores ou descarte de <code>Minuta</code>).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ABA 4 -->
+  <h3>5.4. Aba 4 — PCD, TTD &amp; Dossiês (Gestão Arquivística)</h3>
+  <p>Gerencia a <strong>Relação Orgânica</strong> (Dossiês/Processos), o <strong>Plano de Classificação (PCD)</strong> e a <strong>Tabela de Temporalidade (TTD)</strong>.</p>
+  <ul>
+    <li><strong>Botões Superiores:</strong> <code>Sincronizar</code>, <code>Abrir Novo Dossiê / Processo</code> (disponível a todos) e <code>Nova Classe PCD/TTD</code> (exclusivo para Arquivistas e Administradores).</li>
+    <li><strong>Sub-Aba 1 — <code>1. Dossiês &amp; Processos — Relação Orgânica</code>:</strong>
+      <ul>
+        <li>Exibe cartões para cada Dossiê (<code>DOS-2026-XXXX</code>) ou Processo (<code>PRC-2026-XXXX</code>), indicando Destinação Prevista, Status (<code>ABERTO</code> ou <code>ENCERRADO</code>), Classe PCD, Volume e lista ordenada de peças (<code>Peça #1</code>, <code>Peça #2</code>...).</li>
+        <li>Botão <strong><code>Juntar Documentos (Vínculo Orgânico)</code>:</strong> Abre uma janela para selecionar documentos do acervo e vinculá-los organicamente ao dossiê.</li>
+        <li>Botão <strong><code>Encerrar Dossiê</code> / <code>Reabrir Dossiê</code>:</strong> Conclui ou reabre a unidade de arquivamento.</li>
+      </ul>
+    </li>
+    <li><strong>Sub-Aba 2 — <code>2. Plano de Classificação (PCD) &amp; Tabela de Temporalidade (TTD)</code>:</strong>
+      <ul>
+        <li>Catálogo completo de classes com filtro por <code>Todas as Atividades</code>, <code>Atividade-Fim (FCJA)</code> ou <code>Atividade-Meio (APEPB)</code>.</li>
+        <li>Exibe Código PCD, Escopo, Título da Série, Prazo na Fase Corrente, Prazo na Fase Intermediária, Destinação Final e botão <code>ATIVA</code> / <code>INATIVA</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Sub-Aba 3 — <code>3. Avaliação Temporal &amp; Relação de Recolhimento (Archivematica)</code>:</strong>
+      <ul>
+        <li><strong>Painel Verde (Esquerda):</strong> Relação de Documentos de Guarda Permanente com o ano previsto para recolhimento ao Archivematica.</li>
+        <li><strong>Painel Âmbar (Direita):</strong> Listagem de Guarda Temporária / Eliminação Futura com o ano de fim de guarda.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <!-- ABA 5 -->
+  <h3>5.5. Aba 5 — Conector Archivematica (Recolhimento OAIS)</h3>
+  <p>Realiza a ponte automatizada entre o <strong>SIGAD FCJA</strong> e o <strong>Archivematica (RDC-Arq)</strong>, gerando pacotes <strong>SIP</strong> no padrão internacional <strong>BagIt (RFC 8493)</strong> sem retrabalho de digitação.</p>
+  <ul>
+    <li><strong>Botão <code>Testar Conexão RDC-Arq</code> (Topo):</strong> Diagnostica em tempo real a comunicação com o Archivematica, o diretório compartilhado Linux e a latência em milissegundos.</li>
+    <li><strong>Sub-Aba 1 — <code>1. Construtor de Pacote SIP (OAIS / BagIt)</code>:</strong>
+      <ol>
+        <li>Informe o <strong>Título Descritivo do Pacote SIP</strong> (ou escolha um dossiê inteiro em <strong>Vincular Dossiê / Processo Inteiro</strong> para marcar todas as suas peças automaticamente).</li>
+        <li>Marque os documentos desejados na lista (use o filtro <code>Guarda Permanente Pendentes</code>).</li>
+        <li>Confira no painel escuro à direita a estrutura que será gerada automaticamente (<code>bagit.txt</code>, <code>manifest-sha256.txt</code>, <code>data/objects/</code>, <code>data/metadata/metadata.csv</code>, <code>premis_events.json</code> e <code>mets_earq_manifest.xml</code>).</li>
+        <li>Clique em <strong><code>Construir SIP (X doc.) e Enviar</code></strong>.</li>
+      </ol>
+    </li>
+    <li><strong>Sub-Aba 2 — <code>2. Fila de Transferências SIP → AIP</code>:</strong>
+      <ul>
+        <li>Exibe todos os pacotes SIP gerados com seu código (<code>FCJA-SIP-2026-XXXX</code>), modo de transmissão, <code>Transfer UUID</code>, <code>AIP UUID</code> e hash SHA-256 do pacote.</li>
+        <li>Permite clicar em <strong><code>Baixar BagIt (.zip)</code></strong>, <strong><code>Sincronizar Status Ingest</code></strong> e <strong><code>Consolidar AIP (RDC-Arq)</code></strong>.</li>
+      </ul>
+    </li>
+    <li><strong>Sub-Aba 3 — <code>3. Configuração Archivematica &amp; AtoM</code>:</strong>
+      <ul>
+        <li>Configuração dos endereços do Archivematica e do AtoM, usuário/API Key, Location UUID, Processing Configuration (<code>automated</code>), caminho do Diretório Compartilhado no Linux e aprovação automática (<code>auto_approve</code>).</li>
+      </ul>
+    </li>
+  </ul>
+
+  <!-- ABA 6 -->
+  <h3>5.6. Aba 6 — Auditoria &amp; Fixidade (Governança e Termos)</h3>
+  <ul>
+    <li><strong>Botão <code>Auditar Fixidade SHA-256 em Lote</code> (Botão Verde no Topo):</strong> <em>(Exclusivo para Arquivistas e Administradores)</em>. Percorre todos os arquivos físicos do servidor, recalcula o hash SHA-256 de cada um, compara com o hash original da captura e registra um evento oficial PREMIS.</li>
+    <li><strong>Sub-Aba 1 — <code>1. Trilha Imutável de Eventos</code>:</strong>
+      <ul>
+        <li>Lista cronológica reversa de todos os eventos do sistema, filtrável pelas 4 categorias normativas: <strong>Ciclo de Vida (<code>EarqEventoCv</code>)</strong>, <strong>Preservação / PREMIS (<code>EarqEventoPreservacao</code>)</strong>, <strong>Procedimental (<code>EarqEventoProc</code>)</strong> e <strong>Plano de Classificação (<code>EarqEventoClasse</code>)</strong>.</li>
+      </ul>
+    </li>
+    <li><strong>Sub-Aba 2 — <code>2. Termos de Eliminação Emitidos</code>:</strong>
+      <ul>
+        <li>Registro perpétuo de todos os documentos eliminados (<code>TED-2026-XXXX</code>), preservando protocolo original, título, hash SHA-256 anterior, motivo e agente autorizador.</li>
+        <li>Botão <strong><code>Imprimir Termo</code>:</strong> Abre o documento oficial formatado com campos de assinatura para o Responsável pela Eliminação e para o Presidente da CPAD / Arquivista.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <!-- ABA 7 -->
+  <h3>5.7. Aba 7 — Gerenciar Acessos (Administração RBAC)</h3>
+  <p><em>(Visível exclusivamente para o perfil <strong>Administrador</strong>)</em>.</p>
+  <ul>
+    <li><strong>Formulário <code>Cadastrar Agente</code>:</strong> Permite criar novos usuários informando <strong>Nome Completo</strong>, <strong>Identificador (Login)</strong>, <strong>Senha Inicial</strong> (protegida por <code>PBKDF2-HMAC-SHA256</code> com 600.000 iterações) e <strong>Perfil Arquivístico (RBAC)</strong> (<code>Pesquisador</code>, <code>Arquivista SIGAD</code> ou <code>Administrador</code>).</li>
+    <li><strong>Tabela de Agentes Credenciados:</strong> Permite alternar rapidamente o perfil RBAC de qualquer membro, editar nome/login/senha (ícone de <strong>Lápis</strong>) ou revogar o acesso (ícone de <strong>Lixeira</strong>).</li>
+  </ul>
+
+  <!-- SEÇÃO 6 -->
+  <h2>6. Modais e Janelas Especializadas (Explicação Detalhada)</h2>
+  <ul>
+    <li><strong>Ficha Arquivística &amp; PREMIS (Ícone de Impressão Digital Azul):</strong>
+      <ul>
+        <li><strong>Seção 1 — Identificação, Proveniência e Classificação:</strong> Protocolo SIGAD, ID Interno, Autor, Agente de Captura, Núcleo, Sigla NOBRADE, Escopo e Classe PCD.</li>
+        <li><strong>Seção 2 — Ciclo de Vida, Temporalidade (TTD) e Restrição de Acesso:</strong> Fase Arquivística atual, prazos na TTD, Destinação Prevista, Data/Hora de Captura e Nível de Acesso / Hipótese Legal.</li>
+        <li><strong>Seção 3 — Componente Digital &amp; Fixidade Criptográfica (PREMIS):</strong> Status de integridade, Formato MIME validado, Tamanho, Última verificação, Hash SHA-256 completo de 64 caracteres, código do Pacote SIP e AIP UUID no Archivematica. Possui o botão <strong><code>Verificar Fixidade SHA-256 Agora</code></strong>.</li>
+      </ul>
+    </li>
+    <li><strong>Governança de Eliminação (Ícone de Lixeira Vermelha):</strong>
+      <ul>
+        <li>Se o usuário for <strong>Pesquisador</strong> tentando apagar um documento <code>Original</code>, exibe o <strong>Bloqueio de Imutabilidade (RBAC)</strong>.</li>
+        <li>Para <strong>Arquivistas/Administradores</strong> (ou rascunhos <code>Minuta</code>), solicita o <strong>Motivo Normativo da Eliminação</strong> e a <strong>Justificativa Técnica</strong> para emitir o Termo de Eliminação perpétuo.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <!-- SEÇÃO 7 -->
+  <h2>7. Tabelas de Referência Institucional (Núcleos, Siglas e Classes Finalísticas)</h2>
+
+  <h3>7.1. Os 16 Núcleos de Pesquisa e Suas Siglas NOBRADE Automáticas</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:5%;">#</th>
+        <th style="width:53%;">Núcleo de Pesquisa da FCJA</th>
+        <th style="width:30%;">Sigla NOBRADE Automática</th>
+        <th style="width:12%;">Prefixo NUP</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Manuscritos de José Américo de Almeida: identificação e descrição de documentos</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMJAA</code></td><td><code>NMJAA</code></td></tr>
+      <tr><td>2</td><td>O modernismo na Paraíba a revista Era Nova e a Novela Reflexões de uma cabra</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NRENN</code></td><td><code>NRENN</code></td></tr>
+      <tr><td>3</td><td>A Paraíba e seus problemas: permanências e transformações</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NPBP</code></td><td><code>NPBP</code></td></tr>
+      <tr><td>4</td><td>Partituras de uma história pela democracia: as conexões artísticas e políticas entre José Siqueira e José Américo de Almeida</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NJSJAA</code></td><td><code>NJSJAA</code></td></tr>
+      <tr><td>5</td><td>Acervo audiovisual da FCJA: imagem e memória</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NAFCJA</code></td><td><code>NAFCJA</code></td></tr>
+      <tr><td>6</td><td>Os Modernismos na Paraíba e o Circuito de Comunicação da Revista Era Nova (1921-1926)</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMREN</code></td><td><code>NMREN</code></td></tr>
+      <tr><td>7</td><td>De A Paraíba e seus problemas à A Bagaceira: Itinerários literários de José Américo de Almeida</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NPBPB</code></td><td><code>NPBPB</code></td></tr>
+      <tr><td>8</td><td>Maestro José Siqueira: Memórias da Música para o futuro</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMJS</code></td><td><code>NMJS</code></td></tr>
+      <tr><td>9</td><td>1930 A caminho do centenário: convergências bibliográficas e fontes digitais (BR 1930)</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NBR1930</code></td><td><code>NBR1930</code></td></tr>
+      <tr><td>10</td><td>Modernização digital do acervo da Fundação Casa de José Américo: estruturando a preservação e o acesso</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMD</code></td><td><code>NMD</code></td></tr>
+      <tr><td>11</td><td>Imprensa e cultura na Paraíba: os circuitos de comunicação das revistas Ilustração e Manaíra (1930-1940)</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NRIM</code></td><td><code>NRIM</code></td></tr>
+      <tr><td>12</td><td>Por uma cartografia dos lugares de consciência na Paraíba: trajetos do patrimônio cultural por meio da memória das violações de direitos humanos e da resistência</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NCMR</code></td><td><code>NCMR</code></td></tr>
+      <tr><td>13</td><td>Repositório Arquivístico Digital Confiável da produção do Projeto Preservação e Difusão do Acervo da FCJA</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NRDCARQ</code></td><td><code>NRDCARQ</code></td></tr>
+      <tr><td>14</td><td>Mapeamento do Patrimônio Arqueológico da Paraíba</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMAPB</code></td><td><code>NMAPB</code></td></tr>
+      <tr><td>15</td><td>Entre Termos e Conceitos: Uma Pesquisa Documental sobre Educação Patrimonial</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NEP</code></td><td><code>NEP</code></td></tr>
+      <tr><td>16</td><td>Sustentabilidade e Diversidade: Pesquisa-ação na Mata da Falésia de Cabo Branco</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMFCB</code></td><td><code>NMFCB</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>7.2. Catálogo Padrão de Classes de Atividade-Fim da FCJA</h3>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:16%;">Código PCD</th>
+        <th style="width:28%;">Função Finalística</th>
+        <th style="width:32%;">Título da Classe / Série Documental</th>
+        <th style="width:8%;">Corrente</th>
+        <th style="width:8%;">Interm.</th>
+        <th style="width:8%;">Destino</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>FIM.100.01.001</code></td><td>Função Fim 100 — Pesquisa Histórica, Literária e Memória</td><td>Inventário, Identificação e Descrição de Manuscritos de José Américo de Almeida</td><td>2 anos</td><td>0 anos</td><td><strong>Guarda Perm.</strong></td></tr>
+      <tr><td><code>FIM.100.02.001</code></td><td>Função Fim 100 — Pesquisa Histórica, Literária e Memória</td><td>Dossiê e Estudos Críticos sobre o Modernismo na Paraíba e Revista Era Nova</td><td>2 anos</td><td>2 anos</td><td><strong>Guarda Perm.</strong></td></tr>
+      <tr><td><code>FIM.100.03.001</code></td><td>Função Fim 100 — Pesquisa Histórica, Literária e Memória</td><td>Partituras, Registros Sonoros e Memória Musical (Maestro José Siqueira)</td><td>1 ano</td><td>0 anos</td><td><strong>Guarda Perm.</strong></td></tr>
+      <tr><td><code>FIM.200.01.001</code></td><td>Função Fim 200 — Preservação Digital, Arquivo e Museologia</td><td>Matriz Digital, Fotografia e Acervo Audiovisual da FCJA (Imagem e Memória)</td><td>1 ano</td><td>0 anos</td><td><strong>Guarda Perm.</strong></td></tr>
+      <tr><td><code>FIM.200.02.001</code></td><td>Função Fim 200 — Preservação Digital, Arquivo e Museologia</td><td>Especificação Técnica, Políticas de Preservação e Pacotes OAIS do RDC-Arq</td><td>2 anos</td><td>3 anos</td><td><strong>Guarda Perm.</strong></td></tr>
+      <tr><td><code>FIM.300.01.001</code></td><td>Função Fim 300 — Patrimônio Cultural, Arqueologia e Meio Ambiente</td><td>Mapeamento Arqueológico, Cartografia de Lugares de Memória e Educação Patrimonial</td><td>2 anos</td><td>2 anos</td><td><strong>Guarda Perm.</strong></td></tr>
+      <tr><td><code>FIM.300.02.001</code></td><td>Função Fim 300 — Patrimônio Cultural, Arqueologia e Meio Ambiente</td><td>Relatório Técnico de Pesquisa-Ação e Sustentabilidade (Mata da Falésia / Cabo Branco)</td><td>2 anos</td><td>3 anos</td><td><strong>Guarda Perm.</strong></td></tr>
+    </tbody>
+  </table>
+
+  <!-- SEÇÃO 8 & 9 -->
+  <h2>8. Roteiros Práticos Passo a Passo e Perguntas Frequentes (FAQ)</h2>
+
+  <h4>Roteiro 1: Como um Pesquisador Cadastra os Documentos da Sua Pesquisa</h4>
+  <ol>
+    <li>Acesse <code>http://192.168.1.115</code>, faça login e clique em <strong>Captura &amp; Acervo</strong> no menu lateral.</li>
+    <li>Arraste seus arquivos (<code>.pdf</code>, <code>.docx</code>, <code>.xlsx</code>, <code>.csv</code> ou <code>.tiff</code>) para a área tracejada.</li>
+    <li>Selecione seu <strong>Núcleo Produtor</strong>, informe o <strong>Autor</strong>, escolha o <strong>Status do Documento</strong> (<code>Original</code> ou <code>Minuta</code>) e selecione a <strong>Atividade</strong> (<code>Atividade-Fim (FCJA)</code> para pesquisas ou <code>Atividade-Meio</code> para documentos administrativos).</li>
+    <li>Clique no botão azul <strong>Capturar X no SIGAD</strong>.</li>
+  </ol>
+
+  <h4>Roteiro 2: Como Criar um Dossiê e Agrupar Documentos de uma Mesma Pesquisa</h4>
+  <ol>
+    <li>No menu lateral, clique em <strong>PCD, TTD &amp; Dossiês</strong> e depois no botão azul <strong>Abrir Novo Dossiê / Processo</strong>.</li>
+    <li>Informe o <strong>Título</strong>, o <strong>Núcleo Produtor</strong> e a <strong>Classe PCD</strong>, clicando em <strong>Abrir Dossiê no SIGAD</strong>.</li>
+    <li>No cartão do dossiê criado, clique em <strong>Juntar Documentos (Vínculo Orgânico)</strong>, marque as peças e confirme.</li>
+  </ol>
+
+  <div class="alerta alerta-aviso">
+    <span class="alerta-titulo">Dúvida Comum — Por que não consigo apagar um documento oficial que enviei por engano?</span>
+    Documentos enviados com o status <strong>Original (Capturado Oficial)</strong> entram imediatamente sob proteção de imutabilidade arquivística. Caso tenha enviado um arquivo oficial duplicado ou por engano, solicite a um <strong>Arquivista SIGAD</strong> ou <strong>Administrador</strong> a baixa mediante emissão de <em>Termo de Eliminação por Duplicidade Comprovada</em>. Para rascunhos em elaboração, utilize sempre o status <strong>Minuta / Rascunho de Pesquisa</strong>.
+  </div>
+
+  <ul>
+    <li><strong>Errei a tipologia ou o núcleo de um documento já salvo. Preciso apagar e enviar de novo?</strong><br/>
+      Não! Na tabela <strong>Gerenciamento do Acervo SIGAD</strong>, clique no ícone do <strong>Lápis (Editar metadados)</strong> à direita da linha, corrija as informações e salve. O sistema moverá o arquivo automaticamente para a pasta correta no servidor e registrará a retificação na auditoria.</li>
+    <li><strong>O endereço <code>http://192.168.1.115</code> não carrega no navegador. O que verificar?</strong><br/>
+      Confirme se o computador está conectado à <strong>rede interna da Fundação</strong>. Caso necessário, utilize o endereço alternativo de contingência <code>http://192.168.1.110:8085</code>.</li>
+  </ul>
+
+  <div class="rodape-doc">
+    Fundação Casa de José Américo (FCJA) · Repositório Arquivístico Digital Confiável (BR-PBFCJA-RADC) · Guia Oficial de Operação SIGAD FCJA
+  </div>
+
+</body>
+</html>
