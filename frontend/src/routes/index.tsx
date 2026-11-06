@@ -36,17 +36,17 @@ import { useAcervoSigad } from "@/hooks/useAcervoSigad";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "SIGAD FCJA — Gestão Arquivística de Documentos (e-ARQ Brasil v2)" },
+      { title: "SIGAD FCJA — Gestão Arquivística de Documentos" },
       {
         name: "description",
         content:
-          "SIGAD da Fundação Casa de José Américo: captura arquivística, fixidade SHA-256 (PREMIS), trilha de auditoria e-ARQ Brasil v2 e dashboards.",
+          "SIGAD da Fundação Casa de José Américo: captura arquivística, fixidade SHA-256 (PREMIS), trilha de auditoria e dashboards.",
       },
       { property: "og:title", content: "SIGAD FCJA — Gestão Arquivística de Documentos" },
       {
         property: "og:description",
         content:
-          "Sistema Informatizado de Gestão Arquivística de Documentos da FCJA (e-ARQ Brasil v2).",
+          "Sistema Informatizado de Gestão Arquivística de Documentos da FCJA.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -152,7 +152,7 @@ function Index() {
             <div>
               <h1 className="text-xl font-bold tracking-tight text-white">SIGAD FCJA</h1>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-400">
-                e-ARQ Brasil v2
+                Fundação Casa de José Américo
               </p>
             </div>
           </div>

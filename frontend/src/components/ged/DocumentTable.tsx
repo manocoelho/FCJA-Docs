@@ -423,7 +423,7 @@ export function DocumentTable({
                         type="button"
                         onClick={() => setFichaDocId(doc.id)}
                         className="font-mono text-xs font-semibold text-blue-700 hover:underline text-left"
-                        title="Clique para abrir a Ficha Arquivística e-ARQ v2 & PREMIS"
+                        title="Clique para abrir a Ficha Arquivística & PREMIS"
                       >
                         {doc.numeroProtocolo || `ID-${doc.id.slice(0, 8)}`}
                       </button>
@@ -504,8 +504,8 @@ export function DocumentTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          aria-label="Ficha e-ARQ v2 & Fixidade PREMIS"
-                          title="Ficha Arquivística e-ARQ v2 & Fixidade SHA-256"
+                          aria-label="Ficha Arquivística & Fixidade PREMIS"
+                          title="Ficha Arquivística & Fixidade SHA-256"
                           onClick={() => setFichaDocId(doc.id)}
                           className="text-blue-600 hover:bg-blue-50 hover:text-blue-700"
                         >
@@ -542,7 +542,7 @@ export function DocumentTable({
                           variant="ghost"
                           size="icon"
                           aria-label="Eliminar com Termo"
-                          title="Emitir Termo de Eliminação (e-ARQ v2)"
+                          title="Emitir Termo de Eliminação"
                           className="text-destructive hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => setAlvosEliminacao([doc])}
                         >
@@ -622,7 +622,7 @@ export function DocumentTable({
       <Dialog open={editando !== null} onOpenChange={(o) => !o && setEditando(null)}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Retificar Metadados do Documento (e-ARQ v2)</DialogTitle>
+            <DialogTitle>Retificar Metadados do Documento</DialogTitle>
             <DialogDescription>
               Toda alteração de metadados gera automaticamente um evento procedimental (
               <code>EarqEventoProc</code>) na Trilha de Auditoria.
@@ -684,7 +684,7 @@ export function DocumentTable({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>Status do Documento (e-ARQ)</Label>
+                <Label>Status do Documento</Label>
                 <Select value={novoStatusDoc} onValueChange={setNovoStatusDoc}>
                   <SelectTrigger>
                     <SelectValue />

@@ -9,7 +9,7 @@ const COLUNAS = [
   "Nome do Arquivo",
   "Autor / Produtor",
   "Tipologia",
-  "Status (e-ARQ)",
+  "Status do Documento",
   "Nível de Acesso",
   "Ano",
   "Núcleo",
@@ -69,7 +69,7 @@ th,td{border:1px solid #d1d5db;padding:5px 7px;text-align:left;vertical-align:to
 th{background:#eff6ff;color:#1e3a8a}
 </style></head><body>
 <h1>${escaparHtml(titulo)}</h1>
-<p>SIGAD — Fundação Casa de José Américo (e-ARQ Brasil v2) · ${docs.length} documento(s) · gerado em ${new Date().toLocaleString("pt-BR")}</p>
+<p>SIGAD — Fundação Casa de José Américo · ${docs.length} documento(s) · gerado em ${new Date().toLocaleString("pt-BR")}</p>
 <table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>
 </body></html>`;
 }

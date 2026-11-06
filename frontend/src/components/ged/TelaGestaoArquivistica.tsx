@@ -159,7 +159,7 @@ export function TelaGestaoArquivistica({
         <div>
           <div className="flex items-center gap-2">
             <span className="rounded-md bg-blue-600/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-blue-600">
-              e-ARQ Brasil v2 Cap. 1, 3 e 5 · Relação Orgânica & Temporalidade
+              Relação Orgânica & Temporalidade
             </span>
           </div>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">
@@ -638,7 +638,7 @@ export function TelaGestaoArquivistica({
             <DialogTitle>Abrir Nova Unidade de Arquivamento (Dossiê / Processo)</DialogTitle>
             <DialogDescription>
               Agrupe documentos de uma mesma pesquisa ou ação cultural mantendo o vínculo
-              arquivístico (e-ARQ Brasil v2 Cap. 1.3).
+              arquivístico e a proveniência documental.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={salvarNovoDossie} className="space-y-4 py-2">

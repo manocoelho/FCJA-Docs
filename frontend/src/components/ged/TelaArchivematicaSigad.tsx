@@ -209,9 +209,9 @@ export function TelaArchivematicaSigad({
             Conector Automático SIGAD → Archivematica (RDC-Arq)
           </h2>
           <p className="mt-1 text-sm text-muted-foreground max-w-3xl">
-            Geração automatizada de pacotes SIP com <code>metadata.csv</code> (Dublin Core + e-ARQ
-            Brasil v2), manifesto <code>METS</code> e eventos <code>PREMIS</code> para recolhimento
-            direto ao Archivematica e difusão no AtoM sem retrabalho.
+            Geração automatizada de pacotes SIP com <code>metadata.csv</code> (Dublin Core +
+            Metadados Arquivísticos), manifesto <code>METS</code> e eventos <code>PREMIS</code> para
+            recolhimento direto ao Archivematica e difusão no AtoM sem retrabalho.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -555,7 +555,7 @@ export function TelaArchivematicaSigad({
     ├── objects/
     │   └── (${docsMarcados.length} componente(s) digital(is))
     └── metadata/
-        ├── metadata.csv       (DC + e-ARQ v2)
+        ├── metadata.csv       (Dublin Core + SIGAD)
         ├── premis_events.json (Auditoria)
         └── mets_earq_manifest.xml`}
               </pre>

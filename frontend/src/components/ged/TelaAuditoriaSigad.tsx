@@ -87,7 +87,7 @@ export function TelaAuditoriaSigad({
         <div>
           <div className="flex items-center gap-2">
             <span className="rounded-md bg-blue-600/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-blue-600">
-              e-ARQ Brasil v2 · PREMIS · Governança RBAC
+              Trilha de Auditoria & Governança RBAC
             </span>
           </div>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">
@@ -122,7 +122,7 @@ export function TelaAuditoriaSigad({
         </div>
       </header>
 
-      {/* Indicadores de Conformidade e-ARQ Brasil v2 */}
+      {/* Indicadores de Auditoria e Integridade */}
       <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border bg-card p-6 shadow-sm">
           <div className="flex items-start justify-between">
@@ -237,10 +237,10 @@ export function TelaAuditoriaSigad({
               <div className="w-64">
                 <Select value={categoriaFiltro} onValueChange={setCategoriaFiltro}>
                   <SelectTrigger className="bg-white">
-                    <SelectValue placeholder="Categoria e-ARQ" />
+                    <SelectValue placeholder="Categoria do Evento" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TODOS">Todas as Categorias e-ARQ</SelectItem>
+                    <SelectItem value="TODOS">Todas as Categorias</SelectItem>
                     <SelectItem value="CICLO_VIDA">Ciclo de Vida (EarqEventoCv)</SelectItem>
                     <SelectItem value="PRESERVACAO">
                       Preservação / PREMIS (EarqEventoPreservacao)
@@ -270,7 +270,7 @@ export function TelaAuditoriaSigad({
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-40">Data / Hora</TableHead>
-                  <TableHead className="w-56">Categoria (e-ARQ v2)</TableHead>
+                  <TableHead className="w-56">Categoria do Evento</TableHead>
                   <TableHead className="w-48">Tipo de Evento</TableHead>
                   <TableHead className="w-44">Protocolo SIGAD</TableHead>
                   <TableHead>Descrição / Evidência de Auditoria</TableHead>
@@ -348,7 +348,7 @@ export function TelaAuditoriaSigad({
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="border-b border-border px-6 py-4">
             <h3 className="text-base font-semibold">
-              Termos de Eliminação de Documentos (e-ARQ Brasil v2 Cap. 3.2)
+              Termos de Eliminação de Documentos
             </h3>
             <p className="text-xs text-muted-foreground">
               Registro perpétuo de documentos eliminados com preservação do protocolo original,

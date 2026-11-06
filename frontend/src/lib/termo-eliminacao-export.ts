@@ -38,7 +38,7 @@ export function imprimirTermoEliminacao(termo: TermoEliminacaoItem): boolean {
 <body>
   <div class="cabecalho">
     <h1>Fundação Casa de José Américo (FCJA)</h1>
-    <h2>Sistema Informatizado de Gestão Arquivística de Documentos — SIGAD (e-ARQ Brasil v2)</h2>
+    <h2>Sistema Informatizado de Gestão Arquivística de Documentos — SIGAD</h2>
   </div>
 
   <div class="titulo-termo">
@@ -47,8 +47,7 @@ export function imprimirTermoEliminacao(termo: TermoEliminacaoItem): boolean {
 
   <p class="paragrafo">
     Aos <strong>${escaparHtml(termo.dataEliminacao)}</strong>, às <strong>${escaparHtml(termo.horaEliminacao)}</strong>,
-    em conformidade com os requisitos de avaliação, temporalidade e destinação do modelo
-    <strong>e-ARQ Brasil v2 (CONARQ)</strong>, procedeu-se à eliminação controlada do documento arquivístico
+    em conformidade com as diretrizes de avaliação, temporalidade e destinação do CONARQ, procedeu-se à eliminação controlada do documento arquivístico
     abaixo discriminado do repositório digital ativo da Fundação Casa de José Américo, mediante autorização
     do agente responsável <strong>${escaparHtml(termo.autorizadoPor)}</strong> (perfil RBAC: <em>${escaparHtml(termo.papelAutorizador)}</em>).
   </p>

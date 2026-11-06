@@ -64,7 +64,7 @@ export function ModalEliminacaoControlada({
 
     const justLimpa = justificativa.trim();
     if (temDocumentoOficial && justLimpa.length < 10) {
-      toast.error("Justificativa obrigatória (e-ARQ Brasil v2)", {
+      toast.error("Justificativa obrigatória", {
         description:
           "Informe ao menos 10 caracteres de fundamentação técnica para emitir o Termo de Eliminação.",
       });
@@ -101,7 +101,7 @@ export function ModalEliminacaoControlada({
                 </>
               ) : (
                 <>
-                  <FileWarning className="h-3.5 w-3.5" /> Governança de Eliminação e-ARQ v2
+                  <FileWarning className="h-3.5 w-3.5" /> Governança de Eliminação
                 </>
               )}
             </span>
@@ -115,7 +115,7 @@ export function ModalEliminacaoControlada({
           </DialogTitle>
           <DialogDescription>
             {bloqueadoPorRbac
-              ? "Segundo o e-ARQ Brasil v2 (Cap. 2 e Cap. 3.2), documentos oficiais capturados são imutáveis no espaço geral e não podem ser apagados por pesquisadores."
+              ? "Documentos oficiais capturados são imutáveis no acervo institucional e não podem ser apagados por pesquisadores sem autorização arquivística."
               : "A eliminação de documentos no SIGAD requer fundamentação normativa e gera automaticamente um Termo de Eliminação perpétuo na Trilha de Auditoria."}
           </DialogDescription>
         </DialogHeader>
@@ -163,7 +163,7 @@ export function ModalEliminacaoControlada({
           ) : (
             <>
               <div className="space-y-2">
-                <Label>Motivo Normativo da Eliminação (CONARQ / e-ARQ v2)</Label>
+                <Label>Motivo Normativo da Eliminação</Label>
                 <Select value={motivo} onValueChange={setMotivo}>
                   <SelectTrigger>
                     <SelectValue />

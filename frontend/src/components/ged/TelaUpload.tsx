@@ -246,7 +246,7 @@ export function TelaUpload({
     if (aceitos.length > 0) {
       setPendentes((prev) => [...prev, ...aceitos]);
       toast.success(`${aceitos.length} arquivos prontos para captura SIGAD`, {
-        description: "Configure os metadados e-ARQ v2 e confirme a captura.",
+        description: "Configure os metadados e confirme a captura.",
       });
     }
   }
@@ -280,7 +280,7 @@ export function TelaUpload({
           : p
       )
     );
-    toast.success(`Metadados e-ARQ v2 aplicados a ${alvos.length} arquivo(s)`);
+    toast.success(`Metadados aplicados a ${alvos.length} arquivo(s)`);
   }
 
   async function cadastrarPendentes() {
@@ -460,7 +460,7 @@ export function TelaUpload({
       <header className="mb-8 border-b border-border pb-6">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700">
-            <ShieldCheck className="h-3.5 w-3.5" /> Captura Arquivística e-ARQ Brasil v2 + SHA-256
+            <ShieldCheck className="h-3.5 w-3.5" /> Captura Arquivística & Fixidade SHA-256
           </span>
         </div>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight">
@@ -607,7 +607,7 @@ export function TelaUpload({
             <div className="rounded-xl border bg-white p-6 shadow-sm space-y-6">
               <div>
                 <p className="text-sm font-semibold text-foreground">
-                  Metadados Obrigatórios de Captura em Lote (e-ARQ Brasil v2)
+                  Metadados de Captura em Lote
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Estes metadados serão gravados no banco e reutilizados automaticamente na futura
@@ -715,9 +715,9 @@ export function TelaUpload({
                   </datalist>
                 </div>
 
-                {/* Linha de Metadados Intelectuais e Sigilo e-ARQ Brasil v2 */}
+                {/* Linha de Metadados Intelectuais e Sigilo */}
                 <div className="space-y-2 flex-1 min-w-[240px]">
-                  <Label>Autor / Entidade Produtora (e-ARQ)</Label>
+                  <Label>Autor / Entidade Produtora</Label>
                   <Input
                     value={cadAutor}
                     onChange={(e) => {
@@ -731,7 +731,7 @@ export function TelaUpload({
                 </div>
 
                 <div className="space-y-2 w-60">
-                  <Label>Status do Documento (e-ARQ)</Label>
+                  <Label>Status do Documento</Label>
                   <Select
                     value={cadStatusDoc}
                     onValueChange={(v) => {
@@ -1048,7 +1048,7 @@ export function TelaUpload({
           <div>
             <h3 className="text-xl font-semibold tracking-tight">Gerenciamento do Acervo SIGAD</h3>
             <p className="text-sm text-muted-foreground">
-              Inspecione a Ficha e-ARQ v2, verifique a fixidade SHA-256 (PREMIS) ou exporte
+              Inspecione a Ficha do Documento, verifique a fixidade SHA-256 (PREMIS) ou exporte
               relatórios.
             </p>
           </div>

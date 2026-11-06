@@ -84,8 +84,7 @@ export function ModalMetadadosEarq({
             {doc.nome}
           </DialogTitle>
           <DialogDescription>
-            Ficha Descritiva e de Preservação Digital conforme o padrão{" "}
-            <strong>e-ARQ Brasil v2 (CONARQ)</strong> e <strong>PREMIS</strong>.
+            Ficha Descritiva e de Preservação Digital conforme as diretrizes do CONARQ e PREMIS.
           </DialogDescription>
         </DialogHeader>
 
@@ -93,7 +92,7 @@ export function ModalMetadadosEarq({
           {/* 1. Identificação e Contexto Arquivístico */}
           <section className="rounded-xl border border-border bg-slate-50/60 p-4 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              1. Identificação, Proveniência e Classificação (e-ARQ Seção 1)
+              1. Identificação, Proveniência e Classificação
             </h4>
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
@@ -205,7 +204,7 @@ export function ModalMetadadosEarq({
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h4 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700">
                 <Fingerprint className="h-4 w-4 text-primary" />
-                3. Componente Digital & Fixidade Criptográfica (PREMIS / e-ARQ Seção 3)
+                3. Componente Digital & Fixidade Criptográfica (PREMIS)
               </h4>
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-0.5 text-xs font-semibold ${
@@ -304,7 +303,7 @@ export function ModalMetadadosEarq({
             </Button>
           )}
           <Button type="button" onClick={onClose} className="gap-2">
-            <CheckCircle2 className="h-4 w-4" /> Fechar Ficha e-ARQ
+            <CheckCircle2 className="h-4 w-4" /> Fechar Ficha
           </Button>
         </DialogFooter>
       </DialogContent>

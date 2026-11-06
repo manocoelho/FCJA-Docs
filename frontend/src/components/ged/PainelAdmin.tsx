@@ -146,7 +146,7 @@ export function PainelAdmin() {
       <header className="border-b border-border pb-6">
         <div className="flex items-center gap-2">
           <span className="rounded-md bg-emerald-600/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700">
-            e-ARQ Brasil v2 Cap. 7 · Controle de Acesso & Segurança
+            Controle de Acesso & Segurança
           </span>
         </div>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900 flex items-center gap-3">
