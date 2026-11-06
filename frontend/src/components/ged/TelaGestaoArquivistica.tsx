@@ -633,7 +633,7 @@ export function TelaGestaoArquivistica({
 
       {/* MODAL: ABRIR NOVO DOSSIÊ / PROCESSO */}
       <Dialog open={modalNovoDossie} onOpenChange={setModalNovoDossie}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl w-[calc(100vw-2rem)] max-w-xl">
           <DialogHeader>
             <DialogTitle>Abrir Nova Unidade de Arquivamento (Dossiê / Processo)</DialogTitle>
             <DialogDescription>
@@ -641,21 +641,22 @@ export function TelaGestaoArquivistica({
               arquivístico e a proveniência documental.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={salvarNovoDossie} className="space-y-4 py-2">
-            <div className="space-y-1">
+          <form onSubmit={salvarNovoDossie} className="space-y-4 py-2 w-full min-w-0">
+            <div className="space-y-1 min-w-0">
               <Label>Título do Dossiê / Processo</Label>
               <Input
                 required
                 value={dossieTitulo}
                 onChange={(e) => setDossieTitulo(e.target.value)}
                 placeholder="Ex: Dossiê de Transcrição de Cartas de José Américo (1930-1934)"
+                className="w-full"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+              <div className="space-y-1 min-w-0">
                 <Label>Tipo de Unidade</Label>
                 <Select value={dossieTipo} onValueChange={setDossieTipo}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -664,10 +665,10 @@ export function TelaGestaoArquivistica({
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <Label>Destinação Prevista (TTD)</Label>
                 <Select value={dossieDestinacao} onValueChange={setDossieDestinacao}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -679,10 +680,10 @@ export function TelaGestaoArquivistica({
                 </Select>
               </div>
             </div>
-            <div className="space-y-1 grid min-w-0">
+            <div className="space-y-1 min-w-0">
               <Label>Núcleo Produtor</Label>
               <Select value={dossieNucleo} onValueChange={setDossieNucleo}>
-                <SelectTrigger className="[&>span]:truncate">
+                <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-w-[min(90vw,36rem)]">
@@ -694,10 +695,10 @@ export function TelaGestaoArquivistica({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <Label>Classe do Plano de Classificação (PCD)</Label>
               <Select value={dossieCodigoClasse} onValueChange={setDossieCodigoClasse}>
-                <SelectTrigger className="[&>span]:truncate">
+                <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="max-w-[min(90vw,36rem)]">
@@ -709,16 +710,17 @@ export function TelaGestaoArquivistica({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <Label>Ementa / Contexto Arquivístico</Label>
               <Textarea
                 rows={2}
                 value={dossieDescricao}
                 onChange={(e) => setDossieDescricao(e.target.value)}
                 placeholder="Descreva o escopo deste dossiê..."
+                className="w-full resize-none"
               />
             </div>
-            <DialogFooter>
+            <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setModalNovoDossie(false)}>
                 Cancelar
               </Button>
@@ -788,7 +790,7 @@ export function TelaGestaoArquivistica({
 
       {/* MODAL: NOVA CLASSE PCD / TTD */}
       <Dialog open={modalNovaClasse} onOpenChange={setModalNovaClasse}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-xl w-[calc(100vw-2rem)] max-w-xl">
           <DialogHeader>
             <DialogTitle>Cadastrar Nova Classe no PCD / TTD</DialogTitle>
             <DialogDescription>
@@ -796,9 +798,9 @@ export function TelaGestaoArquivistica({
               intermediária e destinação final (gera <code>EarqEventoClasse</code>).
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={salvarNovaClasse} className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
+          <form onSubmit={salvarNovaClasse} className="space-y-4 py-2 w-full min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+              <div className="space-y-1 min-w-0">
                 <Label>Código da Classe</Label>
                 <Input
                   required
@@ -807,10 +809,10 @@ export function TelaGestaoArquivistica({
                   placeholder="Ex: FIM.100.04.001"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <Label>Escopo da Atividade</Label>
                 <Select value={classeTipoAtiv} onValueChange={setClasseTipoAtiv}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -820,7 +822,7 @@ export function TelaGestaoArquivistica({
                 </Select>
               </div>
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <Label>Título da Classe / Série Documental</Label>
               <Input
                 required
@@ -829,15 +831,15 @@ export function TelaGestaoArquivistica({
                 placeholder="Ex: Dossiê de Exposição Museológica e Curadoria"
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-1 min-w-0">
               <Label>Função / Grupo Superior</Label>
               <Input
                 value={classeFuncao}
                 onChange={(e) => setClasseFuncao(e.target.value)}
               />
             </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-0">
+              <div className="space-y-1 min-w-0">
                 <Label>Fase Corrente (Anos)</Label>
                 <Input
                   type="number"
@@ -847,7 +849,7 @@ export function TelaGestaoArquivistica({
                   onChange={(e) => setClassePrazoCorrente(e.target.value)}
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <Label>Intermediária (Anos)</Label>
                 <Input
                   type="number"
@@ -857,10 +859,10 @@ export function TelaGestaoArquivistica({
                   onChange={(e) => setClassePrazoIntermed(e.target.value)}
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1 min-w-0">
                 <Label>Destinação Final</Label>
                 <Select value={classeDestinacao} onValueChange={setClasseDestinacao}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
