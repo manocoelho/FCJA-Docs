@@ -65,7 +65,7 @@ export function TelaLogin({ onLoginSuccess }: TelaLoginProps) {
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>Identificador do Agente (Login)</Label>
+            <Label>Login:</Label>
             <Input
               value={loginInput}
               onChange={(e) => setLoginInput(e.target.value)}
@@ -74,7 +74,7 @@ export function TelaLogin({ onLoginSuccess }: TelaLoginProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label>Senha Criptográfica</Label>
+            <Label>Senha:</Label>
             <div className="relative">
               <Input
                 type={mostrarSenha ? "text" : "password"}
