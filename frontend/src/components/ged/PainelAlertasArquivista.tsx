@@ -85,7 +85,7 @@ export function PainelAlertasArquivista({
               Diagnóstico de Conformidade CONARQ
             </span>
             <h3 className="mt-0.5 text-base font-semibold text-slate-900">
-              Mesa de Decisão do Arquivista (Ações Recomendadas e-ARQ Brasil)
+              Mesa de Decisão do Arquivista (Ações Recomendadas)
             </h3>
             <p className="mt-0.5 text-xs text-muted-foreground">
               Monitoramento ativo de fixidade PREMIS, temporalidade TTD, juntada em dossiês e

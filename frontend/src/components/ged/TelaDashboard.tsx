@@ -256,12 +256,6 @@ export function TelaDashboard({
         <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-6">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <span className="rounded-md bg-blue-600/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-blue-600">
-                CONARQ · e-ARQ Brasil v2
-              </span>
-              <span className="rounded-md bg-emerald-600/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-emerald-700">
-                PREMIS 3.0 & OAIS (ISO 14721)
-              </span>
               {ultimaAtualizacao && (
                 <span className="text-xs text-muted-foreground">
                   Sincronizado às {ultimaAtualizacao}
@@ -570,7 +564,7 @@ export function TelaDashboard({
               }`}
             >
               <Sparkles className="h-4 w-4 text-blue-400" />
-              Visão Integrada 360° (Comando do Arquivista)
+              Visão Integrada(Comando do Arquivista)
             </button>
             <button
               onClick={() => setVisaoAtiva("gestao_ttd")}
@@ -649,7 +643,7 @@ export function TelaDashboard({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
             <div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
-                Inspeção Rápida de Metadados Obrigatórios (e-ARQ Brasil)
+                Inspeção Rápida de Metadados Obrigatórios
               </span>
               <h3 className="mt-0.5 text-base font-semibold text-slate-900">
                 Últimos Documentos Protocolados no Escopo Atual
@@ -794,7 +788,7 @@ export function TelaDashboard({
       <Dialog open={modalFiltrosDash} onOpenChange={setModalFiltrosDash}>
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Filtros Avançados do Arquivista (SIGAD e-ARQ Brasil)</DialogTitle>
+            <DialogTitle>Filtros Avançados do Arquivista</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-3">
             {/* Filtro de pastas / classes PCD */}
