@@ -256,7 +256,14 @@ function Index() {
       </aside>
 
       <main className="flex-1 overflow-y-auto p-8">
-        {abaAtiva === "dashboard" && <TelaDashboard acervo={acervo} sysStatus={sysStatus} />}
+        {abaAtiva === "dashboard" && (
+          <TelaDashboard
+            acervo={acervo}
+            sysStatus={sysStatus}
+            onNavegarAba={setAbaAtiva}
+            onAbrirDoc={abrirDoc}
+          />
+        )}
         {abaAtiva === "explorador" && <TelaExplorador acervo={acervo} onAbrirDoc={abrirDoc} />}
         {abaAtiva === "upload" && (
           <TelaUpload
