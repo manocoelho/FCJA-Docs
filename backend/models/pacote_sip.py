@@ -5,9 +5,10 @@ from database import Base
 class PacoteSipModel(Base):
     """
     Pacote de Submissão de Informação (SIP - ISO 14721 OAIS / Resolução CONARQ nº 51/2023).
-    Registra cada pacote BagIt (RFC 8493) gerado pelo SIGAD FCJA com metadados
-    Dublin Core + e-ARQ Brasil v2 (metadata.csv), eventos PREMIS (premis_events.json)
-    e manifesto METS (mets_earq_manifest.xml) para recolhimento ao Archivematica (RDC-Arq).
+    Registra cada pacote Standard Transfer + BagIt (RFC 8493) gerado pelo SIGAD FCJA com
+    objects/, metadata/metadata.csv (Dublin Core + qualificadores + campos FCJA),
+    metadata/rights.csv (PREMIS Rights 18 colunas), metadata/premis.xml (PREMIS v3 XML)
+    e metadata/mets_earq_manifest.xml para recolhimento ao Archivematica 1.18.0 (RDC-Arq).
     """
 
     __tablename__ = "pacotes_sip_archivematica"
@@ -21,13 +22,22 @@ class PacoteSipModel(Base):
     codigo_dossie = Column(String(80), default="")
     nucleo = Column(String(255), default="")
 
-    # Status no Pipeline OAIS (SIGAD -> Archivematica -> AIP)
+    # Status no Pipeline OAIS (SIGAD -> Archivematica -> Storage Service AIP)
     # EMPACOTADO_LOCAL | ENVIADO_ARCHIVEMATICA | EM_PROCESSAMENTO_AIP | ARMAZENADO_AIP | ERRO_TRANSMISSAO
     status_sip = Column(String(50), index=True, default="EMPACOTADO_LOCAL")
     transfer_uuid = Column(String(100), index=True, default="")
+    sip_uuid = Column(String(100), index=True, default="")
     aip_uuid = Column(String(100), index=True, default="")
 
-    # Métricas e Integridade do Pacote BagIt (.zip)
+    # Rastreamento detalhado das Etapas 3, 5, 6 e 7 (Transfer -> Ingest -> Storage Service)
+    rights_validado = Column(Integer, default=1)
+    status_transfer = Column(String(50), default="PENDENTE")
+    status_ingest = Column(String(50), default="AGUARDANDO")
+    status_storage = Column(String(50), default="AGUARDANDO")
+    microservice_atual = Column(String(255), default="")
+    caminho_aip_storage = Column(String(500), default="")
+
+    # Métricas e Integridade do Pacote (.zip e pasta Standard Transfer)
     quantidade_documentos = Column(Integer, default=0)
     tamanho_total_bytes = Column(Integer, default=0)
     hash_manifesto_sha256 = Column(String(64), default="")
@@ -45,23 +55,36 @@ class PacoteSipModel(Base):
 
 class ConfigArchivematicaModel(Base):
     """
-    Configuração do Conector de Interoperabilidade SIGAD FCJA -> Archivematica & AtoM.
-    Mantém os parâmetros de conexão REST API v2beta, diretório compartilhado de Transfer
-    e endereço do AtoM para difusão automática sem retrabalho de digitação.
+    Configuração do Conector de Interoperabilidade SIGAD FCJA -> Archivematica 1.18.0,
+    Storage Service (:8000) & AtoM.
+    Mantém os parâmetros de conexão REST API v2beta ({AM}), Storage Service API v2 ({SS}),
+    Location UUID de Transfer Source (purpose=TS) e diretório compartilhado.
     """
 
     __tablename__ = "config_archivematica"
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    url_archivematica = Column(String(255), default="http://192.168.1.20:62080")
+    # 1. Archivematica Dashboard ({AM} — porta 80)
+    url_archivematica = Column(String(255), default="http://192.168.1.132")
     usuario_archivematica = Column(String(100), default="fcja_sigad")
     api_key_archivematica = Column(String(255), default="")
+
+    # 2. Archivematica Storage Service ({SS} — porta 8000)
+    url_storage_service = Column(String(255), default="http://192.168.1.132:8000")
+    usuario_storage_service = Column(String(100), default="fcja_sigad")
+    api_key_storage_service = Column(String(255), default="")
+
+    # 3. Localização de Transfer Source (Etapa 1: GET {SS}/api/v2/location/?purpose=TS)
     location_uuid_transfer = Column(String(100), default="")
+    caminho_relativo_transfer = Column(String(255), default="/")
     diretorio_compartilhado = Column(
-        String(500), default="/var/archivematica/sharedDirectory/watchedDirectories/activeTransfers/standardTransfer"
+        String(500),
+        default="/var/archivematica/sharedDirectory/watchedDirectories/activeTransfers/standardTransfer",
     )
+
+    # 4. Parâmetros de Processamento e Difusão (AtoM)
     processing_config = Column(String(100), default="automated")
     auto_approve = Column(Integer, default=1)
-    url_atom = Column(String(255), default="http://192.168.1.21:80")
+    url_atom = Column(String(255), default="http://192.168.1.110")
     atualizado_por = Column(String(100), default="sistema")
     atualizado_em = Column(String(35), default="")

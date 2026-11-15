@@ -53,6 +53,10 @@ services:
       FCJA_DB_USER: ${FCJA_DB_USER:-fcja_user}
       FCJA_DB_PASS: ${FCJA_DB_PASS:-fcja_senha_segura_2026}
       FCJA_PASTA_DADOS: /var/lib/fcja_dados
+      FCJA_ARCHIVEMATICA_URL: ${FCJA_ARCHIVEMATICA_URL:-http://192.168.1.132}
+      FCJA_STORAGE_SERVICE_URL: ${FCJA_STORAGE_SERVICE_URL:-http://192.168.1.132:8000}
+      FCJA_ATOM_URL: ${FCJA_ATOM_URL:-http://192.168.1.110}
+      FCJA_ARCHIVEMATICA_SHARED_DIR: ${FCJA_ARCHIVEMATICA_SHARED_DIR:-/var/archivematica/sharedDirectory/watchedDirectories/activeTransfers/standardTransfer}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-}
       TZ: America/Fortaleza
     ports:

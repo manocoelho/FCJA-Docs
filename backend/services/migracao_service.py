@@ -42,6 +42,23 @@ COLUNAS_NOVAS_DOCUMENTOS = [
     ("aip_uuid_archivematica", "VARCHAR(100) DEFAULT ''"),
 ]
 
+COLUNAS_NOVAS_CONFIG_ARCHIVEMATICA = [
+    ("url_storage_service", "VARCHAR(255) DEFAULT 'http://192.168.1.132:8000'"),
+    ("usuario_storage_service", "VARCHAR(100) DEFAULT 'fcja_sigad'"),
+    ("api_key_storage_service", "VARCHAR(255) DEFAULT ''"),
+    ("caminho_relativo_transfer", "VARCHAR(255) DEFAULT '/'"),
+]
+
+COLUNAS_NOVAS_PACOTES_SIP = [
+    ("sip_uuid", "VARCHAR(100) DEFAULT ''"),
+    ("rights_validado", "INTEGER DEFAULT 1"),
+    ("status_transfer", "VARCHAR(50) DEFAULT 'PENDENTE'"),
+    ("status_ingest", "VARCHAR(50) DEFAULT 'AGUARDANDO'"),
+    ("status_storage", "VARCHAR(50) DEFAULT 'AGUARDANDO'"),
+    ("microservice_atual", "VARCHAR(255) DEFAULT ''"),
+    ("caminho_aip_storage", "VARCHAR(500) DEFAULT ''"),
+]
+
 
 def _limpar_nome_pasta(texto: str) -> str:
     return re.sub(r'[<>:"/\\|?*]', "_", texto or "")
@@ -50,7 +67,8 @@ def _limpar_nome_pasta(texto: str) -> str:
 def migrar_esquema_banco(engine: Engine) -> None:
     """
     Responsabilidade única: Garantir migração transparente e não-destrutiva das tabelas
-    'documentos' e 'usuarios' tanto em MySQL quanto em SQLite.
+    'documentos', 'usuarios', 'config_archivematica' e 'pacotes_sip_archivematica'
+    tanto em MySQL quanto em SQLite.
     """
     inspetor = inspect(engine)
 
@@ -64,6 +82,50 @@ def migrar_esquema_banco(engine: Engine) -> None:
                             text(f"ALTER TABLE documentos ADD COLUMN {nome_coluna} {definicao_sql}")
                         )
                         print(f"[MIGRACAO e-ARQ v2] Coluna adicionada em documentos: {nome_coluna}")
+                    except Exception as exc:
+                        print(f"[AVISO MIGRACAO] Nao foi possivel adicionar coluna {nome_coluna}: {exc}")
+
+    if inspetor.has_table("config_archivematica"):
+        colunas_cfg = {col["name"] for col in inspetor.get_columns("config_archivematica")}
+        with engine.begin() as conn:
+            for nome_coluna, definicao_sql in COLUNAS_NOVAS_CONFIG_ARCHIVEMATICA:
+                if nome_coluna not in colunas_cfg:
+                    try:
+                        conn.execute(
+                            text(f"ALTER TABLE config_archivematica ADD COLUMN {nome_coluna} {definicao_sql}")
+                        )
+                        print(f"[MIGRACAO ARCHIVEMATICA 1.18] Coluna adicionada em config_archivematica: {nome_coluna}")
+                    except Exception as exc:
+                        print(f"[AVISO MIGRACAO] Nao foi possivel adicionar coluna {nome_coluna}: {exc}")
+            # Atualiza IP padrão antigo (192.168.1.20:62080) para o IP oficial da FCJA (192.168.1.132)
+            try:
+                conn.execute(
+                    text(
+                        "UPDATE config_archivematica "
+                        "SET url_archivematica = 'http://192.168.1.132' "
+                        "WHERE url_archivematica = 'http://192.168.1.20:62080' OR url_archivematica = ''"
+                    )
+                )
+                conn.execute(
+                    text(
+                        "UPDATE config_archivematica "
+                        "SET url_storage_service = 'http://192.168.1.132:8000' "
+                        "WHERE url_storage_service IS NULL OR url_storage_service = ''"
+                    )
+                )
+            except Exception:
+                pass
+
+    if inspetor.has_table("pacotes_sip_archivematica"):
+        colunas_sip = {col["name"] for col in inspetor.get_columns("pacotes_sip_archivematica")}
+        with engine.begin() as conn:
+            for nome_coluna, definicao_sql in COLUNAS_NOVAS_PACOTES_SIP:
+                if nome_coluna not in colunas_sip:
+                    try:
+                        conn.execute(
+                            text(f"ALTER TABLE pacotes_sip_archivematica ADD COLUMN {nome_coluna} {definicao_sql}")
+                        )
+                        print(f"[MIGRACAO ARCHIVEMATICA 1.18] Coluna adicionada em pacotes_sip_archivematica: {nome_coluna}")
                     except Exception as exc:
                         print(f"[AVISO MIGRACAO] Nao foi possivel adicionar coluna {nome_coluna}: {exc}")
 

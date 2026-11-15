@@ -7,7 +7,12 @@ export interface ConfigArchivematica {
   usuarioArchivematica: string;
   apiKeyConfigurada: boolean;
   apiKeyMascarada: string;
+  urlStorageService: string;
+  usuarioStorageService: string;
+  apiKeyStorageServiceConfigurada: boolean;
+  apiKeyStorageServiceMascarada: string;
   locationUuidTransfer: string;
+  caminhoRelativoTransfer: string;
   diretorioCompartilhado: string;
   processingConfig: string;
   autoApprove: boolean;
@@ -18,12 +23,32 @@ export interface ConfigArchivematica {
 
 export interface DiagnosticoArchivematica {
   conectadoApi: boolean;
+  conectadoStorageService?: boolean;
   statusHttp: number;
+  statusHttpStorageService?: number;
   diretorioAcessivel: boolean;
   modoRecomendado: string;
   latenciaMs: number;
   urlArchivematica: string;
+  urlStorageService?: string;
   urlAtom: string;
+  mensagem: string;
+}
+
+export interface LocalTransferSource {
+  uuid: string;
+  description: string;
+  purpose: string;
+  relativePath: string;
+  enabled: boolean;
+}
+
+export interface RespostaDescobertaTransferSource {
+  sucesso: boolean;
+  statusHttp: number;
+  endpointConsultado: string;
+  locais: LocalTransferSource[];
+  configAtualizada: ConfigArchivematica;
   mensagem: string;
 }
 
@@ -31,9 +56,15 @@ export interface DocResumoSip {
   id: string;
   numeroProtocolo: string;
   nome: string;
+  nomeObjeto?: string;
   codigoClassificacao: string;
   hashSha256: string;
   tamanho: number;
+  dcType?: string;
+  nivelAcesso?: string;
+  fprPuid?: string;
+  fprAcaoPreservacao?: string;
+  fprFerramentaValidacao?: string;
 }
 
 export interface PacoteSipItem {
@@ -51,7 +82,14 @@ export interface PacoteSipItem {
     | "ERRO_TRANSMISSAO"
     | string;
   transferUuid: string;
+  sipUuid?: string;
   aipUuid: string;
+  rightsValidado?: boolean;
+  statusTransfer?: string;
+  statusIngest?: string;
+  statusStorage?: string;
+  microserviceAtual?: string;
+  caminhoAipStorage?: string;
   quantidadeDocumentos: number;
   tamanhoTotalBytes: number;
   hashManifestoSha256: string;
@@ -77,6 +115,32 @@ export interface RespostaListagemSips {
   pacotes: PacoteSipItem[];
 }
 
+export interface InspecaoArquivosSip {
+  codigoSip: string;
+  titulo: string;
+  arquivos: {
+    metadataCsv: string;
+    rightsCsv: string;
+    premisXml: string;
+    metsXml: string;
+    termoSubmissao: string;
+  };
+}
+
+export interface RegraFprItem {
+  ext: string;
+  categoria: string;
+  descricaoFormato: string;
+  puidPronom: string;
+  acaoPreservacao: string;
+  formatoPreservacao: string;
+  acaoAcesso: string;
+  formatoAcesso: string;
+  ferramentaIdentificacao: string;
+  ferramentaValidacao: string;
+  aceitoFpr: boolean;
+}
+
 export async function buscarConfigArchivematica(): Promise<ConfigArchivematica> {
   const res = await fetch(`${API_BASE_URL}/api/archivematica/config`, {
     headers: obterHeadersAuth(),
@@ -86,7 +150,10 @@ export async function buscarConfigArchivematica(): Promise<ConfigArchivematica> 
 }
 
 export async function atualizarConfigArchivematica(
-  dados: Partial<ConfigArchivematica> & { apiKeyArchivematica?: string | undefined }
+  dados: Partial<ConfigArchivematica> & {
+    apiKeyArchivematica?: string | undefined;
+    apiKeyStorageService?: string | undefined;
+  }
 ): Promise<{ mensagem: string; config: ConfigArchivematica }> {
   const res = await fetch(`${API_BASE_URL}/api/archivematica/config`, {
     method: "PUT",
@@ -103,12 +170,37 @@ export async function atualizarConfigArchivematica(
   return res.json();
 }
 
+export async function descobrirTransferSourceStorageService(): Promise<RespostaDescobertaTransferSource> {
+  const res = await fetch(`${API_BASE_URL}/api/archivematica/descobrir-transfer-source`, {
+    method: "POST",
+    headers: obterHeadersAuth(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Falha ao consultar Storage Service (purpose=TS).");
+  }
+  return res.json();
+}
+
 export async function testarConexaoArchivematica(): Promise<DiagnosticoArchivematica> {
   const res = await fetch(`${API_BASE_URL}/api/archivematica/testar-conexao`, {
     method: "POST",
     headers: obterHeadersAuth(),
   });
   if (!res.ok) throw new Error("Falha ao diagnosticar conexão com o Archivematica.");
+  return res.json();
+}
+
+export async function buscarRegrasFprArchivematica(): Promise<{
+  versaoArchivematica: string;
+  servidorReferencia: string;
+  totalFormatosPronom: number;
+  regras: RegraFprItem[];
+}> {
+  const res = await fetch(`${API_BASE_URL}/api/archivematica/fpr`, {
+    headers: obterHeadersAuth(),
+  });
+  if (!res.ok) throw new Error("Falha ao carregar tabela FPR do Archivematica.");
   return res.json();
 }
 
@@ -155,6 +247,17 @@ export async function sincronizarPacoteSip(
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || "Falha ao sincronizar status do pacote SIP.");
+  }
+  return res.json();
+}
+
+export async function inspecionarArquivosPacoteSip(sipId: number): Promise<InspecaoArquivosSip> {
+  const res = await fetch(`${API_BASE_URL}/api/archivematica/sips/${sipId}/inspecionar`, {
+    headers: obterHeadersAuth(),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Falha ao inspecionar metadados do pacote SIP.");
   }
   return res.json();
 }
