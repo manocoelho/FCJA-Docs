@@ -165,9 +165,9 @@ export function PainelAdmin() {
             Pesquisador FCJA
           </span>
           <p className="mt-2 text-xs text-slate-600 leading-relaxed">
-            Captura documentos do seu núcleo, edita metadados descritivos e descarta apenas
-            rascunhos em status <strong>MINUTA</strong>. Bloqueado contra exclusão de documentos
-            oficiais.
+            Acesso exclusivo às telas <strong>Dashboard Analítico</strong> e{" "}
+            <strong>Explorador do Acervo</strong> para consulta multinível, leitura de documentos,
+            verificação de fixidade e exportação de inventários.
           </p>
         </div>
         <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm">
@@ -231,7 +231,9 @@ export function PainelAdmin() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pesquisador">Pesquisador (Captura & Consulta)</SelectItem>
+                  <SelectItem value="pesquisador">
+                    Pesquisador (Dashboard & Explorador)
+                  </SelectItem>
                   <SelectItem value="arquivista">
                     Arquivista SIGAD (Gestão, TTD & Termos)
                   </SelectItem>
@@ -343,7 +345,9 @@ export function PainelAdmin() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="pesquisador">Pesquisador (Captura & Consulta)</SelectItem>
+                  <SelectItem value="pesquisador">
+                    Pesquisador (Dashboard & Explorador)
+                  </SelectItem>
                   <SelectItem value="arquivista">
                     Arquivista SIGAD (Gestão, TTD & Termos)
                   </SelectItem>

@@ -60,6 +60,25 @@ export function podeGerenciarUsuarios(papel?: string | null): boolean {
   return (papel || "").toLowerCase().trim() === "admin";
 }
 
+/**
+ * Regra RBAC de navegação por telas:
+ * - Pesquisador: acesso exclusivo a "dashboard" e "explorador".
+ * - Arquivista: acesso a todas as telas arquivísticas, exceto "permissoes".
+ * - Administrador: acesso irrestrito a todas as telas.
+ */
+export function podeAcessarAbaSigad(
+  papel: string | null | undefined,
+  aba: string
+): boolean {
+  if (aba === "dashboard" || aba === "explorador") {
+    return true;
+  }
+  if (aba === "permissoes") {
+    return podeGerenciarUsuarios(papel);
+  }
+  return podeExecutarAcaoArquivistica(papel);
+}
+
 export function rotuloPapelSigad(papel?: string | null): string {
   switch ((papel || "").toLowerCase().trim()) {
     case "admin":

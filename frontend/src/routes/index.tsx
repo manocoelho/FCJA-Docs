@@ -30,8 +30,14 @@ import {
 import { Button } from "@/components/ui/button";
 import type { Doc } from "@/components/ged/data";
 import { API_BASE_URL, resolveUrl } from "@/lib/api";
-import { limparSessaoAuth, rotuloPapelSigad } from "@/lib/auth";
+import {
+  limparSessaoAuth,
+  podeAcessarAbaSigad,
+  podeExecutarAcaoArquivistica,
+  rotuloPapelSigad,
+} from "@/lib/auth";
 import { useAcervoSigad } from "@/hooks/useAcervoSigad";
+import type { AbaSistemaSigad } from "@/hooks/useDashboardSigad";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -130,12 +136,29 @@ function Index() {
     a.click();
   }
 
+  function navegarParaAba(novaAba: AbaSistemaSigad) {
+    if (!podeAcessarAbaSigad(usuarioPapel, novaAba)) {
+      toast.error("Acesso restrito ao perfil", {
+        description:
+          "O perfil de Pesquisador possui acesso exclusivo ao Dashboard Analítico e ao Explorador do Acervo.",
+      });
+      return;
+    }
+    setAbaAtiva(novaAba);
+  }
+
+  const temAcessoArquivistico = podeExecutarAcaoArquivistica(usuarioPapel);
+  const abaEfetiva: AbaSistemaSigad = podeAcessarAbaSigad(usuarioPapel, abaAtiva)
+    ? abaAtiva
+    : "dashboard";
+
   if (!usuarioLogado) {
     return (
       <TelaLogin
         onLoginSuccess={(nome, papel) => {
           setUsuarioLogado(nome);
           setUsuarioPapel(papel);
+          setAbaAtiva("dashboard");
         }}
       />
     );
@@ -158,9 +181,9 @@ function Index() {
           </div>
           <nav className="flex flex-col gap-2 p-4">
             <button
-              onClick={() => setAbaAtiva("dashboard")}
+              onClick={() => navegarParaAba("dashboard")}
               className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                abaAtiva === "dashboard"
+                abaEfetiva === "dashboard"
                   ? "bg-primary text-white"
                   : "hover:bg-white/10 hover:text-white"
               }`}
@@ -168,60 +191,66 @@ function Index() {
               <LayoutDashboard className="h-5 w-5" /> Dashboard Analítico
             </button>
             <button
-              onClick={() => setAbaAtiva("explorador")}
+              onClick={() => navegarParaAba("explorador")}
               className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                abaAtiva === "explorador"
+                abaEfetiva === "explorador"
                   ? "bg-primary text-white"
                   : "hover:bg-white/10 hover:text-white"
               }`}
             >
               <FolderOpen className="h-5 w-5" /> Explorador do Acervo
             </button>
-            <button
-              onClick={() => setAbaAtiva("upload")}
-              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                abaAtiva === "upload"
-                  ? "bg-primary text-white"
-                  : "hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <CloudUpload className="h-5 w-5" /> Captura & Acervo
-            </button>
-            <button
-              onClick={() => setAbaAtiva("gestao")}
-              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                abaAtiva === "gestao"
-                  ? "bg-primary text-white"
-                  : "hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <FolderKanban className="h-5 w-5 text-purple-400" /> PCD, TTD & Dossiês
-            </button>
-            <button
-              onClick={() => setAbaAtiva("archivematica")}
-              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                abaAtiva === "archivematica"
-                  ? "bg-primary text-white"
-                  : "hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <Archive className="h-5 w-5 text-emerald-400" /> Conector Archivematica
-            </button>
-            <button
-              onClick={() => setAbaAtiva("auditoria")}
-              className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                abaAtiva === "auditoria"
-                  ? "bg-primary text-white"
-                  : "hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              <Fingerprint className="h-5 w-5 text-blue-400" /> Auditoria & Fixidade
-            </button>
+
+            {temAcessoArquivistico && (
+              <>
+                <button
+                  onClick={() => navegarParaAba("upload")}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    abaEfetiva === "upload"
+                      ? "bg-primary text-white"
+                      : "hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <CloudUpload className="h-5 w-5" /> Captura & Acervo
+                </button>
+                <button
+                  onClick={() => navegarParaAba("gestao")}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    abaEfetiva === "gestao"
+                      ? "bg-primary text-white"
+                      : "hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <FolderKanban className="h-5 w-5 text-purple-400" /> PCD, TTD & Dossiês
+                </button>
+                <button
+                  onClick={() => navegarParaAba("archivematica")}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    abaEfetiva === "archivematica"
+                      ? "bg-primary text-white"
+                      : "hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Archive className="h-5 w-5 text-emerald-400" /> Conector Archivematica
+                </button>
+                <button
+                  onClick={() => navegarParaAba("auditoria")}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    abaEfetiva === "auditoria"
+                      ? "bg-primary text-white"
+                      : "hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <Fingerprint className="h-5 w-5 text-blue-400" /> Auditoria & Fixidade
+                </button>
+              </>
+            )}
+
             {usuarioPapel === "admin" && (
               <button
-                onClick={() => setAbaAtiva("permissoes")}
+                onClick={() => navegarParaAba("permissoes")}
                 className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                  abaAtiva === "permissoes"
+                  abaEfetiva === "permissoes"
                     ? "bg-emerald-600 text-white"
                     : "hover:bg-white/10 hover:text-white"
                 }`}
@@ -256,24 +285,25 @@ function Index() {
       </aside>
 
       <main className="flex-1 overflow-y-auto p-8">
-        {abaAtiva === "dashboard" && (
+        {abaEfetiva === "dashboard" && (
           <TelaDashboard
             acervo={acervo}
             sysStatus={sysStatus}
-            onNavegarAba={setAbaAtiva}
+            usuarioPapel={usuarioPapel}
+            onNavegarAba={navegarParaAba}
             onAbrirDoc={abrirDoc}
           />
         )}
-        {abaAtiva === "explorador" && (
+        {abaEfetiva === "explorador" && (
           <TelaExplorador
             acervo={acervo}
             onAbrirDoc={abrirDoc}
             onBaixarDoc={baixarDoc}
             onVerifyFixity={auditarFixidadeDoc}
-            onNavegarAba={setAbaAtiva}
+            onNavegarAba={temAcessoArquivistico ? navegarParaAba : undefined}
           />
         )}
-        {abaAtiva === "upload" && (
+        {abaEfetiva === "upload" && temAcessoArquivistico && (
           <TelaUpload
             acervo={acervo}
             usuarioLogado={usuarioLogado}
@@ -287,28 +317,28 @@ function Index() {
             onVerifyFixity={auditarFixidadeDoc}
           />
         )}
-        {abaAtiva === "gestao" && (
+        {abaEfetiva === "gestao" && temAcessoArquivistico && (
           <TelaGestaoArquivistica
             acervo={acervo}
             usuarioPapel={usuarioPapel}
             onDocumentosAlterados={recarregarDocumentos}
           />
         )}
-        {abaAtiva === "archivematica" && (
+        {abaEfetiva === "archivematica" && temAcessoArquivistico && (
           <TelaArchivematicaSigad
             acervo={acervo}
             usuarioPapel={usuarioPapel}
             onAcervoAlterado={recarregarDocumentos}
           />
         )}
-        {abaAtiva === "auditoria" && (
+        {abaEfetiva === "auditoria" && temAcessoArquivistico && (
           <TelaAuditoriaSigad
             usuarioLogado={usuarioLogado}
             usuarioPapel={usuarioPapel}
             onFixidadeAtualizada={recarregarDocumentos}
           />
         )}
-        {abaAtiva === "permissoes" && usuarioPapel === "admin" && <PainelAdmin />}
+        {abaEfetiva === "permissoes" && usuarioPapel === "admin" && <PainelAdmin />}
       </main>
 
       <Dialog open={viewDoc !== null} onOpenChange={(o) => !o && setViewDoc(null)}>

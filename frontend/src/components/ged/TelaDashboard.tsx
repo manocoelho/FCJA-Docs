@@ -46,6 +46,7 @@ import {
   rotuloNivelAcesso,
   rotuloStatusDocumento,
 } from "@/lib/formatters";
+import { podeExecutarAcaoArquivistica } from "@/lib/auth";
 import { useDashboardSigad, type AbaSistemaSigad } from "@/hooks/useDashboardSigad";
 
 type FiltrosArquivisticos = {
@@ -83,6 +84,7 @@ interface TelaDashboardProps {
     livre_bytes: number;
     acervo_bytes: number;
   } | null;
+  usuarioPapel?: string | null | undefined;
   onNavegarAba?: ((aba: AbaSistemaSigad) => void) | undefined;
   onAbrirDoc?: ((doc: Doc) => void) | undefined;
 }
@@ -90,9 +92,11 @@ interface TelaDashboardProps {
 export function TelaDashboard({
   acervo,
   sysStatus,
+  usuarioPapel,
   onNavegarAba,
   onAbrirDoc,
 }: TelaDashboardProps) {
+  const temAcessoGestao = podeExecutarAcaoArquivistica(usuarioPapel);
   const [filtrosDash, setFiltrosDash] = useState<FiltrosArquivisticos>(INICIAL);
   const [modalFiltrosDash, setModalFiltrosDash] = useState(false);
   const [visaoAtiva, setVisaoAtiva] = useState<"360" | "gestao_ttd" | "preservacao_auditoria">(
@@ -360,9 +364,11 @@ export function TelaDashboard({
 
           {/* KPI 2: Unidades de Arquivamento (Dossiês) & PCD */}
           <div
-            onClick={() => onNavegarAba?.("gestao")}
+            onClick={() => temAcessoGestao && onNavegarAba?.("gestao")}
             className={`rounded-2xl border bg-card p-5 shadow-sm transition-all ${
-              onNavegarAba ? "cursor-pointer hover:border-purple-300 hover:shadow-md" : ""
+              temAcessoGestao && onNavegarAba
+                ? "cursor-pointer hover:border-purple-300 hover:shadow-md"
+                : ""
             }`}
           >
             <div className="flex items-start justify-between">
@@ -398,9 +404,11 @@ export function TelaDashboard({
 
           {/* KPI 3: Ciclo Vital & Temporalidade (TTD) */}
           <div
-            onClick={() => onNavegarAba?.("gestao")}
+            onClick={() => temAcessoGestao && onNavegarAba?.("gestao")}
             className={`rounded-2xl border bg-card p-5 shadow-sm transition-all ${
-              onNavegarAba ? "cursor-pointer hover:border-amber-300 hover:shadow-md" : ""
+              temAcessoGestao && onNavegarAba
+                ? "cursor-pointer hover:border-amber-300 hover:shadow-md"
+                : ""
             }`}
           >
             <div className="flex items-start justify-between">
@@ -436,9 +444,11 @@ export function TelaDashboard({
 
           {/* KPI 4: Autenticidade, Fixidade SHA-256 & Auditoria */}
           <div
-            onClick={() => onNavegarAba?.("auditoria")}
+            onClick={() => temAcessoGestao && onNavegarAba?.("auditoria")}
             className={`rounded-2xl border bg-card p-5 shadow-sm transition-all ${
-              onNavegarAba ? "cursor-pointer hover:border-emerald-300 hover:shadow-md" : ""
+              temAcessoGestao && onNavegarAba
+                ? "cursor-pointer hover:border-emerald-300 hover:shadow-md"
+                : ""
             }`}
           >
             <div className="flex items-start justify-between">
@@ -471,9 +481,11 @@ export function TelaDashboard({
 
           {/* KPI 5: Preservação Digital OAIS / Archivematica (RDC-Arq) */}
           <div
-            onClick={() => onNavegarAba?.("archivematica")}
+            onClick={() => temAcessoGestao && onNavegarAba?.("archivematica")}
             className={`rounded-2xl border bg-card p-5 shadow-sm transition-all ${
-              onNavegarAba ? "cursor-pointer hover:border-teal-300 hover:shadow-md" : ""
+              temAcessoGestao && onNavegarAba
+                ? "cursor-pointer hover:border-teal-300 hover:shadow-md"
+                : ""
             }`}
           >
             <div className="flex items-start justify-between">
@@ -602,7 +614,7 @@ export function TelaDashboard({
             eventosRecentes={eventosRecentes}
             pacotesSip={pacotesSip}
             dossies={dossies}
-            onNavegarAba={onNavegarAba}
+            onNavegarAba={temAcessoGestao ? onNavegarAba : undefined}
           />
         )}
 
@@ -663,13 +675,15 @@ export function TelaDashboard({
                 >
                   Abrir Explorador
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={() => onNavegarAba("upload")}
-                  className="text-xs"
-                >
-                  Ir para Captura & Acervo
-                </Button>
+                {temAcessoGestao && (
+                  <Button
+                    size="sm"
+                    onClick={() => onNavegarAba("upload")}
+                    className="text-xs"
+                  >
+                    Ir para Captura & Acervo
+                  </Button>
+                )}
               </div>
             )}
           </div>
