@@ -7,6 +7,8 @@ import { TelaUpload } from "@/components/ged/TelaUpload";
 import { TelaAuditoriaSigad } from "@/components/ged/TelaAuditoriaSigad";
 import { TelaGestaoArquivistica } from "@/components/ged/TelaGestaoArquivistica";
 import { TelaArchivematicaSigad } from "@/components/ged/TelaArchivematicaSigad";
+import { VisualizadorPlanilhaAvancado } from "@/components/ged/VisualizadorPlanilhaAvancado";
+import type { DadosPlanilhaAvancada } from "@/lib/planilha-viewer";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -85,7 +87,7 @@ function Index() {
 
   // Estados do Visualizador
   const [viewDoc, setViewDoc] = useState<Doc | null>(null);
-  const [dadosPlanilha, setDadosPlanilha] = useState<{ colunas: string[]; linhas: any[] } | null>(
+  const [dadosPlanilha, setDadosPlanilha] = useState<DadosPlanilhaAvancada | null>(
     null
   );
   const [carregandoView, setCarregandoView] = useState(false);
@@ -110,9 +112,9 @@ function Index() {
       setCarregandoView(true);
       try {
         const res = await fetch(`${API_BASE_URL}/api/visualizar-planilha/${doc.id}`);
-        const data = await res.json();
+        const data: DadosPlanilhaAvancada = await res.json();
 
-        if (data.colunas) {
+        if ((data.abas && data.abas.length > 0) || data.colunas) {
           setDadosPlanilha(data);
         } else {
           toast.error("Não foi possível abrir a planilha", { description: data.erro });
@@ -342,7 +344,7 @@ function Index() {
       </main>
 
       <Dialog open={viewDoc !== null} onOpenChange={(o) => !o && setViewDoc(null)}>
-        <DialogContent className="flex h-[85vh] max-w-6xl flex-col">
+        <DialogContent className="flex h-[90vh] max-w-7xl flex-col sm:max-w-[92vw]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {viewDoc?.numeroProtocolo && (
@@ -363,39 +365,18 @@ function Index() {
               />
             ) : carregandoView ? (
               <div className="flex h-full items-center justify-center text-slate-500">
-                <span className="animate-pulse">Processando dados com o Python...</span>
+                <span className="animate-pulse">
+                  Inspecionando abas, células e fórmulas da planilha...
+                </span>
               </div>
             ) : dadosPlanilha ? (
-              <div className="h-full overflow-auto p-4">
-                <table className="w-full text-left text-sm border-collapse bg-white shadow-sm ring-1 ring-slate-200">
-                  <thead className="sticky top-0 bg-slate-100 shadow-sm">
-                    <tr>
-                      {dadosPlanilha.colunas.map((col, idx) => (
-                        <th
-                          key={idx}
-                          className="whitespace-nowrap border-b border-r border-slate-200 px-4 py-3 font-semibold text-slate-700"
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dadosPlanilha.linhas.map((linha, i) => (
-                      <tr key={i} className="hover:bg-slate-50 transition-colors">
-                        {dadosPlanilha.colunas.map((col, idx) => (
-                          <td
-                            key={idx}
-                            className="whitespace-nowrap border-b border-r border-slate-100 px-4 py-2 text-slate-600"
-                          >
-                            {linha[col]}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <VisualizadorPlanilhaAvancado
+                dadosBrutos={dadosPlanilha}
+                nomeDocumento={viewDoc?.nome}
+                onBaixarOriginal={
+                  viewDoc?.url ? () => viewDoc && baixarDoc(viewDoc) : undefined
+                }
+              />
             ) : (
               <div className="flex flex-col h-full items-center justify-center gap-4 text-slate-500">
                 <p>Este formato ({viewDoc?.ext}) não possui visualização direta no navegador.</p>

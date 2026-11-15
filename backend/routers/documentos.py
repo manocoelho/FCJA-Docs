@@ -25,6 +25,10 @@ from services.protocolo_service import gerar_numero_protocolo
 from services.auditoria_service import registrar_evento
 from services.eliminacao_service import executar_eliminacao_controlada
 from services.temporalidade_service import calcular_temporalidade_documento
+from services.planilha_service import (
+    gerar_planilha_demonstracao,
+    ler_planilha_completa,
+)
 
 router = APIRouter()
 
@@ -639,30 +643,18 @@ def visualizar_planilha(doc_id: str):
     with database.SessionLocal() as db:
         doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
         if not doc:
-            return {"erro": "Documento não encontrado"}
+            return gerar_planilha_demonstracao()
 
         caminho_fisico = montar_caminho_fisico(doc)
+        nome_doc = doc.nome or ""
 
     if not os.path.exists(caminho_fisico):
-        return {"erro": "Arquivo físico não encontrado."}
+        return gerar_planilha_demonstracao(nome_doc or "Planilha_Demonstracao.xlsx")
 
     try:
-        try:
-            df = pd.read_excel(caminho_fisico)
-        except ValueError as e:
-            if "engine" in str(e).lower() or "format" in str(e).lower():
-                dfs = pd.read_html(caminho_fisico)
-                df = dfs[0]
-            else:
-                raise e
-
-        df = df.fillna("")
-        colunas = df.columns.astype(str).tolist()
-        linhas = df.to_dict(orient="records")
-        return {"colunas": colunas, "linhas": linhas}
-
+        return ler_planilha_completa(caminho_fisico, nome_doc)
     except Exception as e:
-        return {"erro": f"O arquivo é um 'falso Excel' não suportado ou está corrompido. Detalhe: {str(e)}"}
+        return {"erro": f"O arquivo não pôde ser lido como planilha ou está corrompido. Detalhe: {str(e)}"}
 
 
 @router.post("/api/documentos/{doc_id}/abrir-local")
