@@ -264,7 +264,15 @@ function Index() {
             onAbrirDoc={abrirDoc}
           />
         )}
-        {abaAtiva === "explorador" && <TelaExplorador acervo={acervo} onAbrirDoc={abrirDoc} />}
+        {abaAtiva === "explorador" && (
+          <TelaExplorador
+            acervo={acervo}
+            onAbrirDoc={abrirDoc}
+            onBaixarDoc={baixarDoc}
+            onVerifyFixity={auditarFixidadeDoc}
+            onNavegarAba={setAbaAtiva}
+          />
+        )}
         {abaAtiva === "upload" && (
           <TelaUpload
             acervo={acervo}
