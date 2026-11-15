@@ -1,10 +1,10 @@
 import { useMemo, useState } from "react";
 import {
   Calculator,
-  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Download,
-  Eye,
   FileSpreadsheet,
   FunctionSquare,
   Layers,
@@ -338,6 +338,95 @@ export function VisualizadorPlanilhaAvancado({
         </div>
       </div>
 
+      {/* 1.5 SELETOR RÁPIDO DE ABAS NO TOPO (GARANTE VISIBILIDADE IMEDIATA DE TODAS AS ABAS) */}
+      <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-slate-100/90 px-3 py-1.5">
+        <div className="flex shrink-0 items-center gap-1">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Abas ({workbook.abas.length}):
+          </span>
+          <button
+            type="button"
+            disabled={indiceAbaAtiva <= 0}
+            onClick={() => {
+              const novo = Math.max(0, indiceAbaAtiva - 1);
+              setIndiceAbaAtiva(novo);
+              setCoordSelecionada("A1");
+              setColunaInteiraSelecionada(null);
+              setLinhaInteiraSelecionada(null);
+            }}
+            className="rounded border border-slate-300 bg-white p-0.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            title="Aba anterior"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            disabled={indiceAbaAtiva >= workbook.abas.length - 1}
+            onClick={() => {
+              const novo = Math.min(workbook.abas.length - 1, indiceAbaAtiva + 1);
+              setIndiceAbaAtiva(novo);
+              setCoordSelecionada("A1");
+              setColunaInteiraSelecionada(null);
+              setLinhaInteiraSelecionada(null);
+            }}
+            className="rounded border border-slate-300 bg-white p-0.5 text-slate-600 hover:bg-slate-50 disabled:opacity-40"
+            title="Próxima aba"
+          >
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        <div className="flex flex-1 items-center gap-1.5 overflow-x-auto py-0.5">
+          {workbook.abas.map((aba, idx) => {
+            const ativa = idx === indiceAbaAtiva;
+            const matchesNaAba = ocorrenciasPorAba[idx] ?? 0;
+            return (
+              <button
+                key={`top-tab-${aba.nome}-${idx}`}
+                type="button"
+                onClick={() => {
+                  setIndiceAbaAtiva(idx);
+                  setCoordSelecionada("A1");
+                  setColunaInteiraSelecionada(null);
+                  setLinhaInteiraSelecionada(null);
+                }}
+                className={`flex shrink-0 items-center gap-1.5 rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                  ativa
+                    ? "border-emerald-600 bg-emerald-600 text-white shadow-2xs"
+                    : "border-slate-300 bg-white text-slate-700 hover:border-emerald-400 hover:bg-emerald-50/50"
+                }`}
+              >
+                {aba.corAba ? (
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/20"
+                    style={{ backgroundColor: aba.corAba }}
+                  />
+                ) : (
+                  <TableIcon
+                    className={`h-3 w-3 ${ativa ? "text-white" : "text-emerald-600"}`}
+                  />
+                )}
+                <span>{aba.nome}</span>
+                <span
+                  className={`rounded px-1 py-0.2 text-[9px] font-normal ${
+                    ativa
+                      ? "bg-emerald-700 text-emerald-100"
+                      : "bg-slate-100 text-slate-500"
+                  }`}
+                >
+                  {aba.totalLinhas}×{aba.totalColunas}
+                </span>
+                {matchesNaAba > 0 && (
+                  <span className="rounded-full bg-amber-500 px-1.5 py-0.2 text-[9px] font-bold text-white">
+                    {matchesNaAba}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 2. BARRA DE FÓRMULAS E INSPETOR DE CÉLULA ATIVA (EXCEL FORMULA BAR) */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-300 bg-slate-50 px-3 py-1.5">
         {/* Caixa de Coordenada (Name Box) */}
@@ -554,17 +643,39 @@ export function VisualizadorPlanilhaAvancado({
                           ? cel.formula
                           : cel.valor;
 
+                      const usarCorFundoOriginal =
+                        Boolean(cel.corFundo) &&
+                        !ehAtiva &&
+                        !ehReferenciadaPorFormula &&
+                        !bateBusca &&
+                        !pertenceColunaouLinhaSel;
+
+                      const corFundoDark =
+                        usarCorFundoOriginal &&
+                        cel.corFundo &&
+                        ["#7030A0", "#757070", "#44546A", "#4472C4"].includes(
+                          cel.corFundo.toUpperCase()
+                        );
+
                       return (
                         <td
                           key={cel.coord}
                           rowSpan={cel.rowSpan > 1 ? cel.rowSpan : undefined}
                           colSpan={cel.colSpan > 1 ? cel.colSpan : undefined}
+                          style={
+                            usarCorFundoOriginal
+                              ? {
+                                  backgroundColor: `${cel.corFundo}38`,
+                                  color: cel.corTexto || (corFundoDark ? "#1e1b4b" : undefined),
+                                }
+                              : undefined
+                          }
                           onClick={() => {
                             setCoordSelecionada(cel.coord);
                             setColunaInteiraSelecionada(null);
                             setLinhaInteiraSelecionada(null);
                           }}
-                          className={`relative max-w-[360px] cursor-cell border-r border-b border-slate-200 px-2.5 py-1.5 transition-colors ${
+                          className={`relative max-w-[420px] cursor-cell border-r border-b border-slate-200 px-2.5 py-1.5 align-middle transition-colors ${
                             ehAtiva
                               ? "z-10 bg-blue-50/70 outline-2 -outline-offset-2 outline-blue-600"
                               : ehReferenciadaPorFormula
@@ -733,11 +844,18 @@ export function VisualizadorPlanilhaAvancado({
                     : "border-t-transparent bg-slate-200/60 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                 }`}
               >
-                <TableIcon
-                  className={`h-3.5 w-3.5 ${
-                    ativa ? "text-emerald-600" : "text-slate-400"
-                  }`}
-                />
+                {aba.corAba ? (
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-black/20"
+                    style={{ backgroundColor: aba.corAba }}
+                  />
+                ) : (
+                  <TableIcon
+                    className={`h-3.5 w-3.5 ${
+                      ativa ? "text-emerald-600" : "text-slate-400"
+                    }`}
+                  />
+                )}
                 <span>{aba.nome}</span>
                 <span className="rounded bg-slate-100 px-1.5 py-0.2 text-[9px] font-normal text-slate-500">
                   {aba.totalLinhas}×{aba.totalColunas}

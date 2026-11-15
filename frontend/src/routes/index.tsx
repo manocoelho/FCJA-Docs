@@ -9,6 +9,7 @@ import { TelaGestaoArquivistica } from "@/components/ged/TelaGestaoArquivistica"
 import { TelaArchivematicaSigad } from "@/components/ged/TelaArchivematicaSigad";
 import { VisualizadorPlanilhaAvancado } from "@/components/ged/VisualizadorPlanilhaAvancado";
 import type { DadosPlanilhaAvancada } from "@/lib/planilha-viewer";
+import { lerXlsxNoNavegadorPorUrl } from "@/lib/xlsx-browser-parser";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -114,12 +115,36 @@ function Index() {
         const res = await fetch(`${API_BASE_URL}/api/visualizar-planilha/${doc.id}`);
         const data: DadosPlanilhaAvancada = await res.json();
 
-        if ((data.abas && data.abas.length > 0) || data.colunas) {
+        if (data.abas && data.abas.length > 0) {
+          setDadosPlanilha(data);
+        } else if (doc.url) {
+          const parsedNoNavegador = await lerXlsxNoNavegadorPorUrl(
+            resolveUrl(doc.url),
+            doc.nome
+          );
+          if (parsedNoNavegador && parsedNoNavegador.abas && parsedNoNavegador.abas.length > 0) {
+            setDadosPlanilha(parsedNoNavegador);
+          } else if (data.colunas) {
+            setDadosPlanilha(data);
+          } else {
+            toast.error("Não foi possível abrir a planilha", { description: data.erro });
+          }
+        } else if (data.colunas) {
           setDadosPlanilha(data);
         } else {
           toast.error("Não foi possível abrir a planilha", { description: data.erro });
         }
       } catch (e) {
+        if (doc.url) {
+          const parsedNoNavegador = await lerXlsxNoNavegadorPorUrl(
+            resolveUrl(doc.url),
+            doc.nome
+          );
+          if (parsedNoNavegador && parsedNoNavegador.abas && parsedNoNavegador.abas.length > 0) {
+            setDadosPlanilha(parsedNoNavegador);
+            return;
+          }
+        }
         toast.error("Falha ao se conectar com o leitor Python.");
       } finally {
         setCarregandoView(false);

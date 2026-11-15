@@ -17,6 +17,8 @@ export interface CelulaPlanilha {
   formatoNumero: string;
   negrito: boolean;
   alinhamento: "left" | "center" | "right" | string;
+  corFundo?: string | undefined;
+  corTexto?: string | undefined;
   comentario: string;
   rowSpan: number;
   colSpan: number;
@@ -27,6 +29,7 @@ export interface AbaPlanilha {
   nome: string;
   indice: number;
   estadoVisibilidade: string;
+  corAba?: string | undefined;
   totalLinhas: number;
   totalColunas: number;
   totalCelulasPreenchidas: number;
@@ -58,7 +61,7 @@ export interface DadosPlanilhaAvancada {
   erro?: string | undefined;
 }
 
-function numeroParaLetraColuna(num: number): string {
+export function numeroParaLetraColuna(num: number): string {
   let n = num;
   let letra = "";
   while (n > 0) {
@@ -69,7 +72,7 @@ function numeroParaLetraColuna(num: number): string {
   return letra || "A";
 }
 
-function letraColunaParaNumero(letra: string): number {
+export function letraColunaParaNumero(letra: string): number {
   let num = 0;
   const limpo = letra.toUpperCase().trim();
   for (let i = 0; i < limpo.length; i++) {
