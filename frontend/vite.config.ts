@@ -6,8 +6,10 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+const backendTarget = process.env["BACKEND_INTERNAL_URL"] || "http://127.0.0.1:8000";
+
 export default defineConfig({
-  // Desativa o preset Cloudflare do Nitro para permitir build/preview nativo em servidor Linux local
+  // Desativa o preset Cloudflare do Nitro para permitir build/preview nativo em servidor Linux/Docker local
   nitro: false,
   vite: {
     server: {
@@ -15,11 +17,11 @@ export default defineConfig({
       port: 8080,
       proxy: {
         "/api": {
-          target: "http://127.0.0.1:8000",
+          target: backendTarget,
           changeOrigin: true,
         },
         "/arquivos": {
-          target: "http://127.0.0.1:8000",
+          target: backendTarget,
           changeOrigin: true,
         },
       },
@@ -27,6 +29,16 @@ export default defineConfig({
     preview: {
       host: "0.0.0.0",
       port: 8080,
+      proxy: {
+        "/api": {
+          target: backendTarget,
+          changeOrigin: true,
+        },
+        "/arquivos": {
+          target: backendTarget,
+          changeOrigin: true,
+        },
+      },
     },
   },
   tanstackStart: {

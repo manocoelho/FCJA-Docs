@@ -12,20 +12,30 @@ app = FastAPI(
     version="4.0.0",
 )
 
-# 3. LIBERAÇÃO DO CORS (Restrito à Rede Local da FCJA e Localhost)
+# 3. LIBERAÇÃO DO CORS (Rede Local da FCJA, Containers Docker e Localhost)
+import os
+
 ORIGENS_PERMITIDAS = [
     "http://localhost",
     "http://localhost:8080",
+    "http://localhost:8085",
     "http://localhost:5173",
     "http://127.0.0.1",
     "http://127.0.0.1:8080",
+    "http://127.0.0.1:8085",
     "http://127.0.0.1:5173",
 ]
+
+origens_extras = os.getenv("CORS_ALLOWED_ORIGINS", "")
+if origens_extras:
+    for orig in origens_extras.split(","):
+        if orig.strip():
+            ORIGENS_PERMITIDAS.append(orig.strip())
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ORIGENS_PERMITIDAS,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.1\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3})(:\d+)?$",
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|[a-zA-Z0-9_-]+\.local)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],

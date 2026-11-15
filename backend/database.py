@@ -1,5 +1,6 @@
 import os
 import platform
+import time
 from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -17,26 +18,35 @@ DB_PORT = os.getenv("FCJA_DB_PORT", "3306")
 DB_NAME = os.getenv("FCJA_DB_NAME", "fcja_ged")
 
 DEFAULT_MYSQL_URL = f"mysql+pymysql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}?charset=utf8mb4"
-DATABASE_URL = os.getenv("FCJA_DATABASE_URL", DEFAULT_MYSQL_URL)
+DATABASE_URL = os.getenv("FCJA_DATABASE_URL") or os.getenv("DATABASE_URL") or DEFAULT_MYSQL_URL
 
-try:
-    if DATABASE_URL.startswith("sqlite"):
-        engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-    else:
-        engine = create_engine(
-            DATABASE_URL,
-            pool_pre_ping=True,
-            pool_recycle=3600,
-        )
-        with engine.connect() as _:
-            pass
-except Exception as erro_mysql:
-    print(f"[AVISO] MySQL indisponível ({erro_mysql}). Usando fallback SQLite local.")
-    CAMINHO_BANCO_SQLITE = os.path.join(PASTA_DADOS, "fcja_acervo.db")
-    engine = create_engine(
-        f"sqlite:///{CAMINHO_BANCO_SQLITE}",
-        connect_args={"check_same_thread": False},
-    )
+tentativas_max = 5 if DB_HOST not in ("localhost", "127.0.0.1") else 1
+engine = None
+
+for tentativa in range(1, tentativas_max + 1):
+    try:
+        if DATABASE_URL.startswith("sqlite"):
+            engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+        else:
+            engine = create_engine(
+                DATABASE_URL,
+                pool_pre_ping=True,
+                pool_recycle=3600,
+            )
+            with engine.connect() as _:
+                pass
+        break
+    except Exception as erro_mysql:
+        if tentativa < tentativas_max:
+            print(f"[AGUARDANDO MYSQL] Tentativa {tentativa}/{tentativas_max} em {DB_HOST}:{DB_PORT}...")
+            time.sleep(2)
+        else:
+            print(f"[AVISO] MySQL indisponível ({erro_mysql}). Usando fallback SQLite local.")
+            CAMINHO_BANCO_SQLITE = os.path.join(PASTA_DADOS, "fcja_acervo.db")
+            engine = create_engine(
+                f"sqlite:///{CAMINHO_BANCO_SQLITE}",
+                connect_args={"check_same_thread": False},
+            )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
