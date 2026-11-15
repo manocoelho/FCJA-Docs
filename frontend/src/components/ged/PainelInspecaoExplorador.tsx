@@ -672,10 +672,15 @@ export function PainelInspecaoExplorador({
                 size="sm"
                 variant="outline"
                 onClick={() => {
-                  exportarPdf(
+                  const ok = exportarPdf(
                     documentosEscopo,
                     `Inventário Arquivístico — ${rotuloEscopoAtual}`
                   );
+                  if (ok) {
+                    toast.success("Relatório PDF aberto para impressão / salvamento!");
+                  } else {
+                    toast.error("Não foi possível gerar o Relatório PDF.");
+                  }
                 }}
                 className="h-8 gap-1.5 bg-white text-xs"
               >

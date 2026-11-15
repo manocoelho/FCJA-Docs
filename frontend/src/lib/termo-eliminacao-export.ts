@@ -1,4 +1,5 @@
 import type { TermoEliminacaoItem } from "@/lib/sigad-api";
+import { imprimirHtmlComFallback } from "@/components/ged/export";
 
 function escaparHtml(v: string): string {
   return (v || "")
@@ -9,19 +10,39 @@ function escaparHtml(v: string): string {
 
 /**
  * Responsabilidade única: Gerar a visualização oficial de impressão (PDF/HTML)
- * de um Termo de Eliminação de Documentos conforme diretrizes do CONARQ / e-ARQ Brasil v2.
+ * de um Termo de Eliminação de Documentos conforme diretrizes do CONARQ.
  */
 export function imprimirTermoEliminacao(termo: TermoEliminacaoItem): boolean {
-  const janela = window.open("", "_blank", "noopener,noreferrer,width=920,height=780");
-  if (!janela) return false;
-
   const html = `<!doctype html>
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
   <title>${escaparHtml(termo.numeroTermo)} — Termo de Eliminação de Documentos</title>
   <style>
-    body { font-family: "Times New Roman", Georgia, serif; color: #111827; padding: 40px 56px; line-height: 1.6; }
+    @page { size: A4 portrait; margin: 16mm; }
+    body { font-family: "Times New Roman", Georgia, serif; color: #111827; padding: 32px 48px; line-height: 1.6; }
+    .barra-acoes {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 12px 18px;
+      border-radius: 10px;
+      margin-bottom: 24px;
+    }
+    .barra-acoes .botoes { display: flex; gap: 10px; }
+    .btn {
+      border: 0;
+      border-radius: 6px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-primario { background: #2563eb; color: #ffffff; }
+    .btn-secundario { background: #334155; color: #f8fafc; }
     .cabecalho { text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 16px; margin-bottom: 28px; }
     .cabecalho h1 { font-size: 16px; text-transform: uppercase; margin: 0; letter-spacing: 0.05em; }
     .cabecalho h2 { font-size: 13px; font-weight: normal; color: #374151; margin: 4px 0 0; }
@@ -33,9 +54,24 @@ export function imprimirTermoEliminacao(termo: TermoEliminacaoItem): boolean {
     .assinatura { margin-top: 56px; text-align: center; font-size: 13px; }
     .linha-assinatura { width: 340px; border-top: 1px solid #111827; margin: 0 auto 6px; }
     .rodape { margin-top: 40px; font-family: monospace; font-size: 10px; color: #6b7280; text-align: center; border-top: 1px dashed #d1d5db; padding-top: 12px; }
+    @media print {
+      body { padding: 0; }
+      .no-print { display: none !important; }
+    }
   </style>
 </head>
 <body>
+  <div class="barra-acoes no-print">
+    <div>
+      <strong style="font-size:13px">Termo Oficial de Eliminação — SIGAD FCJA</strong>
+      <div style="font-size:11px;color:#cbd5e1">Selecione "Salvar como PDF" na janela de impressão.</div>
+    </div>
+    <div class="botoes">
+      <button class="btn btn-primario" onclick="window.print()">Salvar como PDF / Imprimir</button>
+      <button class="btn btn-secundario" onclick="window.close()">Fechar</button>
+    </div>
+  </div>
+
   <div class="cabecalho">
     <h1>Fundação Casa de José Américo (FCJA)</h1>
     <h2>Sistema Informatizado de Gestão Arquivística de Documentos — SIGAD</h2>
@@ -79,9 +115,5 @@ export function imprimirTermoEliminacao(termo: TermoEliminacaoItem): boolean {
 </body>
 </html>`;
 
-  janela.document.write(html);
-  janela.document.close();
-  janela.focus();
-  setTimeout(() => janela.print(), 350);
-  return true;
+  return imprimirHtmlComFallback(html);
 }
