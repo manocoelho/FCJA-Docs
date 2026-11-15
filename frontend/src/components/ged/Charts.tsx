@@ -479,10 +479,10 @@ export function GraficoGovernancaFormatos({
       <div className="flex flex-wrap items-start justify-between gap-2 border-b border-slate-100 pb-4">
         <div>
           <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600">
-            Diplomática, Acessibilidade Legal & Formatos de Preservação
+            Resumo, Acessibilidade Legal & Formatos de Preservação
           </span>
           <h3 className="mt-0.5 text-base font-semibold text-slate-900">
-            Restrição de Acesso (LAI/LGPD) e Representação Digital
+            Resumo, Restrição de Acesso (LAI/LGPD) e Representação Digital
           </h3>
         </div>
       </div>
