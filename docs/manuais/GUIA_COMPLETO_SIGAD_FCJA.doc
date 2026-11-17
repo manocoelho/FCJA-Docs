@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40" lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<!--[if gte mso 9]>
+<xml>
+  <w:WordDocument>
+    <w:View>Print</w:View>
+    <w:Zoom>100</w:Zoom>
+    <w:DoNotOptimizeForBrowser/>
+  </w:WordDocument>
+</xml>
+<![endif]-->
+
+  <title>Guia Oficial de Operação e Referência Completa — SIGAD FCJA</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 14mm 14mm 14mm 14mm;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+    }
+    body {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Arial, sans-serif;
+      color: #1e293b;
+      line-height: 1.52;
+      font-size: 10pt;
+      margin: 0;
+      padding: 0;
+      background: #ffffff;
+    }
+
+    /* Barra Flutuante de Edição Rápida de Endereço (Visível apenas na tela do navegador, oculta no PDF/Impressão) */
+    .painel-editor-nao-imprimivel {
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 14px 22px;
+      border-bottom: 3px solid #3b82f6;
+      margin-bottom: 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 9.5pt;
+    }
+    .painel-editor-inputs {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .painel-editor-inputs label {
+      font-weight: 600;
+      color: #93c5fd;
+      font-size: 8.5pt;
+      text-transform: uppercase;
+    }
+    .painel-editor-inputs input {
+      background: #1e293b;
+      color: #ffffff;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-family: Consolas, monospace;
+      font-size: 9.5pt;
+      width: 230px;
+    }
+    .btn-imprimir-guia {
+      background: #2563eb;
+      color: #ffffff;
+      border: none;
+      border-radius: 7px;
+      padding: 7px 14px;
+      font-weight: 700;
+      font-size: 9pt;
+      cursor: pointer;
+    }
+    .btn-imprimir-guia:hover {
+      background: #1d4ed8;
+    }
+    @media print {
+      .painel-editor-nao-imprimivel {
+        display: none !important;
+      }
+    }
+
+    /* Capa / Cabeçalho Institucional */
+    .capa {
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+      color: #ffffff;
+      padding: 24px 28px;
+      border-radius: 14px;
+      margin-bottom: 16px;
+      border-bottom: 5px solid #3b82f6;
+    }
+    .capa-topo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .capa-sigla {
+      font-size: 8.5pt;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #93c5fd;
+    }
+    .capa-badge {
+      background: rgba(59, 130, 246, 0.25);
+      border: 1px solid rgba(147, 197, 253, 0.4);
+      color: #e0f2fe;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 8pt;
+      font-weight: 600;
+    }
+    .capa h1 {
+      font-size: 18.5pt;
+      font-weight: 800;
+      margin: 0 0 6px 0;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+    }
+    .capa p {
+      margin: 3px 0;
+      font-size: 9.5pt;
+      color: #cbd5e1;
+    }
+    .capa-meta {
+      margin-top: 12px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      font-size: 8.5pt;
+      color: #e2e8f0;
+    }
+    .capa-meta span {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* QUADRO EDITÁVEL DE ACESSO AO SERVIDOR LOCAL */
+    .quadro-endereco-editavel {
+      border: 2px dashed #2563eb;
+      background: #f8fafc;
+      border-radius: 12px;
+      padding: 14px 18px;
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+    }
+    .quadro-endereco-topo {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+    .quadro-endereco-titulo {
+      font-size: 9.5pt;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #1e3a8a;
+    }
+    .quadro-endereco-tag {
+      background: #dbeafe;
+      color: #1e40af;
+      font-size: 7.5pt;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+    }
+    .grid-campos-editaveis {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 16px;
+      margin-top: 6px;
+    }
+    .campo-editavel-item {
+      background: #ffffff;
+      border: 1.5px solid #93c5fd;
+      border-radius: 8px;
+      padding: 7px 11px;
+    }
+    .campo-editavel-label {
+      display: block;
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #475569;
+      margin-bottom: 3px;
+    }
+    .campo-editavel-valor {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9pt;
+      font-weight: 700;
+      color: #0f172a;
+      height: 20px;
+      line-height: 20px;
+      white-space: nowrap;
+      overflow: hidden;
+      outline: none;
+      display: block;
+      width: 100%;
+      border: none;
+      background: transparent;
+    }
+
+    /* Títulos */
+    h2 {
+      font-size: 13.5pt;
+      font-weight: 700;
+      color: #0f172a;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 5px;
+      margin-top: 22px;
+      margin-bottom: 10px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1e3a8a;
+      margin-top: 16px;
+      margin-bottom: 6px;
+      page-break-after: avoid;
+    }
+    h4 {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #334155;
+      margin-top: 12px;
+      margin-bottom: 5px;
+      page-break-after: avoid;
+    }
+    p {
+      margin: 0 0 7px 0;
+    }
+    ul, ol {
+      margin: 0 0 9px 0;
+      padding-left: 20px;
+    }
+    li {
+      margin-bottom: 3.5px;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 8.8pt;
+      background: #f1f5f9;
+      color: #0f172a;
+      padding: 1px 5px;
+      border-radius: 4px;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Alertas / Callouts */
+    .alerta {
+      border-radius: 10px;
+      padding: 10px 14px;
+      margin: 10px 0;
+      page-break-inside: avoid;
+      font-size: 9.2pt;
+    }
+    .alerta-importante {
+      background: #eff6ff;
+      border-left: 4px solid #2563eb;
+      color: #1e3a8a;
+    }
+    .alerta-dica {
+      background: #ecfdf5;
+      border-left: 4px solid #059669;
+      color: #065f46;
+    }
+    .alerta-aviso {
+      background: #fffbeb;
+      border-left: 4px solid #d97706;
+      color: #92400e;
+    }
+    .alerta-titulo {
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 8pt;
+      letter-spacing: 0.05em;
+      margin-bottom: 3px;
+      display: block;
+    }
+
+    /* Tabelas */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 14px 0;
+      font-size: 8.8pt;
+    }
+    tr {
+      page-break-inside: avoid;
+    }
+    th {
+      background: #0f172a;
+      color: #ffffff;
+      font-weight: 600;
+      text-align: left;
+      padding: 6px 8px;
+      border: 1px solid #0f172a;
+    }
+    td {
+      padding: 5.5px 8px;
+      border: 1px solid #cbd5e1;
+      vertical-align: top;
+    }
+    tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 7.8pt;
+      font-weight: 700;
+    }
+    .badge-azul { background: #dbeafe; color: #1e40af; }
+    .badge-verde { background: #d1fae5; color: #065f46; }
+    .badge-ambar { background: #fef3c7; color: #92400e; }
+    .badge-vermelho { background: #fee2e2; color: #991b1b; }
+    .badge-roxo { background: #f3e8ff; color: #6b21a8; }
+    .badge-cinza { background: #f1f5f9; color: #334155; }
+
+    /* Fluxograma Visual OAIS */
+    .fluxo-oais {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 12px 0;
+      page-break-inside: avoid;
+    }
+    .fluxo-card {
+      flex: 1;
+      border-radius: 10px;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+    }
+    .fluxo-card-1 { border-top: 4px solid #2563eb; background: #eff6ff; }
+    .fluxo-card-2 { border-top: 4px solid #059669; background: #ecfdf5; }
+    .fluxo-card-3 { border-top: 4px solid #7c3aed; background: #f5f3ff; }
+    .fluxo-seta {
+      display: flex;
+      align-items: center;
+      font-weight: 800;
+      font-size: 15pt;
+      color: #64748b;
+    }
+
+    /* Sumário em duas colunas */
+    .sumario-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px 16px;
+      margin-bottom: 14px;
+      page-break-inside: avoid;
+    }
+    .sumario-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 5px 20px;
+      font-size: 9pt;
+    }
+    .rodape-doc {
+      margin-top: 24px;
+      padding-top: 10px;
+      border-top: 1px solid #cbd5e1;
+      font-size: 8.5pt;
+      color: #64748b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BARRA INTERATIVA DE EDIÇÃO DE ENDEREÇO (VISÍVEL NO NAVEGADOR, OCULTA NA IMPRESSÃO/PDF) -->
+  <!-- CAPA INSTITUCIONAL -->
+  <div class="capa">
+    <div class="capa-topo">
+      <span class="capa-sigla">Fundação Casa de José Américo (FCJA) · Paraíba</span>
+      <span class="capa-badge">Código CONARQ: BR-PBFCJA-RADC · Versão Atualizada 2.5</span>
+    </div>
+    <h1>Guia Oficial de Operação e Referência — SIGAD FCJA</h1>
+    <p>Sistema Informatizado de Gestão Arquivística de Documentos, Visualizador Multi-Abas, Docker Compose &amp; Conector Archivematica 1.18.0</p>
+    <div class="capa-meta">
+      <span><strong>Acesso Principal:</strong> <strong class="url-sigad-principal">http://[IP-DO-SERVIDOR-LOCAL]:8085</strong></span>
+      <span><strong>Alternativo / Dev:</strong> <strong class="url-sigad-contingencia">http://192.168.1.115 (ou localhost:8080)</strong></span>
+      <span><strong>Archivematica 1.18.0:</strong> http://192.168.1.132 (:80 / :8000)</span>
+    </div>
+  </div>
+
+  <!-- QUADRO EDITÁVEL DE ACESSO AO SERVIDOR LOCAL (EDITÁVEL NO PDF E NO HTML) -->
+  <div class="quadro-endereco-editavel" id="quadroEditavelServidor">
+    <div class="quadro-endereco-topo">
+      <span class="quadro-endereco-titulo">
+        Quadro de Endereços de Acesso ao Servidor Local da FCJA (Espaço Editável)
+      </span>
+      <span class="quadro-endereco-tag">Campos Editáveis no PDF e no Navegador</span>
+    </div>
+    <p style="font-size:8.5pt; color:#475569; margin-bottom:8px;">
+      Quando o sistema for hospedado definitivamente no servidor local da Fundação Casa de José Américo (via <code>Docker Compose</code>), clique diretamente nos campos abaixo neste PDF (ou abra o arquivo <code>GUIA_COMPLETO_SIGAD_FCJA.html</code>) para atualizar o endereço oficial de acesso da equipe:
+    </p>
+    <div class="grid-campos-editaveis">
+      <div class="campo-editavel-item">
+        <span class="campo-editavel-label">1. Endereço Principal do SIGAD FCJA (URL / IP):</span>
+        <span
+          id="boxUrlPrincipal"
+          class="campo-editavel-valor url-sigad-principal"
+          contenteditable="true"
+        >http://[IP-DO-SERVIDOR-LOCAL]:8085</span>
+      </div>
+      <div class="campo-editavel-item">
+        <span class="campo-editavel-label">2. Endereço Alternativo / Ambiente Local:</span>
+        <span
+          id="boxUrlContingencia"
+          class="campo-editavel-valor url-sigad-contingencia"
+          contenteditable="true"
+        >http://192.168.1.115 (ou localhost:8080)</span>
+      </div>
+      <div class="campo-editavel-item">
+        <span class="campo-editavel-label">3. Status Atual da Hospedagem / Servidor:</span>
+        <span
+          id="boxStatusServidor"
+          class="campo-editavel-valor status-sigad-servidor"
+          contenteditable="true"
+        >Aguardando implantação local (Docker Compose)</span>
+      </div>
+      <div class="campo-editavel-item">
+        <span class="campo-editavel-label">4. Servidores RDC-Arq Integrados (AM / SS / AtoM):</span>
+        <span
+          id="boxServidoresRdc"
+          class="campo-editavel-valor"
+          contenteditable="true"
+        >AM: http://192.168.1.132 | SS: :8000 | AtoM: http://192.168.1.110</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMÁRIO -->
+  <div class="sumario-box">
+    <h3 style="margin-top:0; margin-bottom:6px;">Sumário Geral do Guia Atualizado</h3>
+    <div class="sumario-grid">
+      <div>1. Apresentação Institucional e Novidades da Versão</div>
+      <div>5.4. Aba 4 — PCD, TTD &amp; Dossiês (Para que serve cada Sub-Aba)</div>
+      <div>2. O Ecossistema Digital (SIGAD → Archivematica 1.18 → AtoM)</div>
+      <div>5.5. Aba 5 — Conector Archivematica 1.18.0 &amp; Storage Service (:8000)</div>
+      <div>3. Acesso, Credenciais e Perfis de Permissão (RBAC Atualizado)</div>
+      <div>5.6. Aba 6 — Auditoria &amp; Fixidade (Governança e Termos)</div>
+      <div>4. Dicionário Completo: O Que Cada Termo e Campo Significa</div>
+      <div>5.7. Aba 7 — Gerenciar Acessos (Administração RBAC)</div>
+      <div>5.1. Aba 1 — Novo Dashboard Analítico do SIGAD</div>
+      <div>6. Visualizador Avançado de Planilhas Multi-Abas e Ficha PREMIS</div>
+      <div>5.2. Aba 2 — Novo Explorador Arquivístico Multinível (4 Visões)</div>
+      <div>7. Tabelas Institucionais (16 Núcleos e Classes de Atividade-Fim)</div>
+      <div>5.3. Aba 3 — Nova Estação de Captura &amp; Indexação Arquivística</div>
+      <div>8. Implantação via Docker Compose no Servidor Local &amp; FAQ</div>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 1 -->
+  <h2>1. Apresentação Institucional e Visão Geral do Sistema</h2>
+  <p>
+    O <strong>SIGAD FCJA</strong> é o <strong>Sistema Informatizado de Gestão Arquivística de Documentos</strong> da <strong>Fundação Casa de José Américo</strong>. Projetado em estrita conformidade com os requisitos do <strong>CONARQ</strong>, da norma <strong>ISO 14721 (OAIS)</strong> e da <strong>Resolução CONARQ nº 51/2023 (RDC-Arq)</strong>, o sistema controla todo o ciclo vital dos documentos arquivísticos digitais:
+  </p>
+  <ul>
+    <li><strong>Autenticidade e Fixidade Criptográfica (PREMIS):</strong> Cada arquivo capturado recebe um Número Único de Protocolo (<code>NUP</code>) e tem seu resumo criptográfico <code>Hash SHA-256</code> calculado e auditado continuamente.</li>
+    <li><strong>Relação Orgânica (Dossiês e Processos):</strong> Agrupamento lógico de documentos de uma mesma pesquisa ou ação administrativa em Unidades de Arquivamento numeradas.</li>
+    <li><strong>Classificação e Temporalidade Automática (PCD/TTD):</strong> Integra o Plano de Classificação de <strong>Atividades-Meio</strong> (PCDM/APEPB) com busca rápida instantânea e o Plano de Classificação de <strong>Atividades-Fim</strong> da FCJA (Guarda Permanente automática).</li>
+    <li><strong>Visualizador Avançado de Planilhas Multi-Abas:</strong> Leitura completa de arquivos Excel (<code>.xlsx</code>) e <code>.csv</code> com navegação entre todas as abas/guias, inspeção de fórmulas (<code>=SOMA</code>, <code>=PROCV</code>) e preservação das cores originais das células.</li>
+    <li><strong>Integração Homologada com o Archivematica 1.18.0 (<code>192.168.1.132</code>) e Storage Service (<code>:8000</code>):</strong> Geração nativa de pacotes <code>Standard Transfer</code> com <code>objects/</code>, <code>metadata/metadata.csv</code> (15 elementos Dublin Core + qualificadores + campos FCJA), <code>metadata/rights.csv</code> (18 colunas PREMIS Rights / LAI), <code>metadata/premis.xml</code> (PREMIS v3 XML) e validação prévia no FPR (1.639 formatos PRONOM).</li>
+  </ul>
+
+  <!-- SEÇÃO 2 -->
+  <h2>2. O Ecossistema Digital da Fundação (SIGAD → Archivematica 1.18.0 → AtoM)</h2>
+  <div class="fluxo-oais">
+    <div class="fluxo-card fluxo-card-1">
+      <strong style="color:#1e40af; font-size:9.5pt;">1. SIGAD FCJA (<span class="url-sigad-principal">http://[IP-DO-SERVIDOR-LOCAL]:8085</span>)</strong>
+      <p style="font-size:8.3pt; margin-top:4px; margin-bottom:0;">
+        Captura, Protocolo NUP, Busca Rápida PCD/TTD, Dossiês, Fixidade SHA-256 e empacotamento <strong>Standard Transfer (metadata.csv + rights.csv + premis.xml)</strong>.
+      </p>
+    </div>
+    <div class="fluxo-seta">➔</div>
+    <div class="fluxo-card fluxo-card-2">
+      <strong style="color:#065f46; font-size:9.5pt;">2. Archivematica 1.18.0 (192.168.1.132 :80 / :8000)</strong>
+      <p style="font-size:8.3pt; margin-top:4px; margin-bottom:0;">
+        Valida <code>rights.csv</code>, identifica PUID PRONOM (Siegfried), normaliza para preservação (PDF/A, ODS, TIFF) e consolida o <strong>Pacote AIP</strong> no Storage Service.
+      </p>
+    </div>
+    <div class="fluxo-seta">➔</div>
+    <div class="fluxo-card fluxo-card-3">
+      <strong style="color:#5b21b6; font-size:9.5pt;">3. AtoM (192.168.1.110)</strong>
+      <p style="font-size:8.3pt; margin-top:4px; margin-bottom:0;">
+        Portal de descrição arquivística multinível (NOBRADE/ISAD-G) e difusão pública para consulta aos pacotes derivados <strong>DIP</strong>.
+      </p>
+    </div>
+  </div>
+
+  <!-- SEÇÃO 3 -->
+  <h2>3. Acesso ao Sistema, Credenciais e Perfis de Permissão (RBAC Atualizado)</h2>
+
+  <h3>3.1. Os 3 Perfis de Permissão do Sistema (Governança RBAC)</h3>
+  <p>
+    O controle de acesso do SIGAD FCJA foi desenhado para separar claramente a <strong>consulta/pesquisa</strong> da <strong>intervenção arquivística e preservação</strong>:
+  </p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:19%;">Perfil no Sistema</th>
+        <th style="width:21%;">Quem Utiliza</th>
+        <th style="width:35%;">Telas e Ações Liberadas</th>
+        <th style="width:25%;">Proteção e Restrições</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="badge badge-cinza">Pesquisador FCJA</span><br/><code>pesquisador</code></td>
+        <td>Pesquisadores, bolsistas e consulentes internos dos núcleos</td>
+        <td><strong>Acesso focado e exclusivo a 2 telas:</strong><br/>• <strong>1. Dashboard Analítico</strong> (estatísticas, gráficos e indicadores do acervo);<br/>• <strong>2. Explorador do Acervo</strong> (navegação multinível nas 4 visões, visualização de PDFs e Planilhas Multi-Abas, download, verificação de fixidade SHA-256 e exportação de Planilha CSV e Relatório PDF).</td>
+        <td><strong>Proteção de Integridade:</strong> Não acessa as abas de Captura/Upload, Gestão de Dossiês/TTD, Conector Archivematica, Auditoria ou Gerenciamento de Acessos, e não pode excluir documentos.</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-azul">Arquivista SIGAD</span><br/><code>arquivista</code></td>
+        <td>Arquivistas, coordenadores de acervo e comissão de avaliação (CPAD)</td>
+        <td><strong>Acesso operacional a 6 telas:</strong><br/>• Dashboard Analítico e Explorador do Acervo;<br/>• <strong>Captura &amp; Acervo</strong> (upload em lote, edição de metadados e baixa controlada);<br/>• <strong>PCD, TTD &amp; Dossiês</strong> (abertura/juntada de dossiês e gestão de classes PCD/TTD);<br/>• <strong>Conector Archivematica</strong> (geração de pacotes SIP, descoberta de Transfer Source e homologação de AIPs);<br/>• <strong>Auditoria &amp; Fixidade</strong> (varredura SHA-256 em lote e emissão de Termos de Eliminação).</td>
+        <td>Não gerencia o cadastro de contas de usuários e senhas (exclusivo do Administrador Geral).</td>
+      </tr>
+      <tr>
+        <td><span class="badge badge-verde">Administrador Geral</span><br/><code>admin</code></td>
+        <td>Coordenação de TI e Administração Geral do Repositório</td>
+        <td><strong>Acesso Total e Irrestrito às 7 telas do sistema</strong>, incluindo a aba exclusiva <strong>Gerenciar Acessos</strong> (cadastro de novos agentes, redefinição de senhas PBKDF2-SHA256 e atribuição de perfis RBAC).</td>
+        <td>Nenhuma restrição no sistema.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>3.2. Credenciais Iniciais Cadastradas</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>Membro da Equipe</th>
+        <th>Usuário (Login)</th>
+        <th>Senha Inicial</th>
+        <th>Perfil Inicial</th>
+        <th>Escopo de Acesso Inicial</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Antonio</strong></td><td><code>antonio</code></td><td><code>1980</code></td><td>Administrador Geral (<code>admin</code>)</td><td>Todas as 7 telas do sistema</td></tr>
+      <tr><td><strong>Arquivista FCJA</strong></td><td><code>arquivista</code></td><td><code>1980</code></td><td>Arquivista SIGAD (<code>arquivista</code>)</td><td>Dashboard, Explorador, Captura, Dossiês/TTD, Archivematica e Auditoria</td></tr>
+      <tr><td><strong>Bárbara</strong></td><td><code>barbara</code></td><td><code>1980</code></td><td>Pesquisador FCJA (<code>pesquisador</code>)</td><td>Dashboard Analítico e Explorador do Acervo</td></tr>
+      <tr><td><strong>André</strong></td><td><code>andre</code></td><td><code>1980</code></td><td>Pesquisador FCJA (<code>pesquisador</code>)</td><td>Dashboard Analítico e Explorador do Acervo</td></tr>
+      <tr><td><strong>Pablo</strong></td><td><code>pablo</code></td><td><code>1980</code></td><td>Pesquisador FCJA (<code>pesquisador</code>)</td><td>Dashboard Analítico e Explorador do Acervo</td></tr>
+      <tr><td><strong>Josilene</strong></td><td><code>josilene</code></td><td><code>1980</code></td><td>Pesquisador FCJA (<code>pesquisador</code>)</td><td>Dashboard Analítico e Explorador do Acervo</td></tr>
+    </tbody>
+  </table>
+
+  <!-- SEÇÃO 4 -->
+  <h2>4. Dicionário Rápido: O Que Cada Termo e Campo Significa</h2>
+  <ul>
+    <li><strong>Protocolo SIGAD (NUP):</strong> Número Único de Protocolo gerado automaticamente na captura no formato <code>FCJA.&lt;SIGLA_CURTA&gt;.&lt;ANO&gt;.&lt;SEQUENCIAL&gt;</code> (ex.: <code>FCJA.NMJAA.2026.00001</code>).</li>
+    <li><strong>Sigla NOBRADE:</strong> Identificador normativo do fundo e núcleo produtor na Fundação (ex.: <code>BR_PB_FCJA_GEDA_GOP_PPMD_NMJAA</code>), preenchido automaticamente ao selecionar o Núcleo.</li>
+    <li><strong>Status Diplomático (<code>Original</code>, <code>Minuta</code>, <code>Cópia</code>):</strong> Define a maturidade do documento. Documentos marcados como <code>Original</code> possuem bloqueio de imutabilidade e só podem ser baixados mediante Termo de Eliminação oficial emitido por Arquivista ou Administrador.</li>
+    <li><strong>Nível de Acesso (<code>Ostensivo</code>, <code>Restrito LGPD</code>, <code>Sigiloso LAI</code>):</strong> Define as permissões de difusão pública e preenche automaticamente a tabela <code>metadata/rights.csv</code> (18 colunas PREMIS Rights) enviada ao Archivematica.</li>
+    <li><strong>Unidade de Arquivamento (<code>Dossiê</code> ou <code>Processo</code>):</strong> Pasta oficial numerada (ex.: <code>DOSSIE.FCJA.NMJAA.2026.0001</code>) que agrupa vários documentos de uma mesma pesquisa ou ação administrativa mantendo o <strong>Vínculo Orgânico</strong>.</li>
+  </ul>
+
+  <!-- SEÇÃO 5 -->
+  <h2>5. Guia Detalhado Tela por Tela (As 7 Abas do Sistema)</h2>
+
+  <!-- ABA 1 -->
+  <h3>5.1. Aba 1 — Dashboard Analítico (Atualizado)</h3>
+  <p>Painel executivo e arquivístico que acompanha em tempo real a evolução do SIGAD FCJA:</p>
+  <ul>
+    <li><strong>Indicadores de Topo:</strong> Total de documentos no acervo, volume de armazenamento e espaço livre no servidor, percentual de <strong>Fixidade SHA-256 Íntegra (PREMIS)</strong> e documentos destinados à <strong>Guarda Permanente (RDC-Arq)</strong>.</li>
+    <li><strong>Monitoramento do Ciclo Vital e OAIS:</strong> Exibe a distribuição entre documentos em Fase Corrente, Fase Intermediária, Guarda Permanente e pacotes SIP/AIP recolhidos ao Archivematica.</li>
+    <li><strong>Gráficos e Filtros Avançados:</strong> Distribuição por Núcleo Produtor, Série Histórica por Ano e Ranking de Tipologias Documentais, com suporte a filtros combinados.</li>
+  </ul>
+
+  <!-- ABA 2 -->
+  <h3>5.2. Aba 2 — Explorador Arquivístico do Acervo (4 Visões Multinível + Relatório PDF)</h3>
+  <p>
+    O novo <strong>Explorador Arquivístico do Acervo</strong> foi redesenhado para atender tanto o pesquisador quanto o arquivista, oferecendo <strong>4 modos de organização multinível</strong> no topo da tela:
+  </p>
+  <ol>
+    <li><strong><code>1. Por Núcleo Produtor (Fundo)</code>:</strong> Organiza o acervo pelos 16 Núcleos de Pesquisa da FCJA (Fundo/Subfundo NOBRADE).</li>
+    <li><strong><code>2. Por Plano de Classificação (PCD &amp; TTD)</code>:</strong> Agrupa os documentos pelas classes de Atividade-Fim (FCJA) e Atividade-Meio (APEPB), permitindo inspecionar cada série documental.</li>
+    <li><strong><code>3. Por Dossiês &amp; Processos (Unidades)</code>:</strong> Exibe as pastas de dossiês abertos/encerrados e os documentos avulsos.</li>
+    <li><strong><code>4. Por Ciclo Vital, OAIS &amp; Sigilo</code>:</strong> Agrupa o acervo por Fase Arquivística (Corrente, Intermediária, Permanente), Status de Recolhimento ao Archivematica e Nível de Acesso (Ostensivo, Restrito LGPD, Sigiloso LAI).</li>
+  </ol>
+  <ul>
+    <li><strong>Busca Global e Filtros Instantâneos:</strong> Pesquise por Protocolo NUP, Título, Autor, Classe PCD, Dossiê ou Hash SHA-256, filtrando também por Fase, Nível de Acesso e Formato (<code>PDF</code>, <code>XLSX</code>, <code>DOCX</code>, <code>TIFF</code>) e alternando entre visualização em <strong>Lista</strong> ou <strong>Grade</strong>.</li>
+    <li><strong>Painel Inspetor Lateral ("Diagnóstico do Nível Atual"):</strong> Exibe a contagem de pastas, documentos, volume em MB e os botões de exportação imediata do escopo selecionado:
+      <ul>
+        <li><strong><code>Planilha CSV</code>:</strong> Baixa o inventário tabular compatível com Excel.</li>
+        <li><strong><code>Relatório PDF</code>:</strong> Gera e baixa instantaneamente um arquivo <strong>PDF institucional nativo</strong> com cabeçalho da FCJA, sumário do escopo e tabela numerada com Protocolo NUP, Título, Classe PCD, Acesso e Hash SHA-256 de cada documento.</li>
+      </ul>
+    </li>
+  </ul>
+
+  <!-- ABA 3 -->
+  <h3>5.3. Aba 3 — Estação de Captura &amp; Indexação Arquivística (Nova Interface)</h3>
+  <p>
+    Projetada para máxima ergonomia do arquivista na indexação individual ou em lote:
+  </p>
+  <ul>
+    <li><strong>4 Cartões de Indicadores em Tempo Real (Topo):</strong>
+      <ol>
+        <li><strong>Fila de Captura Atual:</strong> Quantidade de arquivos na fila, marcados e tamanho total em MB/KB.</li>
+        <li><strong>Padrão de Protocolo NUP:</strong> Prévia dinâmica da máscara de protocolo (ex.: <code>FCJA.NMJAA.2026.XXXX</code>) que será atribuída no envio.</li>
+        <li><strong>Regime TTD Selecionado:</strong> Mostra se a captura está em <em>Guarda Permanente (RDC-Arq)</em> ou <em>Tabela de Temporalidade (Atividade-Meio)</em> e qual classe PCD está ativa.</li>
+        <li><strong>Total no Acervo SIGAD:</strong> Quantidade de documentos registrados e dossiês abertos disponíveis para juntada.</li>
+      </ol>
+    </li>
+    <li><strong>Zona de Depósito Adaptativa:</strong> Quando a fila está vazia, exibe a área ampla de <em>Drag &amp; Drop</em>. Assim que você seleciona os arquivos, ela se compacta em uma barra superior com o botão <strong><code>+ Adicionar Mais Arquivos</code></strong>, dando destaque imediato à fila e aos metadados.</li>
+    <li><strong>Passo 1 — Fila de Componentes Digitais:</strong> Cada arquivo exibe uma etiqueta colorida do formato (<code>PDF</code>, <code>XLSX</code>, <code>DOCX</code>, <code>TIFF</code>), campo com ícone de lápis para <strong>editar o título do documento</strong> diretamente na linha e etiquetas resumindo todos os metadados atribuídos (Atividade, Classe PCD, Tipologia, Ano, Núcleo, Status, Acesso e Dossiê).</li>
+    <li><strong>Passo 2 — Metadados de Captura em Lote (Organizados em 3 Blocos Lógicos):</strong>
+      <ul>
+        <li><strong>Bloco A — Cronologia de Captura &amp; Proveniência Orgânica (NOBRADE):</strong> <code>Data e Hora de Captura</code>, <code>Ano</code>, <code>Núcleo Produtor</code> e <code>Sigla NOBRADE</code> (preenchida automaticamente).</li>
+        <li><strong>Bloco B — Autoria, Status Diplomático, Direitos de Acesso (LAI/LGPD) &amp; Juntada em Dossiê:</strong> <code>Autor / Entidade Produtora</code>, <code>Status do Documento</code> (Original, Minuta, Cópia), <code>Nível de Acesso</code> (com campo destacado para <em>Hipótese Legal</em> quando Restrito/Sigiloso) e <code>Dossiê / Processo</code>.</li>
+        <li><strong>Bloco C — Classificação Arquivística (PCD) &amp; Natureza da Atividade:</strong>
+          <ul>
+            <li>Botões rápidos para alternar entre <strong><code>Atividade-Meio (Administrativa)</code></strong> e <strong><code>Atividade-Fim (Guarda Permanente FCJA)</code></strong>.</li>
+            <li><strong>Busca Rápida Inteligente no PCD (Atividade-Meio):</strong> Digite qualquer código ou palavra-chave (ex.: <code>Despacho</code>, <code>Relatório</code>, <code>001.01.04</code>) no campo de busca rápida do PCD e clique no resultado para preencher automaticamente <code>1. Função</code>, <code>2. Subfunção</code>, <code>3. Atividade</code>, <code>4. Tipologia Documental</code> e <code>5. Tipologia / Espécie</code>!</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Barra Final de Captura:</strong> O botão <strong><code>Aplicar aos X marcados</code></strong> sincroniza os campos mantendo os arquivos marcados, e o botão azul <strong><code>Capturar X no SIGAD</code></strong> envia os arquivos, calcula o Hash SHA-256, gera o Protocolo NUP e registra na auditoria.</li>
+  </ul>
+
+  <!-- ABA 4 -->
+  <h3>5.4. Aba 4 — PCD, TTD &amp; Dossiês (Guia Simples das 3 Sub-Abas)</h3>
+  <p>
+    Em um arquivo público ou fundação como a FCJA, documentos de uma mesma pesquisa ou processo não ficam soltos: eles possuem um <strong>Vínculo Orgânico</strong>. Esta tela organiza o acervo em <strong>3 Sub-Abas</strong>:
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28%;">Sub-Aba na Tela</th>
+        <th style="width:32%;">O Que É (Em Linguagem Simples)</th>
+        <th style="width:40%;">O Que o Arquivista Faz Aqui</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. Dossiês &amp; Processos — Relação Orgânica</strong></td>
+        <td>É a <strong>"Pasta Oficial" (Unidade de Arquivamento)</strong> que reúne todos os documentos de uma mesma pesquisa, projeto ou processo administrativo em ordem cronológica (<code>Peça #1</code>, <code>Peça #2</code>...).</td>
+        <td>• Clica em <strong><code>Abrir Novo Dossiê / Processo</code></strong> para criar uma pasta oficial numerada;<br/>• Clica em <strong><code>Juntar Documentos</code></strong> para vincular documentos avulsos dentro do dossiê;<br/>• Clica em <strong><code>Encerrar Dossiê</code></strong> quando a pesquisa termina, deixando o lote pronto para recolhimento ao Archivematica.</td>
+      </tr>
+      <tr>
+        <td><strong>2. Plano de Classificação (PCD) &amp; Tabela de Temporalidade (TTD)</strong></td>
+        <td>É o <strong>"Livro de Regras"</strong> da Fundação: lista todos os códigos de classificação (PCD) e define quantos anos cada documento fica na Fase Corrente, na Fase Intermediária e qual seu destino final.</td>
+        <td>• Consulta os prazos de <strong>Atividade-Fim (FCJA)</strong> e <strong>Atividade-Meio (APEPB)</strong>;<br/>• Cadastra novas classes clicando em <strong><code>+ Nova Classe PCD/TTD</code></strong>;<br/>• Ativa ou inativa classes existentes.</td>
+      </tr>
+      <tr>
+        <td><strong>3. Avaliação Temporal &amp; Relação de Recolhimento</strong></td>
+        <td>É o <strong>"Painel de Vencimento e Triagem Automática"</strong>: o sistema soma o ano do documento com os prazos da TTD e separa automaticamente o acervo em duas listas.</td>
+        <td>• <strong>Painel Verde (Esquerda):</strong> Lista os documentos de <em>Guarda Permanente</em> prontos para ir ao Archivematica;<br/>• <strong>Painel Âmbar (Direita):</strong> Lista os documentos administrativos de <em>Guarda Temporária</em> indicando o ano em que poderão ser eliminados.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ABA 5 -->
+  <h3>5.5. Aba 5 — Conector Automático Archivematica 1.18.0 &amp; Storage Service (:8000)</h3>
+  <p>
+    Totalmente adequado às especificações técnicas extraídas do servidor <strong>Archivematica 1.18.0 (<code>http://192.168.1.132</code>)</strong> e do <strong>Storage Service (<code>http://192.168.1.132:8000</code>)</strong> da FCJA, operando em <strong>4 Sub-Abas</strong>:
+  </p>
+  <ol>
+    <li><strong>Sub-Aba 1 — <code>1. Construtor de Pacote SIP (Standard Transfer)</code>:</strong>
+      <ul>
+        <li>Permite selecionar documentos individuais de Guarda Permanente ou um <strong>Dossiê inteiro</strong> (preenchendo automaticamente o número de acesso <code>accession</code>).</li>
+        <li>Exibe para cada documento seu código <strong>PRONOM PUID</strong> (ex.: <code>fmt/18</code> para PDF, <code>fmt/214</code> para XLSX, <code>fmt/353</code> para TIFF), a regra de normalização de preservação e a ferramenta de validação (<code>JHOVE</code> / <code>Siegfried</code> / <code>FFprobe</code>).</li>
+        <li>Constrói o pacote na estrutura oficial <strong>Standard Transfer</strong> exigida pelo endpoint <code>POST /api/v2beta/package</code>:
+          <ul>
+            <li><code>objects/</code>: Cópias binárias exatas dos arquivos originais do acervo;</li>
+            <li><code>metadata/metadata.csv</code>: Codificação UTF-8, <code>filename</code> (<code>objects/...</code>) na 1ª coluna, todos os <strong>15 elementos Dublin Core</strong>, datas em ISO 8601 (<code>YYYY-MM-DD</code>), <code>dc.type</code> no vocabulário controlado DCMI (<code>Text</code>, <code>Image</code>, <code>Dataset</code>, <code>Sound</code>, <code>MovingImage</code>), <code>dc.language = pt-BR</code>, qualificadores <code>dcterms.isPartOf</code> e <code>dcterms.accessRights</code>, além dos campos customizados da FCJA (<code>classificacao</code>, <code>prazo_guarda</code> e <code>destinacao_prevista</code>);</li>
+            <li><code>metadata/rights.csv</code>: As <strong>18 colunas PREMIS Rights</strong> na ordem exata exigida pelo validador <code>POST /api/v2beta/validate/rights/</code>, mapeando a Lei de Acesso à Informação (Lei nº 12.527/2011);</li>
+            <li><code>metadata/premis.xml</code>: Eventos de pré-depósito e fixidade SHA-256 em XML PREMIS v3;</li>
+            <li><code>metadata/submissionDocumentation/termo_recolhimento_sigad_fcja.txt</code> e <code>mets_earq_manifest.xml</code>.</li>
+          </ul>
+        </li>
+      </ul>
+    </li>
+    <li><strong>Sub-Aba 2 — <code>2. Fila de Transferências — 8 Etapas</code>:</strong>
+      <ul>
+        <li>Exibe o <strong>Rastreador Visual das 8 Etapas</strong> da automação: <em>Etapa 1 (Transfer Source :8000) ➔ Etapa 2 (Pacote Standard) ➔ Etapa 3 (Validação rights.csv) ➔ Etapa 4 (POST /v2beta/package) ➔ Etapa 5 (Status Transfer) ➔ Etapa 6 (Status Ingest) ➔ Etapa 7 (Storage Service UPLOADED) ➔ Etapa 8 (Vínculo Definitivo do AIP no SIGAD)</em>.</li>
+        <li>Botão <strong><code>Inspecionar CSV / XML</code>:</strong> Abre um visualizador técnico na própria tela permitindo ler o conteúdo exato de <code>metadata/metadata.csv</code>, <code>metadata/rights.csv</code>, <code>metadata/premis.xml</code> e <code>mets_earq_manifest.xml</code> gerados dentro do pacote!</li>
+      </ul>
+    </li>
+    <li><strong>Sub-Aba 3 — <code>3. Política de Formatos FPR (1.639 PRONOM)</code>:</strong>
+      <ul>
+        <li>Catálogo completo das regras de normalização para preservação (AIP), acesso (DIP/AtoM) e validação do servidor <code>192.168.1.132</code>.</li>
+      </ul>
+    </li>
+    <li><strong>Sub-Aba 4 — <code>4. Configuração Archivematica (:80) &amp; Storage Service (:8000)</code>:</strong>
+      <ul>
+        <li>Permite configurar as <strong>Credenciais Duplas</strong> (usuário e API Key do Dashboard na porta <code>80</code> + usuário e API Key do Storage Service na porta <code>8000</code>) e possui o botão <strong><code>Descobrir Transfer Source (Etapa 1)</code></strong>, que consulta <code>GET /api/v2/location/?purpose=TS</code> na porta <code>8000</code> e preenche o <code>Location UUID</code> automaticamente.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <!-- ABA 6 & 7 -->
+  <h3>5.6. Aba 6 — Auditoria &amp; Fixidade e Aba 7 — Gerenciar Acessos</h3>
+  <ul>
+    <li><strong>Auditoria &amp; Fixidade:</strong> Permite executar a varredura <strong><code>Auditar Fixidade SHA-256 em Lote</code></strong> sobre todos os arquivos do disco, consultar a <strong>Trilha Imutável de Eventos</strong> e imprimir <strong>Termos de Eliminação</strong> oficiais com linhas de assinatura para a CPAD.</li>
+    <li><strong>Gerenciar Acessos (Exclusivo Admin):</strong> Criação de usuários com senhas criptografadas em <code>PBKDF2-HMAC-SHA256</code> e troca rápida de perfil entre <code>Pesquisador</code>, <code>Arquivista SIGAD</code> e <code>Administrador</code>.</li>
+  </ul>
+
+  <!-- SEÇÃO 6 -->
+  <h2>6. Visualizador Avançado de Planilhas Multi-Abas (<code>.xlsx</code> / <code>.csv</code>)</h2>
+  <p>
+    Ao clicar no ícone do <strong>Olho (Visualizar)</strong> sobre qualquer planilha Excel (<code>.xlsx</code>) ou <code>.csv</code> no Explorador ou na Tabela do Acervo, abre-se o novo <strong>Visualizador Avançado de Planilhas</strong>:
+  </p>
+  <ul>
+    <li><strong>Navegação Completa entre Abas/Guias:</strong> Exibe todas as abas da planilha tanto na barra superior quanto na barra inferior estilo Excel (com botões <code>&lt;</code> e <code>&gt;</code>, indicador da cor original da aba e dimensões <code>linhas × colunas</code> de cada guia).</li>
+    <li><strong>Barra de Fórmulas (<code>fx</code>) e Inspeção de Funções:</strong> Clique em qualquer célula para ver sua coordenada (ex.: <code>C14</code>), seu tipo de dado (<code>FÓRMULA</code>, <code>NÚMERO</code>, <code>TEXTO</code>), a fórmula original do Excel (ex.: <code>=SOMA(C2:C13)</code>) e o valor calculado.</li>
+    <li><strong>Botões <code>Exibir =Fórmulas</code> e <code>Destacar fx</code>:</strong> Alternam a grade inteira entre os resultados calculados e as expressões matemáticas originais, destacando em roxo todas as células que possuem fórmulas.</li>
+    <li><strong>Cores Originais e Estatísticas Automáticas:</strong> Preserva as cores de preenchimento e fonte das células da planilha original e calcula automaticamente na barra inferior a <strong>Contagem</strong>, <strong>Soma</strong>, <strong>Média</strong>, <strong>Mínimo</strong> e <strong>Máximo</strong> da coluna selecionada.</li>
+  </ul>
+
+  <!-- SEÇÃO 7 -->
+  <h2>7. Tabelas Institucionais (Os 16 Núcleos e Classes de Atividade-Fim)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:5%;">#</th>
+        <th style="width:53%;">Núcleo de Pesquisa da FCJA</th>
+        <th style="width:30%;">Sigla NOBRADE Automática</th>
+        <th style="width:12%;">Prefixo NUP</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Manuscritos de José Américo de Almeida: identificação e descrição de documentos</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMJAA</code></td><td><code>NMJAA</code></td></tr>
+      <tr><td>2</td><td>O modernismo na Paraíba a revista Era Nova e a Novela Reflexões de uma cabra</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NRENN</code></td><td><code>NRENN</code></td></tr>
+      <tr><td>3</td><td>A Paraíba e seus problemas: permanências e transformações</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NPBP</code></td><td><code>NPBP</code></td></tr>
+      <tr><td>4</td><td>Partituras de uma história pela democracia: as conexões artísticas e políticas entre José Siqueira e José Américo de Almeida</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NJSJAA</code></td><td><code>NJSJAA</code></td></tr>
+      <tr><td>5</td><td>Acervo audiovisual da FCJA: imagem e memória</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NAFCJA</code></td><td><code>NAFCJA</code></td></tr>
+      <tr><td>6</td><td>Os Modernismos na Paraíba e o Circuito de Comunicação da Revista Era Nova (1921-1926)</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMREN</code></td><td><code>NMREN</code></td></tr>
+      <tr><td>7</td><td>De A Paraíba e seus problemas à A Bagaceira: Itinerários literários de José Américo de Almeida</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NPBPB</code></td><td><code>NPBPB</code></td></tr>
+      <tr><td>8</td><td>Maestro José Siqueira: Memórias da Música para o futuro</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMJS</code></td><td><code>NMJS</code></td></tr>
+      <tr><td>9</td><td>1930 A caminho do centenário: convergências bibliográficas e fontes digitais (BR 1930)</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NBR1930</code></td><td><code>NBR1930</code></td></tr>
+      <tr><td>10</td><td>Modernização digital do acervo da Fundação Casa de José Américo: estruturando a preservação e o acesso</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMD</code></td><td><code>NMD</code></td></tr>
+      <tr><td>11</td><td>Imprensa e cultura na Paraíba: os circuitos de comunicação das revistas Ilustração e Manaíra (1930-1940)</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NRIM</code></td><td><code>NRIM</code></td></tr>
+      <tr><td>12</td><td>Por uma cartografia dos lugares de consciência na Paraíba: trajetos do patrimônio cultural por meio da memória das violações de direitos humanos e da resistência</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NCMR</code></td><td><code>NCMR</code></td></tr>
+      <tr><td>13</td><td>Repositório Arquivístico Digital Confiável da produção do Projeto Preservação e Difusão do Acervo da FCJA</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NRDCARQ</code></td><td><code>NRDCARQ</code></td></tr>
+      <tr><td>14</td><td>Mapeamento do Patrimônio Arqueológico da Paraíba</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMAPB</code></td><td><code>NMAPB</code></td></tr>
+      <tr><td>15</td><td>Entre Termos e Conceitos: Uma Pesquisa Documental sobre Educação Patrimonial</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NEP</code></td><td><code>NEP</code></td></tr>
+      <tr><td>16</td><td>Sustentabilidade e Diversidade: Pesquisa-ação na Mata da Falésia de Cabo Branco</td><td><code>BR_PB_FCJA_GEDA_GOP_PPMD_NMFCB</code></td><td><code>NMFCB</code></td></tr>
+    </tbody>
+  </table>
+
+  <!-- SEÇÃO 8 -->
+  <h2>8. Implantação no Servidor Local via Docker Compose &amp; Como Atualizar o Endereço</h2>
+  <p>
+    O sistema conta com uma arquitetura completa em <strong>Docker Compose</strong> (<code>docker-compose.yml</code>) composta por 4 containers isolados e integrados: <code>fcja_sigad_db</code> (MySQL 8.0 UTF-8), <code>fcja_sigad_backend</code> (API Python FastAPI + Gunicorn/Uvicorn), <code>fcja_sigad_frontend</code> (Interface Web React 19) e <code>fcja_sigad_gateway</code> (Proxy Reverso Nginx unificado na porta <code>8085</code>).
+  </p>
+  <ol>
+    <li><strong>Para iniciar o sistema no servidor local da Fundação:</strong> Basta executar na raiz do projeto o comando <code>docker compose up -d --build</code> (ou dar duplo clique em <code>scripts/windows/Iniciar_Docker_FCJA.bat</code> no Windows / executar <code>./scripts/linux/iniciar_docker_fcja.sh</code> no Linux).</li>
+    <li><strong>Como atualizar o endereço neste Guia quando o servidor local estiver no ar:</strong>
+      <ul>
+        <li><strong>Opção A (Direto no PDF):</strong> Abra o arquivo <code>docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.pdf</code> no navegador (Edge/Chrome) ou Adobe Reader, clique diretamente dentro dos campos editáveis do <strong>Quadro de Endereços na Página 1</strong>, digite o novo IP do servidor e salve o PDF.</li>
+        <li><strong>Opção B (Via HTML Gerador):</strong> Abra o arquivo <code>docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.html</code> no navegador, digite o novo endereço na barra superior escura (que atualizará automaticamente todo o texto do manual) e clique no botão azul <strong>"Imprimir / Salvar PDF Atualizado"</strong>.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <div class="rodape-doc">
+    Fundação Casa de José Américo (FCJA) · Repositório Arquivístico Digital Confiável (BR-PBFCJA-RADC) · Guia Oficial de Operação SIGAD FCJA v2.5
+  </div>
+
+  <script>
+    function atualizarEnderecosNoGuia() {
+      var urlPrin = document.getElementById("inputUrlPrincipal").value;
+      var urlCont = document.getElementById("inputUrlContingencia").value;
+      var statusSrv = document.getElementById("inputStatusServidor").value;
+
+      var elsPrin = document.querySelectorAll(".url-sigad-principal");
+      for (var i = 0; i < elsPrin.length; i++) {
+        elsPrin[i].textContent = urlPrin;
+      }
+      var elsCont = document.querySelectorAll(".url-sigad-contingencia");
+      for (var j = 0; j < elsCont.length; j++) {
+        elsCont[j].textContent = urlCont;
+      }
+      var elsStatus = document.querySelectorAll(".status-sigad-servidor");
+      for (var k = 0; k < elsStatus.length; k++) {
+        elsStatus[k].textContent = statusSrv;
+      }
+    }
+
+    if (window.location.search.indexOf("pdfform=1") !== -1) {
+      var ids = ["boxUrlPrincipal", "boxUrlContingencia", "boxStatusServidor", "boxServidoresRdc"];
+      for (var b = 0; b < ids.length; b++) {
+        var el = document.getElementById(ids[b]);
+        if (el) {
+          el.textContent = "";
+        }
+      }
+    }
+  </script>
+</body>
+</html>
