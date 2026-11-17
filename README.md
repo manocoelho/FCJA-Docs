@@ -25,7 +25,7 @@ O **SIGAD FCJA** atua como a porta de entrada e gestão do ciclo vital documenta
 
 ---
 
-## ✨ Principais Funcionalidades (Versão 2.5)
+## ✨ Principais Funcionalidades
 
 * 🛡️ **Captura & Indexação Arquivística com Busca Rápida no PCD:**
   * Atribuição automática de **Número Único de Protocolo (`NUP`)** no padrão `FCJA.<SIGLA>.<ANO>.<SEQUENCIAL>`, cálculo em *stream* de **Fixidade Criptográfica SHA-256 (PREMIS)** e validação de *magic bytes*.
@@ -88,11 +88,8 @@ Após a inicialização, acesse no navegador:
 
 O repositório inclui a documentação oficial completa da **Versão 2.5** em múltiplos formatos (com **Quadro Editável de Endereços do Servidor Local** na Página 1):
 
-* 📕 **Guia Oficial em PDF (com campos de formulário `AcroForm` editáveis):** [`docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.pdf`](./docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.pdf)
 * 📘 **Guia Editável em Microsoft Word OpenXML (`.docx`):** [`docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.docx`](./docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.docx)
 * 📘 **Guia Editável em Microsoft Word Compatível (`.doc`):** [`docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.doc`](./docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.doc)
-* 🌐 **Gerador Interativo HTML (com barra de substituição automática de IP):** [`docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.html`](./docs/manuais/GUIA_COMPLETO_SIGAD_FCJA.html)
-* 📝 **Manual Rápido em Markdown:** [`docs/manuais/MANUAL_USO_PESQUISADORES.md`](./docs/manuais/MANUAL_USO_PESQUISADORES.md)
 
 ---
 
