@@ -10,7 +10,9 @@ import {
   Lock,
   Plus,
   RefreshCw,
+  Trash2,
   Unlock,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -70,6 +72,7 @@ export function TelaGestaoArquivistica({
     abrirNovoDossie,
     mudarStatusDossie,
     executarJuntadaDossie,
+    removerDossie,
   } = useGestaoArquivistica(onDocumentosAlterados);
 
   const [abaInterna, setAbaInterna] = useState<"dossies" | "pcd" | "avaliacao">("dossies");
@@ -87,6 +90,9 @@ export function TelaGestaoArquivistica({
   // Estados Modal Juntada de Documentos ao Dossiê
   const [dossieJuntadaAlvo, setDossieJuntadaAlvo] = useState<DossieItem | null>(null);
   const [docsSelecionadosJuntada, setDocsSelecionadosJuntada] = useState<string[]>([]);
+
+  // Estado Modal Exclusão de Dossiê
+  const [dossieExclusaoAlvo, setDossieExclusaoAlvo] = useState<DossieItem | null>(null);
 
   // Estados Modal Nova Classe PCD/TTD
   const [modalNovaClasse, setModalNovaClasse] = useState(false);
@@ -145,11 +151,19 @@ export function TelaGestaoArquivistica({
   }
 
   async function confirmarJuntada() {
-    if (!dossieJuntadaAlvo || docsSelecionadosJuntada.length === 0) return;
+    if (!dossieJuntadaAlvo) return;
     const ok = await executarJuntadaDossie(dossieJuntadaAlvo.id, docsSelecionadosJuntada);
     if (ok) {
       setDossieJuntadaAlvo(null);
       setDocsSelecionadosJuntada([]);
+    }
+  }
+
+  async function confirmarExclusaoDossie() {
+    if (!dossieExclusaoAlvo) return;
+    const ok = await removerDossie(dossieExclusaoAlvo.id);
+    if (ok) {
+      setDossieExclusaoAlvo(null);
     }
   }
 
@@ -373,15 +387,32 @@ export function TelaGestaoArquivistica({
                             key={docItem.id}
                             className="flex items-center justify-between gap-2 text-slate-700"
                           >
-                            <span className="truncate">
+                            <span className="truncate min-w-0 flex-1">
                               <strong className="font-mono text-[11px] text-slate-500">
                                 Peça #{idx + 1} [{docItem.numeroProtocolo || docItem.id.slice(0, 6)}]
                               </strong>{" "}
                               {docItem.nome}
                             </span>
-                            <span className="shrink-0 text-[10px] text-slate-400">
-                              {docItem.categoria} ({docItem.ano})
-                            </span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[10px] text-slate-400">
+                                {docItem.categoria} ({docItem.ano})
+                              </span>
+                              {d.statusDossie === "ABERTO" && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const restantes = d.documentos
+                                      .filter((x) => x.id !== docItem.id)
+                                      .map((x) => x.id);
+                                    executarJuntadaDossie(d.id, restantes);
+                                  }}
+                                  className="rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                  title="Desvincular peça deste dossiê (retornar para Documento Avulso)"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
                           </li>
                         ))}
                       </ul>
@@ -403,27 +434,41 @@ export function TelaGestaoArquivistica({
                     <Link2 className="h-3.5 w-3.5" /> Juntar Documentos (Vínculo Orgânico)
                   </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      mudarStatusDossie(
-                        d.id,
-                        d.statusDossie === "ABERTO" ? "ENCERRADO" : "ABERTO"
-                      )
-                    }
-                    className="gap-1.5 text-xs text-slate-600"
-                  >
-                    {d.statusDossie === "ABERTO" ? (
-                      <>
-                        <Lock className="h-3.5 w-3.5" /> Encerrar Dossiê
-                      </>
-                    ) : (
-                      <>
-                        <Unlock className="h-3.5 w-3.5" /> Reabrir Dossiê
-                      </>
+                  <div className="flex items-center gap-1.5">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() =>
+                        mudarStatusDossie(
+                          d.id,
+                          d.statusDossie === "ABERTO" ? "ENCERRADO" : "ABERTO"
+                        )
+                      }
+                      className="gap-1.5 text-xs text-slate-600"
+                    >
+                      {d.statusDossie === "ABERTO" ? (
+                        <>
+                          <Lock className="h-3.5 w-3.5" /> Encerrar Dossiê
+                        </>
+                      ) : (
+                        <>
+                          <Unlock className="h-3.5 w-3.5" /> Reabrir Dossiê
+                        </>
+                      )}
+                    </Button>
+
+                    {temPermissaoArquivista && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setDossieExclusaoAlvo(d)}
+                        className="gap-1.5 text-xs text-red-600 hover:bg-red-50 hover:text-red-700"
+                        title="Excluir Dossiê (os documentos juntados voltam a ficar Avulsos)"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" /> Excluir Dossiê
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -781,8 +826,42 @@ export function TelaGestaoArquivistica({
             <Button variant="outline" onClick={() => setDossieJuntadaAlvo(null)}>
               Cancelar
             </Button>
-            <Button onClick={confirmarJuntada} disabled={docsSelecionadosJuntada.length === 0}>
-              Confirmar Juntada ({docsSelecionadosJuntada.length})
+            <Button onClick={confirmarJuntada}>
+              Salvar Vínculo ({docsSelecionadosJuntada.length} doc.)
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: CONFIRMAÇÃO DE EXCLUSÃO DE DOSSIÊ / UNIDADE DE ARQUIVAMENTO */}
+      <Dialog
+        open={dossieExclusaoAlvo !== null}
+        onOpenChange={(o) => !o && setDossieExclusaoAlvo(null)}
+      >
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Excluir Dossiê / Unidade de Arquivamento</DialogTitle>
+            <DialogDescription>
+              Tem certeza de que deseja excluir o dossiê{" "}
+              <strong className="text-slate-900">{dossieExclusaoAlvo?.codigoDossie}</strong> (
+              {dossieExclusaoAlvo?.titulo})?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-xl border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 space-y-1">
+            <p className="font-semibold">Nenhum documento do acervo será apagado:</p>
+            <p>
+              Caso este dossiê possua peças vinculadas ({dossieExclusaoAlvo?.totalDocumentos || 0}{" "}
+              documento(s)), elas retornarão automaticamente à condição de{" "}
+              <strong>Documento Avulso</strong> no SIGAD.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDossieExclusaoAlvo(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmarExclusaoDossie} className="gap-1.5">
+              <Trash2 className="h-4 w-4" />
+              Confirmar Exclusão do Dossiê
             </Button>
           </DialogFooter>
         </DialogContent>

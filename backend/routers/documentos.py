@@ -186,21 +186,14 @@ def upload_documento(
             categoria=categoria,
         )
 
-        # Vinculação orgânica com Dossiê / Processo (Unidade de Arquivamento)
+        # Vinculação orgânica com Dossiê / Processo (somente quando selecionado explicitamente pelo usuário;
+        # se 'Documento Avulso' foi escolhido, permanece sem vínculo de dossiê)
         dossie_vinculado = None
-        if dossie_id:
+        dossie_id_limpo = (dossie_id or "").strip()
+        if dossie_id_limpo and dossie_id_limpo not in ("AVULSO", "NaN", "null", "None"):
             dossie_vinculado = (
                 db.query(UnidadeArquivamentoModel)
-                .filter(UnidadeArquivamentoModel.id == dossie_id)
-                .first()
-            )
-        if not dossie_vinculado and nucleo:
-            dossie_vinculado = (
-                db.query(UnidadeArquivamentoModel)
-                .filter(
-                    UnidadeArquivamentoModel.nucleo == nucleo,
-                    UnidadeArquivamentoModel.status_dossie == "ABERTO",
-                )
+                .filter(UnidadeArquivamentoModel.id == dossie_id_limpo)
                 .first()
             )
 

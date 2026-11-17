@@ -110,7 +110,7 @@ type Pendente = {
   statusDocumento: string;
   nivelAcesso: string;
   hipoteseLegal: string;
-  dossieId: number | null;
+  dossieId: string | null;
   progresso: number;
   status: "aguardando" | "enviando" | "concluido";
   editado?: boolean;
@@ -159,7 +159,7 @@ export function TelaUpload({
   const [cadStatusDoc, setCadStatusDoc] = useState<string>("ORIGINAL");
   const [cadNivelAcesso, setCadNivelAcesso] = useState<string>("OSTENSIVO");
   const [cadHipoteseLegal, setCadHipoteseLegal] = useState<string>("");
-  const [cadDossieId, setCadDossieId] = useState<number | null>(null);
+  const [cadDossieId, setCadDossieId] = useState<string | null>(null);
 
   // Classes de Atividade-Fim (PCD/TTD) e Dossiês Abertos
   const [classesFim, setClassesFim] = useState<
@@ -1153,7 +1153,7 @@ export function TelaUpload({
                   <Select
                     value={cadDossieId !== null ? String(cadDossieId) : "AVULSO"}
                     onValueChange={(v) => {
-                      const novoId = v === "AVULSO" ? null : Number(v);
+                      const novoId = v === "AVULSO" ? null : v;
                       setCadDossieId(novoId);
                       setPendentes((prev) =>
                         prev.map((p) => (p.sel ? { ...p, dossieId: novoId } : p))

@@ -34,97 +34,11 @@ def gerar_codigo_dossie(db: Session, sigla_nucleo: str, nucleo: str, ano: int) -
 
 def popular_dossies_iniciais(db: Session) -> None:
     """
-    Responsabilidade única: Criar Unidades de Arquivamento (Dossiês) iniciais para os
-    núcleos que já possuem documentos no banco e vincular documentos órfãos ao respectivo
-    dossiê para garantir a relação orgânica (e-ARQ Brasil v2 Cap. 1.3).
+    Responsabilidade única: Preservar o estado das Unidades de Arquivamento (Dossiês)
+    sem criar dossiês automáticos para documentos avulsos e sem vincular documentos
+    sem ação explícita do arquivista.
     """
-    docs = db.query(DocumentoModel).all()
-    dossies_existentes = db.query(UnidadeArquivamentoModel).all()
-
-    mapa_nucleo_dossie = {d.nucleo: d for d in dossies_existentes}
-    agora_data = datetime.now().strftime("%d/%m/%Y")
-    alterou = False
-
-    # Se não houver nenhum dossiê no banco ainda, cria ao menos os dossiês padrão de referência
-    if not dossies_existentes:
-        padroes = [
-            (
-                "Repositório Arquivistico Digital Confiável da produção do Projeto Preservação e Difusão do Acervo da FCJA",
-                "BR_PB_FCJA_GEDA_GOP_PPMD_NRDCARQ",
-                "FIM.200.02.001",
-                "Dossiê Técnico de Implantação e Preservação do RDC-Arq / SIGAD FCJA",
-            ),
-            (
-                "Manuscritos de José Américo de Almeida: identificação e descrição de documentos",
-                "BR_PB_FCJA_GEDA_GOP_PPMD_NMJAA",
-                "FIM.100.01.001",
-                "Dossiê de Pesquisa e Catalogação de Manuscritos de José Américo",
-            ),
-            (
-                "Acervo audiovisual da FCJA: imagem e memória",
-                "BR_PB_FCJA_GEDA_GOP_PPMD_NAFCJA",
-                "FIM.200.01.001",
-                "Dossiê de Curadoria e Digitalização do Acervo Audiovisual",
-            ),
-        ]
-        for nucleo_nome, sigla, cod_classe, titulo_dossie in padroes:
-            cod_dossie = gerar_codigo_dossie(db, sigla, nucleo_nome, 2026)
-            novo = UnidadeArquivamentoModel(
-                id=str(uuid.uuid4()),
-                codigo_dossie=cod_dossie,
-                titulo=titulo_dossie,
-                tipo_unidade="DOSSIE",
-                nucleo=nucleo_nome,
-                sigla_nucleo=sigla,
-                codigo_classificacao=cod_classe,
-                descricao_codigo=titulo_dossie,
-                destinacao_prevista="GUARDA_PERMANENTE",
-                fase_atual="CORRENTE",
-                status_dossie="ABERTO",
-                volume_atual=1,
-                data_abertura=agora_data,
-                responsavel_abertura="sistema (organização arquivística)",
-                descricao="Unidade de arquivamento estruturada automaticamente para manter o vínculo orgânico do núcleo.",
-            )
-            db.add(novo)
-            db.flush()
-            mapa_nucleo_dossie[nucleo_nome] = novo
-            alterou = True
-
-    for doc in docs:
-        if not doc.dossie_id and doc.nucleo:
-            dossie = mapa_nucleo_dossie.get(doc.nucleo)
-            if not dossie:
-                cod_dossie = gerar_codigo_dossie(
-                    db, doc.sigla or "", doc.nucleo, doc.ano or 2026
-                )
-                dossie = UnidadeArquivamentoModel(
-                    id=str(uuid.uuid4()),
-                    codigo_dossie=cod_dossie,
-                    titulo=f"Dossiê Geral — {doc.nucleo[:85]}",
-                    tipo_unidade="DOSSIE",
-                    nucleo=doc.nucleo,
-                    sigla_nucleo=doc.sigla or "",
-                    codigo_classificacao=doc.codigo_classificacao or "FIM.100.01.001",
-                    descricao_codigo=doc.descricao_codigo or "Produção Documental do Núcleo",
-                    destinacao_prevista="GUARDA_PERMANENTE",
-                    fase_atual="CORRENTE",
-                    status_dossie="ABERTO",
-                    volume_atual=1,
-                    data_abertura=doc.upload or agora_data,
-                    responsavel_abertura="sistema",
-                    descricao=f"Dossiê orgânico dos documentos produzidos pelo núcleo '{doc.nucleo}'.",
-                )
-                db.add(dossie)
-                db.flush()
-                mapa_nucleo_dossie[doc.nucleo] = dossie
-
-            doc.dossie_id = dossie.id
-            doc.codigo_dossie = dossie.codigo_dossie
-            alterou = True
-
-    if alterou:
-        db.commit()
+    return None
 
 
 def listar_dossies(db: Session) -> list[dict]:
@@ -295,8 +209,9 @@ def juntar_documentos_ao_dossie(
     ip_origem: str = "",
 ) -> Optional[dict]:
     """
-    Responsabilidade única: Executar a operação procedimental de Juntada (Anexação / Apensação)
-    de documentos arquivísticos a uma Unidade de Arquivamento (e-ARQ Brasil v2 Cap. 1.3 e 4).
+    Responsabilidade única: Executar a operação procedimental de Juntada e Desentranhamento
+    de documentos arquivísticos em uma Unidade de Arquivamento.
+    Documentos desmarcados pelo arquivista retornam à condição de Documento Avulso.
     """
     dossie = (
         db.query(UnidadeArquivamentoModel)
@@ -306,33 +221,110 @@ def juntar_documentos_ao_dossie(
     if not dossie:
         return None
 
+    conjunto_ids = {str(x) for x in ids_documentos if x}
+
+    # 1. Desvincula documentos que estavam neste dossiê mas foram desmarcados pelo arquivista
+    docs_atuais_dossie = (
+        db.query(DocumentoModel)
+        .filter(DocumentoModel.dossie_id == dossie.id)
+        .all()
+    )
+    desvinculados = 0
+    for doc_atual in docs_atuais_dossie:
+        if str(doc_atual.id) not in conjunto_ids:
+            doc_atual.dossie_id = ""
+            doc_atual.codigo_dossie = ""
+            desvinculados += 1
+
+    # 2. Vincula os documentos marcados ao dossiê
     juntados = 0
-    for doc_id in ids_documentos:
+    for doc_id in conjunto_ids:
         doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
         if doc:
             doc.dossie_id = dossie.id
             doc.codigo_dossie = dossie.codigo_dossie
             juntados += 1
 
-    if juntados > 0:
-        registrar_evento(
-            db=db,
-            categoria_evento="PROCEDIMENTAL",
-            tipo_evento="JUNTADA_DOCUMENTO_DOSSIE",
-            numero_protocolo=dossie.codigo_dossie,
-            usuario_responsavel=usuario_responsavel,
-            papel_usuario=papel_usuario,
-            resultado="SUCESSO",
-            ip_origem=ip_origem,
-            detalhes=(
-                f"[EarqEventoProc] Juntada arquivística realizada: {juntados} documento(s) "
-                f"vinculado(s) organicamente ao dossiê '{dossie.codigo_dossie} — {dossie.titulo}'."
-            ),
-        )
-        db.commit()
+    registrar_evento(
+        db=db,
+        categoria_evento="PROCEDIMENTAL",
+        tipo_evento="JUNTADA_DOCUMENTO_DOSSIE",
+        numero_protocolo=dossie.codigo_dossie,
+        usuario_responsavel=usuario_responsavel,
+        papel_usuario=papel_usuario,
+        resultado="SUCESSO",
+        ip_origem=ip_origem,
+        detalhes=(
+            f"[EarqEventoProc] Atualização de vínculo orgânico no dossiê '{dossie.codigo_dossie} — {dossie.titulo}': "
+            f"{juntados} peça(s) vinculada(s), {desvinculados} peça(s) retornada(s) a Documento Avulso."
+        ),
+    )
+    db.commit()
 
     return {
         "dossieId": dossie.id,
         "codigoDossie": dossie.codigo_dossie,
         "documentosJuntados": juntados,
+        "documentosDesvinculados": desvinculados,
+    }
+
+
+def excluir_dossie(
+    db: Session,
+    dossie_id: str,
+    usuario_responsavel: str,
+    papel_usuario: str,
+    ip_origem: str = "",
+) -> Optional[dict]:
+    """
+    Responsabilidade única: Excluir uma Unidade de Arquivamento (Dossiê / Processo)
+    criada por engano ou gerada automaticamente, retornando eventuais documentos
+    vinculados à condição de Documento Avulso sem excluí-los do acervo.
+    """
+    dossie = (
+        db.query(UnidadeArquivamentoModel)
+        .filter(UnidadeArquivamentoModel.id == dossie_id)
+        .first()
+    )
+    if not dossie:
+        return None
+
+    codigo_dossie = dossie.codigo_dossie
+    titulo_dossie = dossie.titulo
+
+    # Desvincula todos os documentos que pertenciam a este dossiê (tornando-os Avulsos)
+    docs_vinculados = (
+        db.query(DocumentoModel)
+        .filter(DocumentoModel.dossie_id == dossie.id)
+        .all()
+    )
+    qtd_desvinculados = 0
+    for doc in docs_vinculados:
+        doc.dossie_id = ""
+        doc.codigo_dossie = ""
+        qtd_desvinculados += 1
+
+    db.delete(dossie)
+
+    registrar_evento(
+        db=db,
+        categoria_evento="PROCEDIMENTAL",
+        tipo_evento="EXCLUSAO_DOSSIE_PROCESSO",
+        numero_protocolo=codigo_dossie,
+        usuario_responsavel=usuario_responsavel,
+        papel_usuario=papel_usuario,
+        resultado="SUCESSO",
+        ip_origem=ip_origem,
+        detalhes=(
+            f"[EarqEventoProc] Unidade de Arquivamento '{codigo_dossie} — {titulo_dossie}' excluída "
+            f"por {usuario_responsavel}. {qtd_desvinculados} documento(s) retornaram ao status de Documento Avulso."
+        ),
+    )
+    db.commit()
+
+    return {
+        "id": dossie_id,
+        "codigoDossie": codigo_dossie,
+        "titulo": titulo_dossie,
+        "documentosDesvinculados": qtd_desvinculados,
     }

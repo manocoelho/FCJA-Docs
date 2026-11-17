@@ -195,7 +195,10 @@ export async function alterarStatusDossie(
 export async function juntarDocumentosAoDossie(
   dossieId: string,
   idsDocumentos: string[]
-): Promise<{ sucesso: boolean; juntada: { codigoDossie: string; documentosJuntados: number } }> {
+): Promise<{
+  sucesso: boolean;
+  juntada: { codigoDossie: string; documentosJuntados: number; documentosDesvinculados?: number };
+}> {
   const res = await fetch(`${API_BASE_URL}/api/dossies/${encodeURIComponent(dossieId)}/juntar`, {
     method: "POST",
     headers: obterHeadersAuth({ "Content-Type": "application/json" }),
@@ -204,6 +207,24 @@ export async function juntarDocumentosAoDossie(
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(payload.detail || "Falha ao realizar a juntada de documentos ao dossiê");
+  }
+  return payload;
+}
+
+export async function excluirDossie(
+  dossieId: string
+): Promise<{
+  sucesso: boolean;
+  mensagem: string;
+  dossie: { id: string; codigoDossie: string; titulo: string; documentosDesvinculados: number };
+}> {
+  const res = await fetch(`${API_BASE_URL}/api/dossies/${encodeURIComponent(dossieId)}`, {
+    method: "DELETE",
+    headers: obterHeadersAuth(),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(payload.detail || "Não foi possível excluir o dossiê/processo");
   }
   return payload;
 }

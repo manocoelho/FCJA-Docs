@@ -8,6 +8,7 @@ import {
   buscarDossies,
   criarClassePcd,
   criarDossie,
+  excluirDossie,
   juntarDocumentosAoDossie,
   type AvaliacaoTemporalAcervo,
   type ClassePcdItem,
@@ -131,9 +132,13 @@ export function useGestaoArquivistica(onDocumentosAlterados?: (() => void) | und
       try {
         const res = await juntarDocumentosAoDossie(dossieId, idsDocumentos);
         toast.success(
-          `Juntada concluída no dossiê ${res.juntada.codigoDossie}`,
+          `Vínculo orgânico atualizado no dossiê ${res.juntada.codigoDossie}`,
           {
-            description: `${res.juntada.documentosJuntados} documento(s) vinculado(s) organicamente.`,
+            description: `${res.juntada.documentosJuntados} peça(s) vinculada(s)${
+              res.juntada.documentosDesvinculados
+                ? ` · ${res.juntada.documentosDesvinculados} peça(s) retornada(s) a Avulso.`
+                : "."
+            }`,
           }
         );
         await recarregarGestao();
@@ -142,6 +147,28 @@ export function useGestaoArquivistica(onDocumentosAlterados?: (() => void) | und
       } catch (erro: unknown) {
         const msg = erro instanceof Error ? erro.message : "Erro na juntada";
         toast.error("Falha ao realizar juntada", { description: msg });
+        return false;
+      }
+    },
+    [recarregarGestao, onDocumentosAlterados]
+  );
+
+  const removerDossie = useCallback(
+    async (dossieId: string) => {
+      try {
+        const res = await excluirDossie(dossieId);
+        toast.success(`Dossiê ${res.dossie.codigoDossie} excluído`, {
+          description:
+            res.dossie.documentosDesvinculados > 0
+              ? `${res.dossie.documentosDesvinculados} documento(s) retornaram para Documento Avulso.`
+              : "Unidade de arquivamento removida e auditada.",
+        });
+        await recarregarGestao();
+        onDocumentosAlterados?.();
+        return true;
+      } catch (erro: unknown) {
+        const msg = erro instanceof Error ? erro.message : "Erro ao excluir dossiê";
+        toast.error("Falha ao excluir dossiê", { description: msg });
         return false;
       }
     },
@@ -161,5 +188,6 @@ export function useGestaoArquivistica(onDocumentosAlterados?: (() => void) | und
     abrirNovoDossie,
     mudarStatusDossie,
     executarJuntadaDossie,
+    removerDossie,
   };
 }

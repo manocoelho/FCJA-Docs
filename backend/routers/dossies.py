@@ -3,10 +3,11 @@ from fastapi import APIRouter, Header, HTTPException, Request
 from pydantic import BaseModel
 
 import database
-from core.dependencies import extrair_agente_requisicao
+from core.dependencies import exigir_papeis, extrair_agente_requisicao
 from services.dossie_service import (
     alterar_status_dossie,
     criar_dossie,
+    excluir_dossie,
     juntar_documentos_ao_dossie,
     listar_dossies,
 )
@@ -106,3 +107,30 @@ def post_juntar_documentos(
         if not resultado:
             raise HTTPException(status_code=404, detail="Dossiê/Processo não encontrado")
         return {"sucesso": True, "juntada": resultado}
+
+
+@router.delete("/api/dossies/{dossie_id}")
+def delete_dossie(
+    dossie_id: str,
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    agente = extrair_agente_requisicao(authorization=authorization, papel_fallback="arquivista")
+    exigir_papeis(agente, {"arquivista", "admin"}, "Exclusão de Dossiê / Unidade de Arquivamento")
+    ip = request.client.host if (request and request.client) else ""
+
+    with database.SessionLocal() as db:
+        excluido = excluir_dossie(
+            db=db,
+            dossie_id=dossie_id,
+            usuario_responsavel=agente["nome"],
+            papel_usuario=agente["papel"],
+            ip_origem=ip,
+        )
+        if not excluido:
+            raise HTTPException(status_code=404, detail="Dossiê/Processo não encontrado")
+        return {
+            "sucesso": True,
+            "mensagem": f"Dossiê {excluido['codigoDossie']} excluído com sucesso.",
+            "dossie": excluido,
+        }
