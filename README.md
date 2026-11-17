@@ -120,7 +120,7 @@ FCJA-Docs/
 │   ├── nginx/fcja-ged        # Configuração Nginx para instalação bare-metal no Ubuntu
 │   └── systemd/              # Unidades fcja-ged-backend.service e fcja-ged-frontend.service
 ├── docs/                     # Manuais oficiais (.pdf, .docx, .doc, .html, .md) e referências arquivísticas
-└── scripts/                  # Scripts de automação (Docker, Windows, Linux, Banco de Dados e Gerador Word)
+└── scripts/                  # Scripts de automação (Docker, Windows, Linux, Banco de Dados)
 ```
 
 ---
