@@ -135,7 +135,10 @@ def executar_eliminacao_controlada(
     db.add(termo)
 
     if os.path.exists(caminho_fisico):
-        os.remove(caminho_fisico)
+        try:
+            os.remove(caminho_fisico)
+        except OSError:
+            pass
 
     registrar_evento(
         db=db,

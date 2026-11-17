@@ -85,8 +85,8 @@ export function ModalEliminacaoControlada({
 
   return (
     <Dialog open={aberto} onOpenChange={(o) => !o && onFechar()}>
-      <DialogContent className="sm:max-w-xl">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader className="min-w-0">
           <div className="flex items-center gap-2">
             <span
               className={`inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${
@@ -120,16 +120,16 @@ export function ModalEliminacaoControlada({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 text-sm">
+        <div className="space-y-4 py-2 text-sm min-w-0">
           {/* Lista de Documentos Alvo */}
-          <div className="rounded-xl border border-border bg-slate-50 p-3">
+          <div className="rounded-xl border border-border bg-slate-50 p-3.5 min-w-0">
             <p className="mb-1.5 text-xs font-semibold uppercase text-slate-500">
               Documento(s) selecionado(s):
             </p>
-            <ul className="max-h-32 space-y-1 overflow-y-auto text-xs">
+            <ul className="max-h-32 space-y-1.5 overflow-y-auto text-xs">
               {alvos.map((d) => (
-                <li key={d.id} className="flex items-center justify-between gap-2">
-                  <span className="truncate font-medium text-slate-800">
+                <li key={d.id} className="flex items-center justify-between gap-2 min-w-0">
+                  <span className="truncate font-medium text-slate-800 min-w-0 flex-1" title={d.nome}>
                     {d.numeroProtocolo ? `[${d.numeroProtocolo}] ` : ""}
                     {d.nome}
                   </span>
@@ -162,10 +162,10 @@ export function ModalEliminacaoControlada({
             </div>
           ) : (
             <>
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <Label>Motivo Normativo da Eliminação</Label>
                 <Select value={motivo} onValueChange={setMotivo}>
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0 bg-white [&>span]:truncate">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -178,7 +178,7 @@ export function ModalEliminacaoControlada({
                 </Select>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <Label htmlFor="justificativa-termo">
                   Justificativa Técnica / Fundamentação para o Termo de Eliminação{" "}
                   {temDocumentoOficial && <span className="text-red-500">*</span>}
@@ -188,6 +188,7 @@ export function ModalEliminacaoControlada({
                   rows={3}
                   value={justificativa}
                   onChange={(e) => setJustificativa(e.target.value)}
+                  className="w-full min-w-0 resize-none bg-white"
                   placeholder={
                     temDocumentoOficial
                       ? "Descreva o motivo técnico ou referência ao Edital/TTD para constar no Termo de Eliminação (mínimo 10 caracteres)..."
