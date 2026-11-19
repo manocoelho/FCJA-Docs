@@ -63,6 +63,12 @@ export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: strin
   useEffect(() => {
     atualizarStatusHD();
     recarregarDocumentos();
+    const listener = () => {
+      recarregarDocumentos();
+      atualizarStatusHD();
+    };
+    window.addEventListener("fcja-acervo-atualizado", listener);
+    return () => window.removeEventListener("fcja-acervo-atualizado", listener);
   }, [atualizarStatusHD, recarregarDocumentos]);
 
   const acervo = useMemo(

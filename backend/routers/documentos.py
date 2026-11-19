@@ -14,7 +14,13 @@ import database
 from models.documento import DocumentoModel
 from models.componente_digital import ComponenteDigitalModel
 from models.dossie import UnidadeArquivamentoModel
-from schemas.documento_schema import DocUpdateSchema, EliminacaoLoteSchema
+from schemas.documento_schema import (
+    AlteracaoSigiloSchema,
+    DocUpdateSchema,
+    EliminacaoLoteSchema,
+    ReclassificacaoDocumentoSchema,
+    RegistroAcessoDocumentoSchema,
+)
 from core.dependencies import exigir_papeis, extrair_agente_requisicao
 from services.fixidade_service import (
     calcular_hash_sha256,
@@ -105,6 +111,7 @@ def listar_documentos(request: Request = None):
                 "destinacaoPrevista": doc.destinacao_prevista or "GUARDA_PERMANENTE",
                 "nivelAcesso": doc.nivel_acesso or "OSTENSIVO",
                 "hipoteseLegal": doc.hipotese_legal or "",
+                "previsaoDesclassificacao": getattr(doc, "previsao_desclassificacao", "") or "",
                 "formatoMime": doc.formato_mime or "",
                 "hashSha256": doc.hash_sha256 or "",
                 "fixidadeVerificada": bool(doc.fixidade_verificada) if doc.fixidade_verificada is not None else True,
@@ -462,6 +469,8 @@ def atualizar_documento(
             doc.nivel_acesso = dados.nivel_acesso
         if dados.hipotese_legal is not None:
             doc.hipotese_legal = dados.hipotese_legal
+        if dados.previsao_desclassificacao is not None:
+            doc.previsao_desclassificacao = dados.previsao_desclassificacao
 
         comp = (
             db.query(ComponenteDigitalModel)
@@ -493,6 +502,297 @@ def atualizar_documento(
         db.commit()
 
     return {"mensagem": "Documento atualizado com sucesso", "url": url_nova}
+
+
+@router.post("/api/documentos/{doc_id}/alterar-sigilo")
+def alterar_sigilo_documento(
+    doc_id: str,
+    dados: AlteracaoSigiloSchema,
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    """
+    Requisitos Obrigatórios e-ARQ Brasil v2 (7.3.13, 7.3.15 e Eventos ECV6/ECV7):
+    Formaliza a classificação, reclassificação ou desclassificação de grau de sigilo (LAI / LGPD)
+    com justificativa técnica, previsão de desclassificação e registro do valor anterior na trilha.
+    """
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=dados.usuario_responsavel or "sistema",
+        papel_fallback=dados.papel_usuario or "arquivista",
+    )
+    exigir_papeis(
+        agente,
+        {"arquivista", "admin"},
+        "Classificação / Desclassificação de Grau de Sigilo (e-ARQ 7.3.13)",
+    )
+    ip_cliente = get_ip_cliente(request)
+
+    justificativa = (dados.justificativa or "").strip()
+    if len(justificativa) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="É obrigatório informar uma justificativa formal (mínimo de 8 caracteres) para alterar ou desclassificar o grau de sigilo.",
+        )
+
+    novo_nivel = (dados.nivel_acesso or "OSTENSIVO").upper().strip()
+    if novo_nivel not in ("OSTENSIVO", "RESTRITO_LGPD", "SIGILOSO_LAI"):
+        raise HTTPException(status_code=400, detail="Nível de acesso inválido.")
+
+    with database.SessionLocal() as db:
+        doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+        nivel_anterior = (doc.nivel_acesso or "OSTENSIVO").upper()
+        hipotese_anterior = doc.hipotese_legal or "Sem restrição"
+        previsao_anterior = getattr(doc, "previsao_desclassificacao", "") or ""
+
+        eh_desclassificacao = nivel_anterior != "OSTENSIVO" and novo_nivel == "OSTENSIVO"
+        tipo_evento_ecv = (
+            "DESCLASSIFICACAO_SIGILO_ECV7"
+            if eh_desclassificacao
+            else "ALTERACAO_GRAU_SIGILO_ECV6"
+        )
+
+        doc.nivel_acesso = novo_nivel
+        doc.hipotese_legal = "" if novo_nivel == "OSTENSIVO" else (dados.hipotese_legal or "").strip()
+        doc.previsao_desclassificacao = (
+            "" if novo_nivel == "OSTENSIVO" else (dados.previsao_desclassificacao or "").strip()
+        )
+
+        registrar_evento(
+            db=db,
+            categoria_evento="CICLO_VIDA",
+            tipo_evento=tipo_evento_ecv,
+            documento_id=doc.id,
+            numero_protocolo=doc.numero_protocolo or "",
+            usuario_responsavel=agente["nome"],
+            papel_usuario=agente["papel"],
+            resultado="SUCESSO",
+            hash_evidencia=doc.hash_sha256 or "",
+            ip_origem=ip_cliente,
+            detalhes=(
+                f"[{'ECV7 — Desclassificação' if eh_desclassificacao else 'ECV6 — Alteração de Grau de Sigilo'}] "
+                f"Documento '{doc.nome}' ({doc.numero_protocolo or doc.id}): "
+                f"valorAnterior='{nivel_anterior} ({hipotese_anterior} | Previsão: {previsao_anterior or 'N/A'})' -> "
+                f"valorNovo='{doc.nivel_acesso} ({doc.hipotese_legal or 'Acesso Público Livre'} | "
+                f"Previsão: {doc.previsao_desclassificacao or 'N/A'})'. "
+                f"Justificativa: {justificativa}"
+            ),
+        )
+        db.commit()
+
+        return {
+            "sucesso": True,
+            "documentoId": doc.id,
+            "numeroProtocolo": doc.numero_protocolo or "",
+            "nivelAcessoAnterior": nivel_anterior,
+            "nivelAcesso": doc.nivel_acesso,
+            "hipoteseLegal": doc.hipotese_legal,
+            "previsaoDesclassificacao": doc.previsao_desclassificacao,
+            "eventoCicloVida": tipo_evento_ecv,
+            "mensagem": (
+                f"Documento desclassificado para '{doc.nivel_acesso}' (Evento ECV7 registrado)."
+                if eh_desclassificacao
+                else f"Grau de sigilo atualizado para '{doc.nivel_acesso}' (Evento ECV6 registrado)."
+            ),
+        }
+
+
+@router.post("/api/documentos/{doc_id}/reclassificar")
+def reclassificar_documento(
+    doc_id: str,
+    dados: ReclassificacaoDocumentoSchema,
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    """
+    Requisitos Obrigatórios e-ARQ Brasil v2 (1.3.9, 1.3.10, 1.3.11 e 3.1.8):
+    Permite ao Arquivista ou Administrador reclassificar um documento arquivístico no PCD,
+    registrando o código de classificação anterior (valorAnterior) na Trilha de Auditoria e
+    recalculando automaticamente seus prazos de guarda e destinação final na TTD.
+    """
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=dados.usuario_responsavel or "sistema",
+        papel_fallback=dados.papel_usuario or "arquivista",
+    )
+    exigir_papeis(
+        agente,
+        {"arquivista", "admin"},
+        "Reclassificação Arquivística no PCD/TTD (e-ARQ 1.3.9)",
+    )
+    ip_cliente = get_ip_cliente(request)
+
+    justificativa = (dados.justificativa or "").strip()
+    if len(justificativa) < 8:
+        raise HTTPException(
+            status_code=400,
+            detail="É obrigatório informar a justificativa técnica (mínimo de 8 caracteres) para reclassificar o documento.",
+        )
+
+    novo_codigo = (dados.codigo_classificacao or "").strip()
+    if not novo_codigo:
+        raise HTTPException(status_code=400, detail="Informe o novo código de classificação do PCD.")
+
+    with database.SessionLocal() as db:
+        doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+        valor_anterior = (
+            f"Classe='{doc.codigo_classificacao or 'N/A'} - {doc.descricao_codigo or ''}' "
+            f"({doc.tipo_atividade or ''}) | TTD Anterior: Corrente={doc.prazo_corrente_anos}a, "
+            f"Intermediária={doc.prazo_intermediaria_anos}a, Destinação={doc.destinacao_prevista} ({doc.ano_destinacao_final})"
+        )
+
+        doc.codigo_classificacao = novo_codigo
+        doc.descricao_codigo = (dados.descricao_codigo or "").strip()
+        doc.tipo_atividade = (dados.tipo_atividade or "Atividade-Fim").strip()
+
+        calc_ttd = calcular_temporalidade_documento(
+            db=db,
+            ano_producao=doc.ano or datetime.now().year,
+            codigo_classificacao=doc.codigo_classificacao,
+            tipo_atividade=doc.tipo_atividade,
+            categoria=doc.categoria or "",
+        )
+        doc.prazo_corrente_anos = calc_ttd["prazo_corrente_anos"]
+        doc.prazo_intermediaria_anos = calc_ttd["prazo_intermediaria_anos"]
+        doc.ano_destinacao_final = calc_ttd["ano_destinacao_final"]
+        doc.destinacao_prevista = calc_ttd["destinacao_prevista"]
+        if doc.fase_arquivistica != "RECOLHIDO_RDC_ARQ":
+            doc.fase_arquivistica = calc_ttd["fase_arquivistica"]
+
+        registrar_evento(
+            db=db,
+            categoria_evento="CICLO_VIDA",
+            tipo_evento="RECLASSIFICACAO_ARQUIVISTICA_PCD",
+            documento_id=doc.id,
+            numero_protocolo=doc.numero_protocolo or "",
+            usuario_responsavel=agente["nome"],
+            papel_usuario=agente["papel"],
+            resultado="SUCESSO",
+            hash_evidencia=doc.hash_sha256 or "",
+            ip_origem=ip_cliente,
+            detalhes=(
+                f"[EarqEventoCv — Requisito 1.3.9/1.3.11] Documento '{doc.nome}' reclassificado no PCD/TTD. "
+                f"valorAnterior=[{valor_anterior}] -> "
+                f"valorNovo=[Classe='{doc.codigo_classificacao} - {doc.descricao_codigo}' ({doc.tipo_atividade}) | "
+                f"Nova TTD: Corrente={doc.prazo_corrente_anos}a, Intermediária={doc.prazo_intermediaria_anos}a, "
+                f"Destinação={doc.destinacao_prevista} ({doc.ano_destinacao_final})]. "
+                f"Justificativa: {justificativa}"
+            ),
+        )
+        db.commit()
+
+        return {
+            "sucesso": True,
+            "documentoId": doc.id,
+            "numeroProtocolo": doc.numero_protocolo or "",
+            "codigoClassificacao": doc.codigo_classificacao,
+            "descricaoCodigo": doc.descricao_codigo,
+            "tipoAtividade": doc.tipo_atividade,
+            "prazoCorrenteAnos": doc.prazo_corrente_anos,
+            "prazoIntermediariaAnos": doc.prazo_intermediaria_anos,
+            "anoDestinacaoFinal": doc.ano_destinacao_final,
+            "destinacaoPrevista": doc.destinacao_prevista,
+            "faseArquivistica": doc.fase_arquivistica,
+            "mensagem": f"Documento reclassificado para '{doc.codigo_classificacao}' com recálculo automático da TTD.",
+        }
+
+
+@router.post("/api/documentos/{doc_id}/registrar-acesso")
+def registrar_acesso_documento(
+    doc_id: str,
+    dados: RegistroAcessoDocumentoSchema,
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    """
+    Requisitos Obrigatórios e-ARQ Brasil v2 (7.3.5 e 7.4.1):
+    - Bloqueia o acesso de usuários com perfil 'pesquisador' a documentos classificados como 'SIGILOSO_LAI',
+      registrando o evento 'TENTATIVA_ACESSO_NEGADO' na Trilha de Auditoria Imutável.
+    - Registra as consultas (visualização e download) autorizadas na Trilha de Auditoria.
+    """
+    agente = extrair_agente_requisicao(
+        authorization=authorization,
+        usuario_fallback=dados.usuario_responsavel or "sistema",
+        papel_fallback=dados.papel_usuario or "pesquisador",
+    )
+    ip_cliente = get_ip_cliente(request)
+    tipo_acesso = (dados.tipo_acesso or "VISUALIZACAO").upper().strip()
+
+    with database.SessionLocal() as db:
+        doc = db.query(DocumentoModel).filter(DocumentoModel.id == doc_id).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Documento não encontrado")
+
+        nivel_acesso = (doc.nivel_acesso or "OSTENSIVO").upper()
+        papel = (agente["papel"] or "pesquisador").lower().strip()
+
+        # Requisito 7.3.5 [O]: Restrição de acesso a documentos sigilosos conforme credencial do usuário
+        if nivel_acesso == "SIGILOSO_LAI" and papel == "pesquisador":
+            registrar_evento(
+                db=db,
+                categoria_evento="PROCEDIMENTAL",
+                tipo_evento="TENTATIVA_ACESSO_NEGADO",
+                documento_id=doc.id,
+                numero_protocolo=doc.numero_protocolo or "",
+                usuario_responsavel=agente["nome"],
+                papel_usuario=papel,
+                resultado="FALHA",
+                hash_evidencia=doc.hash_sha256 or "",
+                ip_origem=ip_cliente,
+                detalhes=(
+                    f"[Violação de Credencial — Requisito 7.3.5/7.4.1] Tentativa bloqueada de {tipo_acesso} "
+                    f"ao documento sigiloso '{doc.nome}' (Protocolo {doc.numero_protocolo or doc.id}, "
+                    f"Grau: {nivel_acesso}, Hipótese: {doc.hipotese_legal or 'LAI'}) pelo perfil '{papel}'."
+                ),
+            )
+            db.commit()
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Acesso Bloqueado (e-ARQ Brasil v2 — Requisito 7.3.5 [O] / LAI): O documento '{doc.nome}' "
+                    f"está classificado como 'SIGILOSO_LAI' ({doc.hipotese_legal or 'Restrição Legal'}). "
+                    "Usuários com perfil 'Pesquisador' não possuem credencial de segurança para visualizar ou "
+                    "baixar documentos sigilosos antes de sua desclassificação. A tentativa foi registrada na Trilha de Auditoria."
+                ),
+            )
+
+        tipo_ev = (
+            "DOWNLOAD_OBJETO_DIGITAL"
+            if tipo_acesso == "DOWNLOAD"
+            else "CONSULTA_VISUALIZACAO_DOCUMENTO"
+        )
+        registrar_evento(
+            db=db,
+            categoria_evento="PROCEDIMENTAL",
+            tipo_evento=tipo_ev,
+            documento_id=doc.id,
+            numero_protocolo=doc.numero_protocolo or "",
+            usuario_responsavel=agente["nome"],
+            papel_usuario=papel,
+            resultado="SUCESSO",
+            hash_evidencia=doc.hash_sha256 or "",
+            ip_origem=ip_cliente,
+            detalhes=(
+                f"[Auditoria de Acesso — Requisito 7.4.1] Operação de {tipo_acesso} autorizada para o documento "
+                f"'{doc.nome}' (Protocolo {doc.numero_protocolo or doc.id} | Grau de Acesso: {nivel_acesso})."
+            ),
+        )
+        db.commit()
+
+        return {
+            "sucesso": True,
+            "permitido": True,
+            "documentoId": doc.id,
+            "numeroProtocolo": doc.numero_protocolo or "",
+            "nivelAcesso": nivel_acesso,
+            "tipoAcesso": tipo_acesso,
+        }
 
 
 @router.post("/api/documentos/{doc_id}/verificar-fixidade")

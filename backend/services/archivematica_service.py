@@ -497,6 +497,22 @@ def criar_e_enviar_pacote_sip(
     if not documentos:
         raise ValueError("Nenhum dos documentos informados foi localizado no acervo do SIGAD.")
 
+    # Requisito Obrigatório e-ARQ Brasil v2 (7.3.15 [O]):
+    # Documentos com restrição de acesso (SIGILOSO_LAI ou RESTRITO_LGPD) não podem ser transferidos/recolhidos
+    # para custódia externa / repositório de difusão antes de serem formalmente desclassificados para OSTENSIVO.
+    docs_restritos = [
+        d for d in documentos if (d.nivel_acesso or "OSTENSIVO").upper() != "OSTENSIVO"
+    ]
+    if docs_restritos:
+        nomes_restritos = ", ".join(
+            f"'{d.nome}' ({d.nivel_acesso})" for d in docs_restritos[:3]
+        )
+        raise ValueError(
+            f"Trava de Segurança e-ARQ Brasil v2 (Requisito 7.3.15 [O]): Não é permitido recolher/transferir "
+            f"documentos com restrição de acesso ({nomes_restritos}) para custódia do RDC-Arq / AtoM antes "
+            "de sua formal desclassificação para 'OSTENSIVO'."
+        )
+
     if not nucleo_padrao:
         nucleo_padrao = documentos[0].nucleo or "Fundação Casa de José Américo (FCJA)"
 

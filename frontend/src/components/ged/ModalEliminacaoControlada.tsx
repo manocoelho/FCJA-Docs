@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { AlertTriangle, FileWarning, ShieldAlert, Trash2 } from "lucide-react";
+import { AlertTriangle, FileWarning, FolderKanban, Lock, Printer, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import type { Doc } from "@/components/ged/data";
 import { MOTIVOS_ELIMINACAO_OPCOES } from "@/lib/sigad-api";
+import { imprimirListagemEEditalEliminacao } from "@/lib/termo-eliminacao-export";
 import { podeEliminarDocumentoOficial, rotuloPapelSigad } from "@/lib/auth";
 import {
   ModalConfirmacaoAcaoSigad,
@@ -48,11 +49,39 @@ export function ModalEliminacaoControlada({
   const temPermissaoOficial = podeEliminarDocumentoOficial(usuarioPapel);
   const bloqueadoPorRbac = temDocumentoOficial && !temPermissaoOficial;
 
+  const anoAtual = new Date().getFullYear();
+
+  // Requisito 7.3.15 [O]: Documentos sigilosos ou restritos não podem ser eliminados antes da desclassificação
+  const docsComRestricaoSigilo = alvos.filter(
+    (d) =>
+      (d.statusDocumento || "ORIGINAL").toUpperCase() !== "MINUTA" &&
+      (d.nivelAcesso || "OSTENSIVO").toUpperCase() !== "OSTENSIVO"
+  );
+  const bloqueadoPorSigilo = docsComRestricaoSigilo.length > 0;
+
+  // Requisito 3.3.4 [O]: Alerta quando documento está vinculado a um Dossiê / Processo
+  const docsVinculadosADossie = alvos.filter((d) => Boolean(d.dossieId || d.codigoDossie));
+
   const [motivo, setMotivo] = useState<string>(
     temDocumentoOficial ? "CUMPRIMENTO_PRAZO_TTD" : "DESCARTE_MINUTA_RASCUNHO"
   );
   const [justificativa, setJustificativa] = useState<string>("");
   const [processando, setProcessando] = useState<boolean>(false);
+
+  // Requisito 3.3.3 [O]: Bloqueio estrito de eliminação por Cumprimento de Prazo TTD
+  const docsGuardaPermanente = alvos.filter(
+    (d) =>
+      (d.statusDocumento || "ORIGINAL").toUpperCase() !== "MINUTA" &&
+      (d.destinacaoPrevista || "GUARDA_PERMANENTE").toUpperCase() === "GUARDA_PERMANENTE"
+  );
+  const docsPrazoTtdVigente = alvos.filter(
+    (d) =>
+      (d.statusDocumento || "ORIGINAL").toUpperCase() !== "MINUTA" &&
+      (d.anoDestinacaoFinal || d.ano + 5) > anoAtual
+  );
+  const bloqueadoPorTtd =
+    motivo === "CUMPRIMENTO_PRAZO_TTD" &&
+    (docsGuardaPermanente.length > 0 || docsPrazoTtdVigente.length > 0);
   const {
     confirmacaoAtiva,
     processandoConfirmacao,
@@ -71,7 +100,7 @@ export function ModalEliminacaoControlada({
   }, [aberto, temDocumentoOficial]);
 
   function submeterEliminacao() {
-    if (bloqueadoPorRbac) return;
+    if (bloqueadoPorRbac || bloqueadoPorSigilo || bloqueadoPorTtd) return;
 
     const justLimpa = justificativa.trim();
     if (temDocumentoOficial && justLimpa.length < 10) {
@@ -85,6 +114,22 @@ export function ModalEliminacaoControlada({
     const rotuloMotivo =
       MOTIVOS_ELIMINACAO_OPCOES.find((op) => op.valor === motivo)?.rotulo || motivo;
     const plural = alvos.length > 1;
+    const detalhesAlvo = [
+      `Alvo(s): ${alvos
+        .map((d) => `${d.numeroProtocolo ? `[${d.numeroProtocolo}] ` : ""}${d.nome}`)
+        .slice(0, 3)
+        .join(", ")}${alvos.length > 3 ? ` (+${alvos.length - 3})` : ""}`,
+      `Motivo Normativo: ${rotuloMotivo}`,
+      `Justificativa Técnica: ${justLimpa || "Descarte de minuta em espaço de trabalho."}`,
+    ];
+    if (docsVinculadosADossie.length > 0) {
+      detalhesAlvo.push(
+        `ALERTA e-ARQ 3.3.4 (Vínculo com Dossiê): ${docsVinculadosADossie.length} documento(s) fazem parte de Dossiê/Processo (${docsVinculadosADossie
+          .map((d) => d.codigoDossie || "Dossiê")
+          .slice(0, 2)
+          .join(", ")}) e serão desentranhados e eliminados!`
+      );
+    }
 
     solicitarConfirmacao({
       titulo: plural
@@ -95,14 +140,7 @@ export function ModalEliminacaoControlada({
       categoriaNormativa: "Eliminação Documental Controlada · Termo Oficial CONARQ",
       variante: "perigo",
       rotuloConfirmar: "Sim, Eliminar e Emitir Termo",
-      detalhesAlvo: [
-        `Alvo(s): ${alvos
-          .map((d) => `${d.numeroProtocolo ? `[${d.numeroProtocolo}] ` : ""}${d.nome}`)
-          .slice(0, 3)
-          .join(", ")}${alvos.length > 3 ? ` (+${alvos.length - 3})` : ""}`,
-        `Motivo Normativo: ${rotuloMotivo}`,
-        `Justificativa Técnica: ${justLimpa || "Descarte de minuta em espaço de trabalho."}`,
-      ],
+      detalhesAlvo,
       onConfirmar: async () => {
         setProcessando(true);
         try {
@@ -197,6 +235,45 @@ export function ModalEliminacaoControlada({
             </div>
           ) : (
             <>
+              {/* Requisito 7.3.15 [O]: Trava de Sigilo LAI / LGPD */}
+              {bloqueadoPorSigilo && (
+                <div className="rounded-xl border border-red-300 bg-red-50 p-3.5 text-xs text-red-900 space-y-1">
+                  <p className="flex items-center gap-1.5 font-bold text-red-950">
+                    <Lock className="h-4 w-4 shrink-0 text-red-600" />
+                    Trava de Segurança e-ARQ Brasil v2 (Requisito 7.3.15 [O]): Eliminação Bloqueada por Sigilo
+                  </p>
+                  <p>
+                    {docsComRestricaoSigilo.length} documento(s) selecionado(s) possuem restrição de acesso (
+                    <strong>
+                      {docsComRestricaoSigilo
+                        .map((d) => `${d.nome} [${d.nivelAcesso}]`)
+                        .slice(0, 2)
+                        .join(", ")}
+                    </strong>
+                    ). O SIGAD proíbe a eliminação de documentos sigilosos (LAI) ou restritos (LGPD) antes de
+                    sua formal <strong>Desclassificação para OSTENSIVO</strong> na Ficha e-ARQ.
+                  </p>
+                </div>
+              )}
+
+              {/* Requisito 3.3.4 [O]: Alerta de Vínculo com Dossiê / Processo */}
+              {docsVinculadosADossie.length > 0 && (
+                <div className="rounded-xl border border-amber-300 bg-amber-50/90 p-3.5 text-xs text-amber-950 space-y-1">
+                  <p className="flex items-center gap-1.5 font-bold">
+                    <FolderKanban className="h-4 w-4 shrink-0 text-amber-700" />
+                    Alerta de Vínculo Orgânico com Dossiê (Requisito 3.3.4 [O] — e-ARQ Brasil v2)
+                  </p>
+                  <p>
+                    Atenção: <strong>{docsVinculadosADossie.length} documento(s)</strong> selecionado(s) estão
+                    juntados organicamente a Dossiê/Processo (
+                    <code className="font-mono font-bold">
+                      {Array.from(new Set(docsVinculadosADossie.map((d) => d.codigoDossie))).join(", ")}
+                    </code>
+                    ). Verifique a integridade do dossiê antes de confirmar a eliminação.
+                  </p>
+                </div>
+              )}
+
               <div className="space-y-2 min-w-0">
                 <Label>Motivo Normativo da Eliminação</Label>
                 <Select value={motivo} onValueChange={setMotivo}>
@@ -212,6 +289,34 @@ export function ModalEliminacaoControlada({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Requisito 3.3.3 [O]: Trava estrita de Temporalidade (TTD) */}
+              {bloqueadoPorTtd && (
+                <div className="rounded-xl border border-red-300 bg-red-50 p-3.5 text-xs text-red-900 space-y-1">
+                  <p className="flex items-center gap-1.5 font-bold text-red-950">
+                    <ShieldAlert className="h-4 w-4 shrink-0 text-red-600" />
+                    Trava de Temporalidade TTD (Requisito 3.3.3 [O] — e-ARQ Brasil v2)
+                  </p>
+                  {docsGuardaPermanente.length > 0 && (
+                    <p>
+                      • <strong>{docsGuardaPermanente.length} documento(s)</strong> possuem destinação final{" "}
+                      <strong>GUARDA PERMANENTE</strong> na TTD e não podem ser eliminados por cumprimento de
+                      prazo (devem ser recolhidos ao RDC-Arq / Archivematica).
+                    </p>
+                  )}
+                  {docsPrazoTtdVigente.length > 0 && (
+                    <p>
+                      • <strong>{docsPrazoTtdVigente.length} documento(s)</strong> ainda estão com prazo de
+                      guarda vigente na TTD (vencimento em{" "}
+                      <strong>
+                        {docsPrazoTtdVigente.map((d) => d.anoDestinacaoFinal || d.ano + 5).join(", ")}
+                      </strong>
+                      ). Caso se trate de duplicidade ou erro material na captura, selecione o motivo técnico
+                      correspondente acima.
+                    </p>
+                  )}
+                </div>
+              )}
 
               <div className="space-y-2 min-w-0">
                 <Label htmlFor="justificativa-termo">
@@ -235,23 +340,53 @@ export function ModalEliminacaoControlada({
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onFechar} disabled={processando}>
-            {bloqueadoPorRbac ? "Entendido" : "Cancelar"}
+        <DialogFooter className="flex flex-wrap items-center justify-between gap-2 sm:justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const ok = imprimirListagemEEditalEliminacao(
+                alvos.map((d) => ({
+                  numeroProtocolo: d.numeroProtocolo,
+                  nome: d.nome,
+                  codigoClassificacao: d.codigoClassificacao,
+                  categoria: d.categoria,
+                  ano: d.ano,
+                  nucleo: d.nucleo,
+                  observacao:
+                    justificativa.trim() ||
+                    MOTIVOS_ELIMINACAO_OPCOES.find((o) => o.valor === motivo)?.rotulo,
+                }))
+              );
+              if (!ok) {
+                toast.error("Permita pop-ups para imprimir a Listagem e o Edital de Eliminação.");
+              }
+            }}
+            className="gap-1.5 text-xs border-blue-200 bg-blue-50/70 text-blue-800 hover:bg-blue-100"
+          >
+            <Printer className="h-3.5 w-3.5" />
+            Listagem & Edital de Eliminação (CONARQ 3.3.9)
           </Button>
-          {!bloqueadoPorRbac && (
-            <Button
-              variant="destructive"
-              onClick={submeterEliminacao}
-              disabled={processando}
-              className="gap-2"
-            >
-              <Trash2 className="h-4 w-4" />
-              {processando
-                ? "Emitindo Termo e Eliminando..."
-                : "Confirmar e Emitir Termo de Eliminação"}
+
+          <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={onFechar} disabled={processando}>
+              {bloqueadoPorRbac ? "Entendido" : "Cancelar"}
             </Button>
-          )}
+            {!bloqueadoPorRbac && (
+              <Button
+                variant="destructive"
+                onClick={submeterEliminacao}
+                disabled={processando || bloqueadoPorSigilo || bloqueadoPorTtd}
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                {processando
+                  ? "Emitindo Termo e Eliminando..."
+                  : "Confirmar e Emitir Termo de Eliminação"}
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
 

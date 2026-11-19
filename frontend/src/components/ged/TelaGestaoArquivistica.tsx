@@ -8,12 +8,15 @@ import {
   FolderPlus,
   Link2,
   Lock,
+  Pencil,
   Plus,
+  Printer,
   RefreshCw,
   Trash2,
   Unlock,
   X,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,7 +49,8 @@ import { NUCLEOS, SIGLA_POR_NUCLEO, type Doc } from "@/components/ged/data";
 import { useGestaoArquivistica } from "@/hooks/useGestaoArquivistica";
 import { podeEliminarDocumentoOficial, podeGerenciarPcdTtd } from "@/lib/auth";
 import { formatarTamanho } from "@/lib/formatters";
-import type { DossieItem } from "@/lib/pcd-dossie-api";
+import type { ClassePcdItem, DossieItem } from "@/lib/pcd-dossie-api";
+import { imprimirListagemEEditalEliminacao } from "@/lib/termo-eliminacao-export";
 import {
   ModalConfirmacaoAcaoSigad,
   useConfirmacaoSigad,
@@ -73,10 +77,13 @@ export function TelaGestaoArquivistica({
     recarregarGestao,
     adicionarClassePcd,
     alternarClasseAtiva,
+    atualizarClassePcd,
+    removerClasseInativaPcd,
     abrirNovoDossie,
     mudarStatusDossie,
     executarJuntadaDossie,
     removerDossie,
+    executarReclassificacaoDossie,
   } = useGestaoArquivistica(onDocumentosAlterados);
 
   const [abaInterna, setAbaInterna] = useState<"dossies" | "pcd" | "avaliacao">("dossies");
@@ -119,6 +126,108 @@ export function TelaGestaoArquivistica({
   const [classePrazoIntermed, setClassePrazoIntermed] = useState("0");
   const [classeDestinacao, setClasseDestinacao] = useState("GUARDA_PERMANENTE");
   const [classeObs, setClasseObs] = useState("");
+
+  // Estados Modal Edição de Classe PCD/TTD (Requisitos 1.1.5, 1.2.7, 1.3.7)
+  const [classeEdicaoAlvo, setClasseEdicaoAlvo] = useState<ClassePcdItem | null>(null);
+  const [editClasseCodigo, setEditClasseCodigo] = useState("");
+  const [editClasseTitulo, setEditClasseTitulo] = useState("");
+  const [editClasseTipoAtiv, setEditClasseTipoAtiv] = useState("Atividade-Fim");
+  const [editClasseFuncao, setEditClasseFuncao] = useState("");
+  const [editClassePrazoCorrente, setEditClassePrazoCorrente] = useState("2");
+  const [editClassePrazoIntermed, setEditClassePrazoIntermed] = useState("0");
+  const [editClasseDestinacao, setEditClasseDestinacao] = useState("GUARDA_PERMANENTE");
+  const [editClasseObs, setEditClasseObs] = useState("");
+
+  // Estados Modal Reclassificação de Dossiê (Requisitos 1.3.9 a 1.3.11)
+  const [dossieReclassificarAlvo, setDossieReclassificarAlvo] = useState<DossieItem | null>(null);
+  const [reclassDossieCodigo, setReclassDossieCodigo] = useState("FIM.100.01.001");
+  const [reclassDossieJustificativa, setReclassDossieJustificativa] = useState("");
+  const [reclassDossiePropagar, setReclassDossiePropagar] = useState(true);
+
+  function abrirModalEdicaoClasse(c: ClassePcdItem) {
+    setClasseEdicaoAlvo(c);
+    setEditClasseCodigo(c.codigo);
+    setEditClasseTitulo(c.titulo);
+    setEditClasseTipoAtiv(c.tipoAtividade || "Atividade-Fim");
+    setEditClasseFuncao(c.funcao || "");
+    setEditClassePrazoCorrente(String(c.prazoCorrenteAnos ?? 2));
+    setEditClassePrazoIntermed(String(c.prazoIntermediariaAnos ?? 0));
+    setEditClasseDestinacao(c.destinacaoFinal || "GUARDA_PERMANENTE");
+    setEditClasseObs(c.observacoesTtd || "");
+  }
+
+  function salvarEdicaoClasse(e: React.FormEvent) {
+    e.preventDefault();
+    if (!classeEdicaoAlvo || !editClasseCodigo.trim() || !editClasseTitulo.trim()) return;
+    const alvo = classeEdicaoAlvo;
+    solicitarConfirmacao({
+      titulo: `Você deseja salvar as alterações da classe ${alvo.codigo} no PCD/TTD?`,
+      descricao:
+        "O valor anterior dos atributos será preservado em EarqEventoClasse (e-ARQ 1.1.7) e os novos prazos de guarda e destinação final serão propagados automaticamente para todos os documentos e dossiês classificados nesta classe (e-ARQ 1.1.5 / 1.2.7).",
+      categoriaNormativa: "Manutenção do PCD & TTD · e-ARQ Brasil v2 (Reqs. 1.1.5 / 1.2.7)",
+      variante: "primaria",
+      rotuloConfirmar: "Sim, Atualizar Classe e Propagar TTD",
+      detalhesAlvo: [
+        `Anterior: ${alvo.codigo} — ${alvo.titulo} (Corrente ${alvo.prazoCorrenteAnos}a | Interm. ${alvo.prazoIntermediariaAnos}a | ${alvo.destinacaoFinal})`,
+        `Novo: ${editClasseCodigo.trim()} — ${editClasseTitulo.trim()} (Corrente ${editClassePrazoCorrente}a | Interm. ${editClassePrazoIntermed}a | ${editClasseDestinacao})`,
+      ],
+      onConfirmar: async () => {
+        const ok = await atualizarClassePcd(alvo.id, {
+          codigo: editClasseCodigo.trim(),
+          titulo: editClasseTitulo.trim(),
+          tipo_atividade: editClasseTipoAtiv,
+          funcao: editClasseFuncao.trim(),
+          prazo_corrente_anos: Number(editClassePrazoCorrente) ?? 2,
+          prazo_intermediaria_anos: Number(editClassePrazoIntermed) ?? 0,
+          destinacao_final: editClasseDestinacao,
+          observacoes_ttd: editClasseObs.trim(),
+        });
+        if (ok) {
+          setClasseEdicaoAlvo(null);
+        }
+      },
+    });
+  }
+
+  function salvarReclassificacaoDossie(e: React.FormEvent) {
+    e.preventDefault();
+    if (!dossieReclassificarAlvo) return;
+    if (reclassDossieJustificativa.trim().length < 8) {
+      toast.error("Justificativa obrigatória", {
+        description: "Informe ao menos 8 caracteres para reclassificar o dossiê.",
+      });
+      return;
+    }
+    const alvo = dossieReclassificarAlvo;
+    const classeObj = classesPcd.find((c) => c.codigo === reclassDossieCodigo);
+    solicitarConfirmacao({
+      titulo: `Você deseja reclassificar o dossiê ${alvo.codigoDossie} para a classe ${reclassDossieCodigo}?`,
+      descricao:
+        "A classe anterior será preservada na Trilha de Auditoria (valorAnterior) e, caso marcado, todas as peças juntadas ao dossiê também terão sua temporalidade recalculada.",
+      categoriaNormativa: "Reclassificação de Unidade de Arquivamento · e-ARQ 1.3.9 a 1.3.11",
+      variante: "primaria",
+      rotuloConfirmar: "Sim, Reclassificar Dossiê",
+      detalhesAlvo: [
+        `Dossiê: [${alvo.codigoDossie}] ${alvo.titulo}`,
+        `Classe Anterior: ${alvo.codigoClassificacao} -> Nova Classe: ${reclassDossieCodigo} (${classeObj?.titulo || ""})`,
+        `Propagar para ${alvo.totalDocumentos} peça(s) juntada(s): ${reclassDossiePropagar ? "SIM" : "NÃO"}`,
+        `Justificativa: ${reclassDossieJustificativa.trim()}`,
+      ],
+      onConfirmar: async () => {
+        const ok = await executarReclassificacaoDossie(alvo.id, {
+          codigo_classificacao: reclassDossieCodigo,
+          descricao_codigo: classeObj?.titulo || alvo.titulo,
+          destinacao_prevista: classeObj?.destinacaoFinal || alvo.destinacaoPrevista,
+          justificativa: reclassDossieJustificativa.trim(),
+          propagar_documentos: reclassDossiePropagar,
+        });
+        if (ok) {
+          setDossieReclassificarAlvo(null);
+          setReclassDossieJustificativa("");
+        }
+      },
+    });
+  }
 
   function salvarNovoDossie(e: React.FormEvent) {
     e.preventDefault();
@@ -556,6 +665,23 @@ export function TelaGestaoArquivistica({
                       )}
                     </Button>
 
+                    {podeAcessarPcdTtd && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setDossieReclassificarAlvo(d);
+                          setReclassDossieCodigo(d.codigoClassificacao || "FIM.100.01.001");
+                          setReclassDossieJustificativa("");
+                          setReclassDossiePropagar(true);
+                        }}
+                        className="gap-1.5 text-xs text-blue-700 hover:bg-blue-50"
+                        title="Reclassificar Dossiê no PCD/TTD (e-ARQ 1.3.9)"
+                      >
+                        <BookOpen className="h-3.5 w-3.5" /> Reclassificar PCD
+                      </Button>
+                    )}
+
                     {temPermissaoArquivista && (
                       <Button
                         variant="ghost"
@@ -612,7 +738,8 @@ export function TelaGestaoArquivistica({
                   <TableHead className="w-32">Fase Corrente</TableHead>
                   <TableHead className="w-36">Fase Intermediária</TableHead>
                   <TableHead className="w-48">Destinação Final (TTD)</TableHead>
-                  <TableHead className="w-28 text-right">Status</TableHead>
+                  <TableHead className="w-28 text-center">Status</TableHead>
+                  <TableHead className="w-36 text-right">Manutenção e-ARQ</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -662,7 +789,7 @@ export function TelaGestaoArquivistica({
                           : "Eliminação Controlada"}
                       </span>
                     </TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-center">
                       <button
                         type="button"
                         disabled={!temPermissaoArquivista}
@@ -697,6 +824,49 @@ export function TelaGestaoArquivistica({
                         <CheckCircle2 className="h-3 w-3" />
                         {c.ativa ? "ATIVA" : "INATIVA"}
                       </button>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => abrirModalEdicaoClasse(c)}
+                          className="h-7 gap-1 px-2 text-[11px]"
+                          title="Editar atributos da classe e propagar TTD (e-ARQ 1.1.5 / 1.2.7)"
+                        >
+                          <Pencil className="h-3 w-3" /> Editar
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          disabled={c.ativa}
+                          onClick={() =>
+                            solicitarConfirmacao({
+                              titulo: `Você deseja excluir definitivamente a classe inativa ${c.codigo}?`,
+                              descricao:
+                                "Conforme os Requisitos 1.1.8 e 1.1.9 do e-ARQ Brasil v2, somente classes INATIVAS que não possuam nenhum documento ou dossiê classificado nelas podem ser excluídas.",
+                              categoriaNormativa: "Exclusão Protegida de Classe · e-ARQ 1.1.8 / 1.1.9",
+                              variante: "perigo",
+                              rotuloConfirmar: "Sim, Excluir Classe Inativa",
+                              detalhesAlvo: [
+                                `Classe: ${c.codigo} — ${c.titulo}`,
+                                `Escopo: ${c.tipoAtividade}`,
+                              ],
+                              onConfirmar: async () => {
+                                await removerClasseInativaPcd(c.id);
+                              },
+                            })
+                          }
+                          className="h-7 px-2 text-[11px] text-red-600 hover:bg-red-50 disabled:opacity-30"
+                          title={
+                            c.ativa
+                              ? "Inative a classe antes de excluí-la (Requisito 1.1.8 e-ARQ)"
+                              : "Excluir classe inativa sem documentos vinculados (Requisito 1.1.8/1.1.9)"
+                          }
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -749,16 +919,44 @@ export function TelaGestaoArquivistica({
           </section>
 
           <section className="rounded-2xl border border-amber-200 bg-white shadow-sm overflow-hidden">
-            <div className="bg-amber-50/70 border-b border-amber-200 px-6 py-4">
-              <h3 className="text-base font-semibold text-amber-950 flex items-center gap-2">
-                <CalendarClock className="h-4 w-4 text-amber-700" />
-                Listagem de Guarda Temporária / Eliminação Futura (
-                {avaliacao.listagemGuardaTemporaria.length})
-              </h3>
-              <p className="text-xs text-amber-800">
-                Documentos de atividade-meio sujeitos a eliminação após cumprimento dos prazos
-                corrente e intermediário.
-              </p>
+            <div className="bg-amber-50/70 border-b border-amber-200 px-6 py-4 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-semibold text-amber-950 flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-amber-700" />
+                  Listagem de Guarda Temporária / Eliminação Futura (
+                  {avaliacao.listagemGuardaTemporaria.length})
+                </h3>
+                <p className="text-xs text-amber-800">
+                  Documentos de atividade-meio sujeitos a eliminação após cumprimento dos prazos
+                  corrente e intermediário.
+                </p>
+              </div>
+              {avaliacao.listagemGuardaTemporaria.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const ok = imprimirListagemEEditalEliminacao(
+                      avaliacao.listagemGuardaTemporaria.map((item) => ({
+                        numeroProtocolo: item.numeroProtocolo,
+                        nome: item.nome,
+                        codigoClassificacao: item.codigoClassificacao,
+                        categoria: item.tipoAtividade,
+                        ano: item.ano,
+                        nucleo: item.nucleo,
+                        observacao: `Fase: ${item.faseArquivistica} (Fim da guarda: ${item.anoDestinacaoFinal})`,
+                      }))
+                    );
+                    if (!ok) {
+                      toast.error("Permita pop-ups para imprimir a Listagem e o Edital de Eliminação.");
+                    }
+                  }}
+                  className="gap-1.5 text-xs border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Listagem & Edital (CONARQ 3.3.9)
+                </Button>
+              )}
             </div>
             <div className="max-h-96 overflow-y-auto divide-y divide-border">
               {avaliacao.listagemGuardaTemporaria.length === 0 ? (
@@ -1080,6 +1278,182 @@ export function TelaGestaoArquivistica({
                 Cancelar
               </Button>
               <Button type="submit">Salvar Classe no PCD/TTD</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: EDITAR CLASSE PCD / TTD COM PROPAGAÇÃO AUTOMÁTICA (e-ARQ 1.1.5, 1.1.7, 1.2.7) */}
+      <Dialog
+        open={podeAcessarPcdTtd && classeEdicaoAlvo !== null}
+        onOpenChange={(o) => !o && setClasseEdicaoAlvo(null)}
+      >
+        <DialogContent className="sm:max-w-xl w-[calc(100vw-2rem)] max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              Editar Classe no PCD / TTD ({classeEdicaoAlvo?.codigo})
+            </DialogTitle>
+            <DialogDescription>
+              O valor anterior será registrado em <code>EarqEventoClasse</code> e os novos prazos
+              de guarda / destinação final serão propagados automaticamente aos documentos e
+              dossiês desta classe (Requisitos 1.1.5 e 1.2.7 do e-ARQ Brasil v2).
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={salvarEdicaoClasse} className="space-y-4 py-2 w-full min-w-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0">
+              <div className="space-y-1 min-w-0">
+                <Label>Código da Classe</Label>
+                <Input
+                  required
+                  value={editClasseCodigo}
+                  onChange={(e) => setEditClasseCodigo(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1 min-w-0">
+                <Label>Escopo da Atividade</Label>
+                <Select value={editClasseTipoAtiv} onValueChange={setEditClasseTipoAtiv}>
+                  <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Atividade-Fim">Atividade-Fim (FCJA)</SelectItem>
+                    <SelectItem value="Atividade-Meio">Atividade-Meio (APEPB)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1 min-w-0">
+              <Label>Título da Classe / Série Documental</Label>
+              <Input
+                required
+                value={editClasseTitulo}
+                onChange={(e) => setEditClasseTitulo(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1 min-w-0">
+              <Label>Função / Grupo Superior</Label>
+              <Input
+                value={editClasseFuncao}
+                onChange={(e) => setEditClasseFuncao(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 min-w-0">
+              <div className="space-y-1 min-w-0">
+                <Label>Fase Corrente (Anos)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={editClassePrazoCorrente}
+                  onChange={(e) => setEditClassePrazoCorrente(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1 min-w-0">
+                <Label>Intermediária (Anos)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={editClassePrazoIntermed}
+                  onChange={(e) => setEditClassePrazoIntermed(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1 min-w-0">
+                <Label>Destinação Final</Label>
+                <Select value={editClasseDestinacao} onValueChange={setEditClasseDestinacao}>
+                  <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="GUARDA_PERMANENTE">Guarda Permanente</SelectItem>
+                    <SelectItem value="ELIMINACAO">Eliminação</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label>Observações da TTD</Label>
+              <Textarea
+                rows={2}
+                value={editClasseObs}
+                onChange={(e) => setEditClasseObs(e.target.value)}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setClasseEdicaoAlvo(null)}>
+                Cancelar
+              </Button>
+              <Button type="submit">Salvar Alterações e Propagar TTD</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL: RECLASSIFICAR DOSSIÊ / PROCESSO NO PCD (e-ARQ 1.3.9 a 1.3.11) */}
+      <Dialog
+        open={podeAcessarPcdTtd && dossieReclassificarAlvo !== null}
+        onOpenChange={(o) => !o && setDossieReclassificarAlvo(null)}
+      >
+        <DialogContent className="sm:max-w-xl w-[calc(100vw-2rem)] max-w-xl">
+          <DialogHeader>
+            <DialogTitle>
+              Reclassificar Unidade de Arquivamento ({dossieReclassificarAlvo?.codigoDossie})
+            </DialogTitle>
+            <DialogDescription>
+              Altere a classe do PCD deste dossiê registrando o código anterior (
+              <code>valorAnterior</code>) na Trilha de Auditoria (Requisitos 1.3.9 a 1.3.11).
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={salvarReclassificacaoDossie} className="space-y-4 py-2 w-full min-w-0">
+            <div className="space-y-1 min-w-0">
+              <Label>Nova Classe do Plano de Classificação (PCD)</Label>
+              <Select value={reclassDossieCodigo} onValueChange={setReclassDossieCodigo}>
+                <SelectTrigger className="w-full min-w-0 [&>span]:truncate">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="max-w-[min(90vw,36rem)]">
+                  {classesPcd
+                    .filter((c) => c.ativa)
+                    .map((c) => (
+                      <SelectItem key={c.codigo} value={c.codigo}>
+                        {c.codigo} — {c.titulo}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <label className="flex items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs cursor-pointer">
+              <Checkbox
+                checked={reclassDossiePropagar}
+                onCheckedChange={(v) => setReclassDossiePropagar(Boolean(v))}
+              />
+              <span>
+                Propagar nova classe e recalcular a temporalidade (TTD) de todas as{" "}
+                <strong>{dossieReclassificarAlvo?.totalDocumentos || 0} peça(s)</strong> juntadas a
+                este dossiê
+              </span>
+            </label>
+            <div className="space-y-1 min-w-0">
+              <Label>
+                Justificativa Técnica da Reclassificação <span className="text-red-500">*</span>
+              </Label>
+              <Textarea
+                required
+                rows={2}
+                value={reclassDossieJustificativa}
+                onChange={(e) => setReclassDossieJustificativa(e.target.value)}
+                placeholder="Informe a fundamentação arquivística para a mudança de classe..."
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDossieReclassificarAlvo(null)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit">Confirmar Reclassificação</Button>
             </DialogFooter>
           </form>
         </DialogContent>

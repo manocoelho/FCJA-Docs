@@ -44,15 +44,23 @@ def validar_governanca_eliminacao(
 ) -> None:
     """
     Responsabilidade única: Aplicar a regra de imutabilidade e governança de eliminação
-    do e-ARQ Brasil v2 (Cap. 2 e Cap. 3.2):
+    do e-ARQ Brasil v2 (Cap. 2, Cap. 3.3 e Cap. 7.3):
     - Documentos com status 'MINUTA' podem ser descartados por qualquer perfil autenticado.
     - Documentos capturados oficialmente ('ORIGINAL' ou 'COPIA') são protegidos contra
-      exclusão arbitrária: somente 'arquivista' ou 'admin' podem autorizar sua eliminação,
+      exclusão arbitrária: somente 'auxiliar', 'arquivista' ou 'admin' podem autorizar sua eliminação,
       mediante motivo normativo e justificativa técnica formal.
+    - Requisito 7.3.15 [O]: Documentos com restrição de acesso ('SIGILOSO_LAI' ou 'RESTRITO_LGPD')
+      NÃO podem ser eliminados antes de serem formalmente desclassificados para 'OSTENSIVO'.
+    - Requisito 3.3.3 [O]: Eliminação por 'CUMPRIMENTO_PRAZO_TTD' é bloqueada caso a destinação final
+      seja 'GUARDA_PERMANENTE' ou caso o prazo de guarda ('ano_destinacao_final') ainda esteja vigente.
     """
     status_doc = (doc.status_documento or "ORIGINAL").upper()
     papel = (papel_usuario or "pesquisador").lower().strip()
     justificativa_limpa = (justificativa or "").strip()
+    nivel_acesso = (doc.nivel_acesso or "OSTENSIVO").upper()
+    destinacao_ttd = (doc.destinacao_prevista or "GUARDA_PERMANENTE").upper()
+    ano_atual = datetime.now().year
+    ano_destinacao = doc.ano_destinacao_final or ((doc.ano or ano_atual) + 5)
 
     if status_doc != "MINUTA":
         if papel not in ("auxiliar", "arquivista", "admin"):
@@ -66,6 +74,42 @@ def validar_governanca_eliminacao(
                     "com emissão de Termo de Eliminação."
                 ),
             )
+
+        # Requisito Obrigatório e-ARQ Brasil v2 (7.3.15): Bloqueio de eliminação de documentos sigilosos/restritos
+        if nivel_acesso != "OSTENSIVO":
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    f"Trava de Segurança e-ARQ Brasil v2 (Requisito 7.3.15 [O]): O documento '{doc.nome}' "
+                    f"(Protocolo {doc.numero_protocolo or doc.id[:8]}) possui restrição de acesso '{nivel_acesso}'. "
+                    "O SIGAD não permite eliminar documentos sigilosos (LAI) ou restritos (LGPD) antes de sua "
+                    "formal desclassificação para 'OSTENSIVO'."
+                ),
+            )
+
+        # Requisito Obrigatório e-ARQ Brasil v2 (3.3.3): Bloqueio estrito conforme Tabela de Temporalidade (TTD)
+        if motivo_eliminacao == "CUMPRIMENTO_PRAZO_TTD":
+            if destinacao_ttd == "GUARDA_PERMANENTE":
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Trava de Temporalidade e-ARQ Brasil v2 (Requisito 3.3.3 [O]): O documento '{doc.nome}' "
+                        f"(Classe {doc.codigo_classificacao or 'Atividade-Fim'}) possui destinação final "
+                        "'GUARDA PERMANENTE' na TTD e não pode ser eliminado por cumprimento de prazo "
+                        "(deve ser recolhido ao RDC-Arq / Archivematica)."
+                    ),
+                )
+            if ano_destinacao > ano_atual:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Trava de Temporalidade e-ARQ Brasil v2 (Requisito 3.3.3 [O]): O documento '{doc.nome}' "
+                        f"ainda está com prazo de guarda vigente na TTD (Ano de destinação final: {ano_destinacao}; "
+                        f"Ano atual: {ano_atual}). Não é permitida a eliminação por cumprimento de prazo antes "
+                        "do vencimento da temporalidade."
+                    ),
+                )
+
         if len(justificativa_limpa) < 10:
             raise HTTPException(
                 status_code=400,

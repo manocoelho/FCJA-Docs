@@ -35,6 +35,11 @@ export function obterTokenJwt(): string | null {
   return sessionStorage.getItem(KEY_TOKEN);
 }
 
+export function obterPapelSessao(): string | null {
+  if (typeof window === "undefined") return null;
+  return sessionStorage.getItem(KEY_ROLE);
+}
+
 export function obterHeadersAuth(
   extras: Record<string, string> = {}
 ): Record<string, string> {

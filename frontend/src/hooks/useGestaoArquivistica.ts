@@ -8,8 +8,11 @@ import {
   buscarDossies,
   criarClassePcd,
   criarDossie,
+  editarClassePcd,
+  excluirClassePcd,
   excluirDossie,
   juntarDocumentosAoDossie,
+  reclassificarDossie,
   type AvaliacaoTemporalAcervo,
   type ClassePcdItem,
   type DossieItem,
@@ -175,6 +178,83 @@ export function useGestaoArquivistica(onDocumentosAlterados?: (() => void) | und
     [recarregarGestao, onDocumentosAlterados]
   );
 
+  const atualizarClassePcd = useCallback(
+    async (
+      classeId: string,
+      dados: {
+        codigo: string;
+        titulo: string;
+        tipo_atividade: string;
+        funcao: string;
+        prazo_corrente_anos: number;
+        prazo_intermediaria_anos: number;
+        destinacao_final: string;
+        observacoes_ttd?: string;
+      }
+    ) => {
+      try {
+        const res = await editarClassePcd(classeId, dados);
+        toast.success(`Classe ${res.classe.codigo} atualizada no PCD/TTD`, {
+          description: `${res.classe.documentosPropagados} documento(s) e ${res.classe.dossiesPropagados} dossiê(s) tiveram a temporalidade recalculada automaticamente (e-ARQ 1.2.7).`,
+        });
+        await recarregarGestao();
+        onDocumentosAlterados?.();
+        return true;
+      } catch (erro: unknown) {
+        const msg = erro instanceof Error ? erro.message : "Erro ao editar classe";
+        toast.error("Falha ao editar classe no PCD/TTD", { description: msg });
+        return false;
+      }
+    },
+    [recarregarGestao, onDocumentosAlterados]
+  );
+
+  const removerClasseInativaPcd = useCallback(
+    async (classeId: string) => {
+      try {
+        const res = await excluirClassePcd(classeId);
+        toast.success(res.mensagem);
+        await recarregarGestao();
+        return true;
+      } catch (erro: unknown) {
+        const msg = erro instanceof Error ? erro.message : "Erro ao excluir classe";
+        toast.error("Exclusão de classe bloqueada (e-ARQ 1.1.8 / 1.1.9)", {
+          description: msg,
+        });
+        return false;
+      }
+    },
+    [recarregarGestao]
+  );
+
+  const executarReclassificacaoDossie = useCallback(
+    async (
+      dossieId: string,
+      dados: {
+        codigo_classificacao: string;
+        descricao_codigo: string;
+        destinacao_prevista: string;
+        justificativa: string;
+        propagar_documentos: boolean;
+      }
+    ) => {
+      try {
+        const res = await reclassificarDossie(dossieId, dados);
+        toast.success(res.mensagem, {
+          description: `${res.dossie.documentosPropagados} peça(s) vinculada(s) também foram reclassificadas e recalculadas na TTD.`,
+        });
+        await recarregarGestao();
+        onDocumentosAlterados?.();
+        return true;
+      } catch (erro: unknown) {
+        const msg = erro instanceof Error ? erro.message : "Erro ao reclassificar dossiê";
+        toast.error("Falha na reclassificação do dossiê", { description: msg });
+        return false;
+      }
+    },
+    [recarregarGestao, onDocumentosAlterados]
+  );
+
   return {
     classesPcd,
     dossies,
@@ -185,9 +265,12 @@ export function useGestaoArquivistica(onDocumentosAlterados?: (() => void) | und
     recarregarGestao,
     adicionarClassePcd,
     alternarClasseAtiva,
+    atualizarClassePcd,
+    removerClasseInativaPcd,
     abrirNovoDossie,
     mudarStatusDossie,
     executarJuntadaDossie,
     removerDossie,
+    executarReclassificacaoDossie,
   };
 }

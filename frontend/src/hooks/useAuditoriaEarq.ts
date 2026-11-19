@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
+  arquivarTrilhaComoDocumento,
   buscarEventosAuditoria,
   buscarResumoAuditoria,
   buscarTermosEliminacao,
+  exportarTrilhaAuditoriaArquivo,
   verificarFixidadeEmLote,
   type EventoArquivistico,
   type ResumoAuditoriaEarq,
@@ -22,6 +24,7 @@ export function useAuditoriaEarq(
   const [buscaFiltro, setBuscaFiltro] = useState<string>("");
   const [carregando, setCarregando] = useState<boolean>(false);
   const [verificandoLote, setVerificandoLote] = useState<boolean>(false);
+  const [arquivandoTrilha, setArquivandoTrilha] = useState<boolean>(false);
 
   const carregarDadosAuditoria = useCallback(async () => {
     setCarregando(true);
@@ -75,6 +78,34 @@ export function useAuditoriaEarq(
     }
   }, [usuarioLogado, usuarioPapel, carregarDadosAuditoria, onFixidadeLoteConcluida]);
 
+  const executarArquivamentoTrilhaOficial = useCallback(async () => {
+    setArquivandoTrilha(true);
+    try {
+      const res = await arquivarTrilhaComoDocumento();
+      toast.success("Trilha de Auditoria arquivada como Documento Oficial (e-ARQ 7.4.15)!", {
+        description: res.mensagem,
+      });
+      window.dispatchEvent(new CustomEvent("fcja-acervo-atualizado"));
+      await carregarDadosAuditoria();
+      onFixidadeLoteConcluida?.();
+    } catch (erro: unknown) {
+      const msg = erro instanceof Error ? erro.message : "Erro ao arquivar trilha de auditoria";
+      toast.error("Falha ao arquivar trilha", { description: msg });
+    } finally {
+      setArquivandoTrilha(false);
+    }
+  }, [carregarDadosAuditoria, onFixidadeLoteConcluida]);
+
+  const exportarTrilha = useCallback(
+    (formato: "csv" | "json") => {
+      exportarTrilhaAuditoriaArquivo(eventos, formato);
+      toast.success(
+        `Trilha de Auditoria exportada em ${formato.toUpperCase()} (${eventos.length} eventos)`
+      );
+    },
+    [eventos]
+  );
+
   return {
     eventos,
     termosEliminacao,
@@ -85,7 +116,10 @@ export function useAuditoriaEarq(
     setBuscaFiltro,
     carregando,
     verificandoLote,
+    arquivandoTrilha,
     recarregarAuditoria: carregarDadosAuditoria,
     executarAuditoriaFixidadeLote,
+    executarArquivamentoTrilhaOficial,
+    exportarTrilha,
   };
 }

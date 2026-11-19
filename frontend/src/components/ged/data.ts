@@ -32,6 +32,7 @@ export type Doc = {
   destinacaoPrevista?: "GUARDA_PERMANENTE" | "ELIMINACAO" | string | undefined;
   nivelAcesso?: "OSTENSIVO" | "RESTRITO_LGPD" | "SIGILOSO_LAI" | string | undefined;
   hipoteseLegal?: string | undefined;
+  previsaoDesclassificacao?: string | undefined;
   formatoMime?: string | undefined;
   hashSha256?: string | undefined;
   fixidadeVerificada?: boolean | undefined;

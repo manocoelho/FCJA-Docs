@@ -328,3 +328,101 @@ def excluir_dossie(
         "titulo": titulo_dossie,
         "documentosDesvinculados": qtd_desvinculados,
     }
+
+
+def reclassificar_dossie(
+    db: Session,
+    dossie_id: str,
+    codigo_classificacao: str,
+    descricao_codigo: str,
+    destinacao_prevista: str,
+    justificativa: str,
+    propagar_documentos: bool,
+    usuario_responsavel: str,
+    papel_usuario: str,
+    ip_origem: str = "",
+) -> Optional[dict]:
+    """
+    Requisitos Obrigatórios e-ARQ Brasil v2 (1.3.9, 1.3.10 e 1.3.11):
+    Reclassifica uma Unidade de Arquivamento (Dossiê / Processo) no Plano de Classificação,
+    registrando o código de classificação anterior (valorAnterior) na Trilha de Auditoria e
+    opcionalmente propagando a nova classificação e temporalidade para os documentos vinculados.
+    """
+    from services.temporalidade_service import calcular_temporalidade_documento
+
+    dossie = (
+        db.query(UnidadeArquivamentoModel)
+        .filter(UnidadeArquivamentoModel.id == dossie_id)
+        .first()
+    )
+    if not dossie:
+        return None
+
+    valor_anterior = (
+        f"Classe='{dossie.codigo_classificacao or 'N/A'} - {dossie.descricao_codigo or ''}', "
+        f"Destinação='{dossie.destinacao_prevista or ''}'"
+    )
+
+    dossie.codigo_classificacao = (codigo_classificacao or "").strip()
+    dossie.descricao_codigo = (descricao_codigo or "").strip()
+    if destinacao_prevista:
+        dossie.destinacao_prevista = destinacao_prevista.strip()
+
+    docs_propagados = 0
+    if propagar_documentos:
+        docs_dossie = (
+            db.query(DocumentoModel)
+            .filter(DocumentoModel.dossie_id == dossie.id)
+            .all()
+        )
+        tipo_ativ = (
+            "Atividade-Fim"
+            if dossie.codigo_classificacao.upper().startswith("FIM")
+            else "Atividade-Meio"
+        )
+        for doc in docs_dossie:
+            doc.codigo_classificacao = dossie.codigo_classificacao
+            doc.descricao_codigo = dossie.descricao_codigo
+            doc.tipo_atividade = tipo_ativ
+            calc = calcular_temporalidade_documento(
+                db=db,
+                ano_producao=doc.ano or datetime.now().year,
+                codigo_classificacao=doc.codigo_classificacao,
+                tipo_atividade=doc.tipo_atividade,
+                categoria=doc.categoria or "",
+            )
+            doc.prazo_corrente_anos = calc["prazo_corrente_anos"]
+            doc.prazo_intermediaria_anos = calc["prazo_intermediaria_anos"]
+            doc.ano_destinacao_final = calc["ano_destinacao_final"]
+            doc.destinacao_prevista = calc["destinacao_prevista"]
+            if doc.fase_arquivistica != "RECOLHIDO_RDC_ARQ":
+                doc.fase_arquivistica = calc["fase_arquivistica"]
+            docs_propagados += 1
+
+    registrar_evento(
+        db=db,
+        categoria_evento="CICLO_VIDA",
+        tipo_evento="RECLASSIFICACAO_DOSSIE_PCD",
+        numero_protocolo=dossie.codigo_dossie,
+        usuario_responsavel=usuario_responsavel,
+        papel_usuario=papel_usuario,
+        resultado="SUCESSO",
+        ip_origem=ip_origem,
+        detalhes=(
+            f"[EarqEventoCv — Requisito 1.3.9/1.3.11] Unidade de Arquivamento '{dossie.codigo_dossie} — {dossie.titulo}' "
+            f"reclassificada no PCD/TTD. valorAnterior=[{valor_anterior}] -> "
+            f"valorNovo=[Classe='{dossie.codigo_classificacao} - {dossie.descricao_codigo}', "
+            f"Destinação='{dossie.destinacao_prevista}']. "
+            f"Peças propagadas: {docs_propagados}. Justificativa: {justificativa}"
+        ),
+    )
+    db.commit()
+
+    return {
+        "id": dossie.id,
+        "codigoDossie": dossie.codigo_dossie,
+        "codigoClassificacao": dossie.codigo_classificacao,
+        "descricaoCodigo": dossie.descricao_codigo,
+        "destinacaoPrevista": dossie.destinacao_prevista,
+        "documentosPropagados": docs_propagados,
+    }

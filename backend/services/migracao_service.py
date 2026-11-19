@@ -34,6 +34,7 @@ COLUNAS_NOVAS_DOCUMENTOS = [
     ("destinacao_prevista", "VARCHAR(40) DEFAULT 'GUARDA_PERMANENTE'"),
     ("nivel_acesso", "VARCHAR(50) DEFAULT 'OSTENSIVO'"),
     ("hipotese_legal", "VARCHAR(255) DEFAULT ''"),
+    ("previsao_desclassificacao", "VARCHAR(40) DEFAULT ''"),
     ("formato_mime", "VARCHAR(120) DEFAULT ''"),
     ("hash_sha256", "VARCHAR(64) DEFAULT ''"),
     ("fixidade_verificada", "INTEGER DEFAULT 1"),

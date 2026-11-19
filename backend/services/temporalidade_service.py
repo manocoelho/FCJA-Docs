@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from models.pcd_ttd import ClassePcdModel
 from models.documento import DocumentoModel
+from models.dossie import UnidadeArquivamentoModel
 from services.auditoria_service import registrar_evento
 
 
@@ -361,6 +362,206 @@ def alternar_status_classe_pcd(
     )
     db.commit()
     return {"id": classe.id, "codigo": classe.codigo, "ativa": bool(classe.ativa)}
+
+
+def editar_classe_pcd(
+    db: Session,
+    classe_id: str,
+    dados: dict,
+    usuario_responsavel: str,
+    papel_usuario: str,
+    ip_origem: str = "",
+) -> Optional[dict]:
+    """
+    Requisitos Obrigatórios e-ARQ Brasil v2 (1.1.5, 1.1.6, 1.1.7, 1.2.7 e 1.3.7):
+    Edita uma classe existente no PCD/TTD, grava o valor anterior dos atributos em EarqEventoClasse
+    e propaga automaticamente os novos prazos de guarda e destinação final para todos os documentos
+    e dossiês classificados nessa classe.
+    """
+    classe = db.query(ClassePcdModel).filter(ClassePcdModel.id == classe_id).first()
+    if not classe:
+        return None
+
+    codigo_antigo = classe.codigo
+    valor_anterior = (
+        f"Código='{classe.codigo}', Título='{classe.titulo}', Tipo='{classe.tipo_atividade}', "
+        f"Corrente={classe.prazo_corrente_anos}a, Intermediária={classe.prazo_intermediaria_anos}a, "
+        f"Destinação='{classe.destinacao_final}'"
+    )
+
+    novo_codigo = (dados.get("codigo") or classe.codigo).strip()
+    if novo_codigo != codigo_antigo:
+        conflito = (
+            db.query(ClassePcdModel)
+            .filter(ClassePcdModel.codigo == novo_codigo, ClassePcdModel.id != classe_id)
+            .first()
+        )
+        if conflito:
+            raise ValueError(f"O código de classificação '{novo_codigo}' já está em uso por outra classe no PCD.")
+
+    classe.codigo = novo_codigo
+    classe.titulo = (dados.get("titulo") or classe.titulo).strip()
+    classe.tipo_atividade = (dados.get("tipo_atividade") or classe.tipo_atividade).strip()
+    if "funcao" in dados and dados["funcao"] is not None:
+        classe.funcao = dados["funcao"].strip()
+    if "subfuncao" in dados and dados["subfuncao"] is not None:
+        classe.subfuncao = dados["subfuncao"].strip()
+    if "atividade" in dados and dados["atividade"] is not None:
+        classe.atividade = dados["atividade"].strip()
+    if "prazo_corrente_anos" in dados and dados["prazo_corrente_anos"] is not None:
+        classe.prazo_corrente_anos = max(0, int(dados["prazo_corrente_anos"]))
+    if "evento_corrente" in dados and dados["evento_corrente"] is not None:
+        classe.evento_corrente = dados["evento_corrente"].strip()
+    if "prazo_intermediaria_anos" in dados and dados["prazo_intermediaria_anos"] is not None:
+        classe.prazo_intermediaria_anos = max(0, int(dados["prazo_intermediaria_anos"]))
+    if "evento_intermediaria" in dados and dados["evento_intermediaria"] is not None:
+        classe.evento_intermediaria = dados["evento_intermediaria"].strip()
+    if "destinacao_final" in dados and dados["destinacao_final"]:
+        classe.destinacao_final = dados["destinacao_final"].strip()
+    if "observacoes_ttd" in dados and dados["observacoes_ttd"] is not None:
+        classe.observacoes_ttd = dados["observacoes_ttd"].strip()
+
+    # Propagação automática aos documentos e dossiês vinculados (Requisitos 1.1.5, 1.2.7 e 1.3.7)
+    docs_vinculados = (
+        db.query(DocumentoModel)
+        .filter(DocumentoModel.codigo_classificacao == codigo_antigo)
+        .all()
+    )
+    ano_atual = datetime.now().year
+    for doc in docs_vinculados:
+        doc.codigo_classificacao = classe.codigo
+        doc.descricao_codigo = classe.titulo
+        doc.tipo_atividade = classe.tipo_atividade
+        doc.prazo_corrente_anos = classe.prazo_corrente_anos
+        doc.prazo_intermediaria_anos = classe.prazo_intermediaria_anos
+        ano_base = doc.ano if (doc.ano and doc.ano > 1900) else ano_atual
+        ano_fim_corr = ano_base + classe.prazo_corrente_anos
+        ano_dest = ano_fim_corr + classe.prazo_intermediaria_anos
+        doc.ano_destinacao_final = ano_dest
+        doc.destinacao_prevista = classe.destinacao_final
+        if doc.fase_arquivistica != "RECOLHIDO_RDC_ARQ":
+            if ano_atual < ano_fim_corr:
+                doc.fase_arquivistica = "CORRENTE"
+            elif ano_atual < ano_dest:
+                doc.fase_arquivistica = "INTERMEDIARIA"
+            else:
+                doc.fase_arquivistica = (
+                    "APTO_RECOLHIMENTO"
+                    if classe.destinacao_final == "GUARDA_PERMANENTE"
+                    else "APTO_ELIMINACAO"
+                )
+
+    dossies_vinculados = (
+        db.query(UnidadeArquivamentoModel)
+        .filter(UnidadeArquivamentoModel.codigo_classificacao == codigo_antigo)
+        .all()
+    )
+    for dossie in dossies_vinculados:
+        dossie.codigo_classificacao = classe.codigo
+        dossie.descricao_codigo = classe.titulo
+        dossie.destinacao_prevista = classe.destinacao_final
+
+    valor_novo = (
+        f"Código='{classe.codigo}', Título='{classe.titulo}', Tipo='{classe.tipo_atividade}', "
+        f"Corrente={classe.prazo_corrente_anos}a, Intermediária={classe.prazo_intermediaria_anos}a, "
+        f"Destinação='{classe.destinacao_final}'"
+    )
+
+    registrar_evento(
+        db=db,
+        categoria_evento="CLASSE",
+        tipo_evento="ALTERACAO_CLASSE_PCD_TTD",
+        usuario_responsavel=usuario_responsavel,
+        papel_usuario=papel_usuario,
+        resultado="SUCESSO",
+        ip_origem=ip_origem,
+        detalhes=(
+            f"[EarqEventoClasse — Requisitos 1.1.5/1.1.7/1.2.7] Classe atualizada no PCD/TTD. "
+            f"valorAnterior=[{valor_anterior}] -> valorNovo=[{valor_novo}]. "
+            f"Temporalidade propagada automaticamente para {len(docs_vinculados)} documento(s) "
+            f"e {len(dossies_vinculados)} dossiê(s)."
+        ),
+    )
+    db.commit()
+
+    return {
+        "id": classe.id,
+        "codigo": classe.codigo,
+        "titulo": classe.titulo,
+        "tipoAtividade": classe.tipo_atividade,
+        "prazoCorrenteAnos": classe.prazo_corrente_anos,
+        "prazoIntermediariaAnos": classe.prazo_intermediaria_anos,
+        "destinacaoFinal": classe.destinacao_final,
+        "observacoesTtd": classe.observacoes_ttd,
+        "ativa": bool(classe.ativa),
+        "documentosPropagados": len(docs_vinculados),
+        "dossiesPropagados": len(dossies_vinculados),
+    }
+
+
+def excluir_classe_pcd(
+    db: Session,
+    classe_id: str,
+    usuario_responsavel: str,
+    papel_usuario: str,
+    ip_origem: str = "",
+) -> Optional[dict]:
+    """
+    Requisitos Obrigatórios e-ARQ Brasil v2 (1.1.8 e 1.1.9):
+    - Requisito 1.1.8 [O]: Apenas classes INATIVAS podem ser excluídas.
+    - Requisito 1.1.9 [O]: É estritamente proibida a exclusão de qualquer classe que possua
+      documentos ou dossiês classificados nela, ativos ou inativos.
+    """
+    classe = db.query(ClassePcdModel).filter(ClassePcdModel.id == classe_id).first()
+    if not classe:
+        return None
+
+    if classe.ativa == 1:
+        raise ValueError(
+            f"Requisito Obrigatório e-ARQ Brasil v2 (1.1.8 [O]): A classe '{classe.codigo} - {classe.titulo}' "
+            "está ATIVA. Apenas classes INATIVAS podem ser excluídas do Plano de Classificação."
+        )
+
+    qtd_docs = (
+        db.query(DocumentoModel)
+        .filter(DocumentoModel.codigo_classificacao == classe.codigo)
+        .count()
+    )
+    qtd_dossies = (
+        db.query(UnidadeArquivamentoModel)
+        .filter(UnidadeArquivamentoModel.codigo_classificacao == classe.codigo)
+        .count()
+    )
+    if qtd_docs > 0 or qtd_dossies > 0:
+        raise ValueError(
+            f"Requisito Obrigatório e-ARQ Brasil v2 (1.1.9 [O]): Proibida a exclusão da classe "
+            f"'{classe.codigo} - {classe.titulo}' pois existem {qtd_docs} documento(s) e {qtd_dossies} dossiê(s) "
+            "classificados nela. Reclassifique os itens vinculados antes de excluir a classe."
+        )
+
+    resumo = {
+        "id": classe.id,
+        "codigo": classe.codigo,
+        "titulo": classe.titulo,
+        "tipoAtividade": classe.tipo_atividade,
+    }
+    db.delete(classe)
+
+    registrar_evento(
+        db=db,
+        categoria_evento="CLASSE",
+        tipo_evento="EXCLUSAO_CLASSE_INATIVA_PCD",
+        usuario_responsavel=usuario_responsavel,
+        papel_usuario=papel_usuario,
+        resultado="SUCESSO",
+        ip_origem=ip_origem,
+        detalhes=(
+            f"[EarqEventoClasse — Requisitos 1.1.8/1.1.9] Classe inativa sem documentos vinculados "
+            f"'{resumo['codigo']} - {resumo['titulo']}' ({resumo['tipoAtividade']}) excluída definitivamente do PCD/TTD."
+        ),
+    )
+    db.commit()
+    return resumo
 
 
 def obter_avaliacao_temporal_acervo(db: Session) -> dict:

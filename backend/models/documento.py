@@ -49,6 +49,7 @@ class DocumentoModel(Base):
     # Controle de Acesso e Sigilo (e-ARQ Brasil v2 - Cap. 7 / LAI & LGPD)
     nivel_acesso = Column(String(50), default="OSTENSIVO")  # OSTENSIVO | RESTRITO_LGPD | SIGILOSO_LAI
     hipotese_legal = Column(String(255), default="")
+    previsao_desclassificacao = Column(String(40), default="")  # Metadado 1.31 e-ARQ Brasil v2 (Data/Evento de desclassificação)
 
     # Metadados de Captura e Componente Digital Principal (PREMIS / e-ARQ Seção 3)
     ext = Column(String(20))

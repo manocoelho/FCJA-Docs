@@ -137,6 +137,60 @@ export async function alternarStatusClassePcd(
   return payload;
 }
 
+export async function editarClassePcd(
+  classeId: string,
+  dados: {
+    codigo: string;
+    titulo: string;
+    tipo_atividade: string;
+    funcao: string;
+    subfuncao?: string;
+    atividade?: string;
+    prazo_corrente_anos: number;
+    prazo_intermediaria_anos: number;
+    destinacao_final: string;
+    observacoes_ttd?: string;
+  }
+): Promise<{
+  sucesso: boolean;
+  classe: {
+    id: string;
+    codigo: string;
+    titulo: string;
+    documentosPropagados: number;
+    dossiesPropagados: number;
+  };
+}> {
+  const res = await fetch(`${API_BASE_URL}/api/pcd/classes/${encodeURIComponent(classeId)}`, {
+    method: "PUT",
+    headers: obterHeadersAuth({ "Content-Type": "application/json" }),
+    body: JSON.stringify(dados),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(payload.detail || "Não foi possível editar a classe no PCD/TTD");
+  }
+  return payload;
+}
+
+export async function excluirClassePcd(
+  classeId: string
+): Promise<{
+  sucesso: boolean;
+  mensagem: string;
+  classe: { id: string; codigo: string; titulo: string };
+}> {
+  const res = await fetch(`${API_BASE_URL}/api/pcd/classes/${encodeURIComponent(classeId)}`, {
+    method: "DELETE",
+    headers: obterHeadersAuth(),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(payload.detail || "Não foi possível excluir a classe do PCD/TTD");
+  }
+  return payload;
+}
+
 export async function buscarAvaliacaoTemporalAcervo(): Promise<AvaliacaoTemporalAcervo> {
   const res = await fetch(`${API_BASE_URL}/api/pcd/avaliacao-acervo`, {
     headers: obterHeadersAuth(),
@@ -225,6 +279,42 @@ export async function excluirDossie(
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(payload.detail || "Não foi possível excluir o dossiê/processo");
+  }
+  return payload;
+}
+
+export async function reclassificarDossie(
+  dossieId: string,
+  dados: {
+    codigo_classificacao: string;
+    descricao_codigo: string;
+    destinacao_prevista: string;
+    justificativa: string;
+    propagar_documentos: boolean;
+  }
+): Promise<{
+  sucesso: boolean;
+  mensagem: string;
+  dossie: {
+    id: string;
+    codigoDossie: string;
+    codigoClassificacao: string;
+    descricaoCodigo: string;
+    destinacaoPrevista: string;
+    documentosPropagados: number;
+  };
+}> {
+  const res = await fetch(
+    `${API_BASE_URL}/api/dossies/${encodeURIComponent(dossieId)}/reclassificar`,
+    {
+      method: "PUT",
+      headers: obterHeadersAuth({ "Content-Type": "application/json" }),
+      body: JSON.stringify(dados),
+    }
+  );
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(payload.detail || "Não foi possível reclassificar o dossiê");
   }
   return payload;
 }

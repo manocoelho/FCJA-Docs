@@ -8,6 +8,8 @@ from core.dependencies import exigir_papeis, extrair_agente_requisicao
 from services.temporalidade_service import (
     alternar_status_classe_pcd,
     criar_classe_pcd,
+    editar_classe_pcd,
+    excluir_classe_pcd,
     listar_classes_pcd,
     obter_avaliacao_temporal_acervo,
 )
@@ -92,6 +94,72 @@ def put_status_classe_pcd(
         if not resultado:
             raise HTTPException(status_code=404, detail="Classe não encontrada no PCD")
         return {"sucesso": True, "classe": resultado}
+
+
+@router.put("/api/pcd/classes/{classe_id}")
+def put_editar_classe_pcd(
+    classe_id: str,
+    dados: NovaClassePcdSchema,
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    agente = extrair_agente_requisicao(authorization=authorization, papel_fallback="arquivista")
+    exigir_papeis(agente, {"arquivista", "admin"}, "Edição de Classe no PCD/TTD (e-ARQ 1.1.5)")
+    ip = request.client.host if (request and request.client) else ""
+
+    with database.SessionLocal() as db:
+        try:
+            atualizada = editar_classe_pcd(
+                db=db,
+                classe_id=classe_id,
+                dados=dados.model_dump(),
+                usuario_responsavel=agente["nome"],
+                papel_usuario=agente["papel"],
+                ip_origem=ip,
+            )
+            if not atualizada:
+                raise HTTPException(status_code=404, detail="Classe não encontrada no PCD")
+            return {"sucesso": True, "classe": atualizada}
+        except ValueError as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
+        except IntegrityError:
+            db.rollback()
+            raise HTTPException(
+                status_code=400,
+                detail=f"O código de classificação '{dados.codigo}' já existe no PCD/TTD.",
+            )
+
+
+@router.delete("/api/pcd/classes/{classe_id}")
+def delete_classe_pcd(
+    classe_id: str,
+    authorization: Optional[str] = Header(None),
+    request: Request = None,
+):
+    agente = extrair_agente_requisicao(authorization=authorization, papel_fallback="arquivista")
+    exigir_papeis(agente, {"arquivista", "admin"}, "Exclusão de Classe Inativa no PCD/TTD (e-ARQ 1.1.8/1.1.9)")
+    ip = request.client.host if (request and request.client) else ""
+
+    with database.SessionLocal() as db:
+        try:
+            excluida = excluir_classe_pcd(
+                db=db,
+                classe_id=classe_id,
+                usuario_responsavel=agente["nome"],
+                papel_usuario=agente["papel"],
+                ip_origem=ip,
+            )
+            if not excluida:
+                raise HTTPException(status_code=404, detail="Classe não encontrada no PCD")
+            return {
+                "sucesso": True,
+                "mensagem": f"Classe inativa '{excluida['codigo']}' excluída com sucesso.",
+                "classe": excluida,
+            }
+        except ValueError as e:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/api/pcd/avaliacao-acervo")

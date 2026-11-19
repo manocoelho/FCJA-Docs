@@ -44,6 +44,7 @@ import {
 } from "@/lib/auth";
 import { useAcervoSigad } from "@/hooks/useAcervoSigad";
 import type { AbaSistemaSigad } from "@/hooks/useDashboardSigad";
+import { registrarAcessoDocumento } from "@/lib/sigad-api";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -108,6 +109,22 @@ function Index() {
   } = useAcervoSigad(usuarioLogado, usuarioPapel);
 
   async function abrirDoc(doc: Doc) {
+    // Requisito 7.3.5 [O] e 7.4.1 [O]: Controle de acesso por grau de sigilo e auditoria de consulta
+    try {
+      await registrarAcessoDocumento(doc.id, "VISUALIZACAO");
+    } catch (erro: unknown) {
+      const msg =
+        erro instanceof Error
+          ? erro.message
+          : "Acesso negado pela política de segurança e sigilo (e-ARQ 7.3.5).";
+      if ((doc.nivelAcesso || "OSTENSIVO") === "SIGILOSO_LAI" && usuarioPapel === "pesquisador") {
+        toast.error("Acesso Bloqueado por Grau de Sigilo (LAI / e-ARQ 7.3.5)", {
+          description: msg,
+        });
+        return;
+      }
+    }
+
     setViewDoc(doc);
     setDadosPlanilha(null);
     setHtmlDocxView(null);
@@ -171,7 +188,22 @@ function Index() {
     }
   }
 
-  function baixarDoc(doc: Doc) {
+  async function baixarDoc(doc: Doc) {
+    try {
+      await registrarAcessoDocumento(doc.id, "DOWNLOAD");
+    } catch (erro: unknown) {
+      const msg =
+        erro instanceof Error
+          ? erro.message
+          : "Download bloqueado pela política de segurança e sigilo (e-ARQ 7.3.5).";
+      if ((doc.nivelAcesso || "OSTENSIVO") === "SIGILOSO_LAI" && usuarioPapel === "pesquisador") {
+        toast.error("Download Bloqueado por Grau de Sigilo (LAI / e-ARQ 7.3.5)", {
+          description: msg,
+        });
+        return;
+      }
+    }
+
     if (!doc.url) {
       toast.info("Download indisponível", { description: "Documento de demonstração." });
       return;

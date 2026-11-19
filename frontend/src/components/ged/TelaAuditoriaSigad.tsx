@@ -1,7 +1,9 @@
 import { useState } from "react";
 import {
   Activity,
+  Archive,
   CheckCircle2,
+  Download,
   FileCheck2,
   FileWarning,
   Fingerprint,
@@ -31,7 +33,10 @@ import {
 } from "@/components/ui/table";
 import { useAuditoriaEarq } from "@/hooks/useAuditoriaEarq";
 import { formatarHashCurto, rotuloCategoriaEvento } from "@/lib/formatters";
-import { imprimirTermoEliminacao } from "@/lib/termo-eliminacao-export";
+import {
+  imprimirListagemEEditalEliminacao,
+  imprimirTermoEliminacao,
+} from "@/lib/termo-eliminacao-export";
 import {
   ModalConfirmacaoAcaoSigad,
   useConfirmacaoSigad,
@@ -58,8 +63,11 @@ export function TelaAuditoriaSigad({
     setBuscaFiltro,
     carregando,
     verificandoLote,
+    arquivandoTrilha,
     recarregarAuditoria,
     executarAuditoriaFixidadeLote,
+    executarArquivamentoTrilhaOficial,
+    exportarTrilha,
   } = useAuditoriaEarq(usuarioLogado, usuarioPapel, onFixidadeAtualizada);
 
   const [subAba, setSubAba] = useState<"eventos" | "termos">("eventos");
@@ -119,6 +127,52 @@ export function TelaAuditoriaSigad({
           >
             <RefreshCw className={`h-4 w-4 ${carregando ? "animate-spin" : ""}`} />
             Atualizar Trilha
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => exportarTrilha("csv")}
+            disabled={eventos.length === 0}
+            className="gap-1.5 bg-white text-xs"
+            title="Exportar eventos exibidos da Trilha de Auditoria em CSV (Requisito 7.4.7 e-ARQ)"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exportar CSV (7.4.7)
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => exportarTrilha("json")}
+            disabled={eventos.length === 0}
+            className="gap-1.5 bg-white text-xs"
+            title="Exportar eventos exibidos da Trilha de Auditoria em JSON (Requisito 7.4.7 e-ARQ)"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Exportar JSON
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              solicitarConfirmacao({
+                titulo:
+                  "Você deseja arquivar um snapshot oficial da Trilha de Auditoria como Documento Arquivístico?",
+                descricao:
+                  "Conforme o Requisito Obrigatório 7.4.15 do e-ARQ Brasil v2, o SIGAD empacotará todos os eventos atuais da trilha, calculará o hash SHA-256 e registrará o relatório como um documento arquivístico oficial de Guarda Permanente (Classe FIM.200.02.001) no repositório.",
+                categoriaNormativa: "Arquivamento da Trilha de Auditoria · e-ARQ Brasil v2 (Req. 7.4.15)",
+                variante: "primaria",
+                rotuloConfirmar: "Sim, Arquivar Trilha no Acervo",
+                detalhesAlvo: [
+                  `Eventos na Trilha: ${resumo?.totalEventos ?? eventos.length} registro(s)`,
+                  `Classe PCD de Destino: FIM.200.02.001 (Guarda Permanente — RDC-Arq)`,
+                ],
+                onConfirmar: executarArquivamentoTrilhaOficial,
+              })
+            }
+            disabled={arquivandoTrilha}
+            className="gap-2 border-blue-300 bg-blue-50 text-blue-900 hover:bg-blue-100"
+          >
+            <Archive className="h-4 w-4 text-blue-700" />
+            {arquivandoTrilha
+              ? "Arquivando Trilha..."
+              : "Arquivar Trilha como Documento (7.4.15)"}
           </Button>
           <Button
             onClick={() =>
@@ -371,14 +425,43 @@ export function TelaAuditoriaSigad({
         </section>
       ) : (
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-          <div className="border-b border-border px-6 py-4">
-            <h3 className="text-base font-semibold">
-              Termos de Eliminação de Documentos
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Registro perpétuo de documentos eliminados com preservação do protocolo original,
-              fixidade SHA-256 e justificativa técnica.
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-6 py-4">
+            <div>
+              <h3 className="text-base font-semibold">
+                Termos de Eliminação de Documentos
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Registro perpétuo de documentos eliminados com preservação do protocolo original,
+                fixidade SHA-256 e justificativa técnica.
+              </p>
+            </div>
+            {termosEliminacao.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const ok = imprimirListagemEEditalEliminacao(
+                    termosEliminacao.map((t) => ({
+                      numeroProtocolo: t.numeroProtocolo,
+                      nome: t.nomeDocumento,
+                      codigoClassificacao: t.codigoClassificacao,
+                      categoria: t.categoria,
+                      ano: t.anoDocumento,
+                      nucleo: t.nucleo,
+                      observacao: `[${t.numeroTermo}] ${t.descricaoMotivo} — ${t.justificativa}`,
+                    })),
+                    usuarioLogado || "Arquivista SIGAD FCJA"
+                  );
+                  if (!ok) {
+                    toast.error("Permita pop-ups para imprimir a Listagem e o Edital de Eliminação.");
+                  }
+                }}
+                className="gap-1.5 text-xs border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Imprimir Listagem Consolidada & Edital de Eliminação (CONARQ 3.3.9)
+              </Button>
+            )}
           </div>
 
           <div className="overflow-x-auto">
@@ -469,7 +552,7 @@ export function TelaAuditoriaSigad({
 
       <ModalConfirmacaoAcaoSigad
         dados={confirmacaoAtiva}
-        processando={verificandoLote || processandoConfirmacao}
+        processando={verificandoLote || arquivandoTrilha || processandoConfirmacao}
         onFechar={fecharConfirmacao}
         onConfirmar={executarConfirmacao}
       />

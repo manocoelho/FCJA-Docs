@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  BookOpen,
   CheckCircle2,
   Copy,
   Fingerprint,
@@ -7,9 +8,13 @@ import {
   RefreshCw,
   ShieldAlert,
   ShieldCheck,
+  Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -18,12 +23,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Doc } from "@/components/ged/data";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { NIVEIS_ACESSO_OPCOES, type Doc } from "@/components/ged/data";
+import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
+import { obterPapelSessao, podeGerenciarPcdTtd } from "@/lib/auth";
 import {
   formatarTamanho,
   rotuloNivelAcesso,
   rotuloStatusDocumento,
 } from "@/lib/formatters";
+import { buscarClassesPcd, type ClassePcdItem } from "@/lib/pcd-dossie-api";
+import { alterarSigiloDocumento, reclassificarDocumento } from "@/lib/sigad-api";
 
 interface ModalMetadadosEarqProps {
   doc: Doc | null;
@@ -37,8 +56,139 @@ export function ModalMetadadosEarq({
   onVerificarFixidade,
 }: ModalMetadadosEarqProps) {
   const [verificando, setVerificando] = useState(false);
+  const [painelAcao, setPainelAcao] = useState<"nenhum" | "sigilo" | "reclassificar">("nenhum");
+  const [classesDisponiveis, setClassesDisponiveis] = useState<ClassePcdItem[]>([]);
+
+  // Estados de Alteração/Desclassificação de Sigilo (e-ARQ 7.3.13 / ECV6 / ECV7)
+  const [novoNivelAcesso, setNovoNivelAcesso] = useState("OSTENSIVO");
+  const [novaHipoteseLegal, setNovaHipoteseLegal] = useState("");
+  const [novaPrevisaoDesclassificacao, setNovaPrevisaoDesclassificacao] = useState("");
+  const [justificativaSigilo, setJustificativaSigilo] = useState("");
+
+  // Estados de Reclassificação no PCD/TTD (e-ARQ 1.3.9 a 1.3.11)
+  const [novoCodigoClasse, setNovoCodigoClasse] = useState("");
+  const [justificativaReclassificacao, setJustificativaReclassificacao] = useState("");
+
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
+
+  const podeGovernarEarq = podeGerenciarPcdTtd(obterPapelSessao());
+
+  useEffect(() => {
+    if (doc) {
+      setPainelAcao("nenhum");
+      setNovoNivelAcesso(doc.nivelAcesso || "OSTENSIVO");
+      setNovaHipoteseLegal(doc.hipoteseLegal || "");
+      setNovaPrevisaoDesclassificacao(doc.previsaoDesclassificacao || "");
+      setJustificativaSigilo("");
+      setNovoCodigoClasse(doc.codigoClassificacao || "FIM.100.01.001");
+      setJustificativaReclassificacao("");
+      if (podeGovernarEarq) {
+        buscarClassesPcd("TODAS", true)
+          .then(setClassesDisponiveis)
+          .catch(() => {});
+      }
+    }
+  }, [doc, podeGovernarEarq]);
 
   if (!doc) return null;
+
+  function submeterAlteracaoSigilo() {
+    if (!doc) return;
+    if (justificativaSigilo.trim().length < 8) {
+      toast.error("Justificativa obrigatória", {
+        description: "Informe ao menos 8 caracteres para registrar o evento ECV6/ECV7.",
+      });
+      return;
+    }
+    const ehDesclassificacao =
+      (doc.nivelAcesso || "OSTENSIVO") !== "OSTENSIVO" && novoNivelAcesso === "OSTENSIVO";
+
+    solicitarConfirmacao({
+      titulo: ehDesclassificacao
+        ? `Você deseja desclassificar o documento ${doc.numeroProtocolo || doc.nome} para OSTENSIVO?`
+        : `Você deseja alterar o grau de sigilo deste documento para ${novoNivelAcesso}?`,
+      descricao: ehDesclassificacao
+        ? "O documento passará a ter acesso público livre (OSTENSIVO) e o Evento de Ciclo de Vida ECV7 (Desclassificação) será gravado na Trilha de Auditoria com o grau anterior."
+        : "O grau de restrição LAI/LGPD será atualizado e o Evento de Ciclo de Vida ECV6 será gravado na Trilha de Auditoria.",
+      categoriaNormativa: "Segurança & Sigilo LAI/LGPD · e-ARQ Brasil v2 (Req. 7.3.13)",
+      variante: ehDesclassificacao ? "sucesso" : "atencao",
+      rotuloConfirmar: ehDesclassificacao ? "Sim, Desclassificar (ECV7)" : "Sim, Alterar Sigilo (ECV6)",
+      detalhesAlvo: [
+        `Documento: [${doc.numeroProtocolo || doc.id.slice(0, 8)}] ${doc.nome}`,
+        `Grau Anterior: ${doc.nivelAcesso || "OSTENSIVO"} -> Novo Grau: ${novoNivelAcesso}`,
+        `Justificativa: ${justificativaSigilo.trim()}`,
+      ],
+      onConfirmar: async () => {
+        try {
+          const res = await alterarSigiloDocumento(doc.id, {
+            nivel_acesso: novoNivelAcesso,
+            hipotese_legal: novaHipoteseLegal.trim(),
+            previsao_desclassificacao: novaPrevisaoDesclassificacao.trim(),
+            justificativa: justificativaSigilo.trim(),
+          });
+          toast.success(res.mensagem);
+          window.dispatchEvent(new CustomEvent("fcja-acervo-atualizado"));
+          setPainelAcao("nenhum");
+          onClose();
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : "Erro ao alterar grau de sigilo";
+          toast.error("Falha na operação de sigilo", { description: msg });
+        }
+      },
+    });
+  }
+
+  function submeterReclassificacao() {
+    if (!doc) return;
+    if (justificativaReclassificacao.trim().length < 8) {
+      toast.error("Justificativa obrigatória", {
+        description: "Informe ao menos 8 caracteres para reclassificar o documento no PCD/TTD.",
+      });
+      return;
+    }
+    const classeObj = classesDisponiveis.find((c) => c.codigo === novoCodigoClasse);
+    const tituloClasse = classeObj?.titulo || doc.descricaoCodigo || "";
+    const tipoAtiv =
+      classeObj?.tipoAtividade ||
+      (novoCodigoClasse.startsWith("FIM") ? "Atividade-Fim" : "Atividade-Meio");
+
+    solicitarConfirmacao({
+      titulo: `Você deseja reclassificar este documento para a classe ${novoCodigoClasse}?`,
+      descricao:
+        "O código de classificação anterior será preservado na Trilha de Auditoria (valorAnterior) e os prazos de guarda corrente, intermediária e destinação final (TTD) serão recalculados automaticamente.",
+      categoriaNormativa: "Reclassificação Arquivística · e-ARQ Brasil v2 (Reqs. 1.3.9 a 1.3.11)",
+      variante: "primaria",
+      rotuloConfirmar: "Sim, Reclassificar e Recalcular TTD",
+      detalhesAlvo: [
+        `Documento: [${doc.numeroProtocolo || doc.id.slice(0, 8)}] ${doc.nome}`,
+        `Classe Anterior: ${doc.codigoClassificacao || "S/C"} -> Nova Classe: ${novoCodigoClasse} (${tituloClasse})`,
+        `Justificativa: ${justificativaReclassificacao.trim()}`,
+      ],
+      onConfirmar: async () => {
+        try {
+          const res = await reclassificarDocumento(doc.id, {
+            codigo_classificacao: novoCodigoClasse,
+            descricao_codigo: tituloClasse,
+            tipo_atividade: tipoAtiv,
+            justificativa: justificativaReclassificacao.trim(),
+          });
+          toast.success(res.mensagem);
+          window.dispatchEvent(new CustomEvent("fcja-acervo-atualizado"));
+          setPainelAcao("nenhum");
+          onClose();
+        } catch (e: unknown) {
+          const msg = e instanceof Error ? e.message : "Erro ao reclassificar documento";
+          toast.error("Falha na reclassificação", { description: msg });
+        }
+      },
+    });
+  }
 
   async function acionarVerificacao() {
     if (!doc || !onVerificarFixidade) return;
@@ -195,13 +345,194 @@ export function ModalMetadadosEarq({
                 </p>
               </div>
               {doc.hipoteseLegal && (
-                <div className="sm:col-span-3">
+                <div className="sm:col-span-2">
                   <p className="text-xs text-muted-foreground">Hipótese Legal de Restrição</p>
                   <p className="mt-0.5 font-medium text-amber-800">{doc.hipoteseLegal}</p>
                 </div>
               )}
+              {doc.previsaoDesclassificacao && (
+                <div>
+                  <p className="text-xs text-muted-foreground">
+                    Previsão de Desclassificação (e-ARQ 1.31)
+                  </p>
+                  <p className="mt-0.5 font-mono text-xs font-semibold text-amber-900">
+                    {doc.previsaoDesclassificacao}
+                  </p>
+                </div>
+              )}
             </div>
           </section>
+
+          {/* 4. Governança Arquivística e-ARQ v2: Desclassificação LAI/LGPD (7.3.13) & Reclassificação PCD/TTD (1.3.9) */}
+          {podeGovernarEarq && (
+            <section className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-blue-900">
+                    Governança Arquivística e-ARQ Brasil v2 (Sigilo ECV6/ECV7 & Reclassificação PCD/TTD)
+                  </h4>
+                  <p className="text-[11px] text-blue-700">
+                    Operações normativas restritas ao Arquivista e Administrador com registro de{" "}
+                    <code>valorAnterior</code> na Trilha de Auditoria.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={painelAcao === "sigilo" ? "default" : "outline"}
+                    onClick={() =>
+                      setPainelAcao((atual) => (atual === "sigilo" ? "nenhum" : "sigilo"))
+                    }
+                    className="gap-1.5 text-xs bg-white text-slate-800 hover:bg-slate-100"
+                  >
+                    <Unlock className="h-3.5 w-3.5 text-amber-600" />
+                    {doc.nivelAcesso && doc.nivelAcesso !== "OSTENSIVO"
+                      ? "Desclassificar / Alterar Sigilo (7.3.13)"
+                      : "Alterar Grau de Sigilo (ECV6)"}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={painelAcao === "reclassificar" ? "default" : "outline"}
+                    onClick={() =>
+                      setPainelAcao((atual) =>
+                        atual === "reclassificar" ? "nenhum" : "reclassificar"
+                      )
+                    }
+                    className="gap-1.5 text-xs bg-white text-slate-800 hover:bg-slate-100"
+                  >
+                    <BookOpen className="h-3.5 w-3.5 text-blue-600" />
+                    Reclassificar no PCD / TTD (1.3.9)
+                  </Button>
+                </div>
+              </div>
+
+              {painelAcao === "sigilo" && (
+                <div className="rounded-xl border border-amber-200 bg-white p-4 space-y-3">
+                  <p className="text-xs font-bold text-amber-900">
+                    Classificação / Desclassificação Formal de Grau de Sigilo (Requisito 7.3.13 & Eventos ECV6/ECV7)
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Novo Grau de Acesso / Sigilo</Label>
+                      <Select value={novoNivelAcesso} onValueChange={setNovoNivelAcesso}>
+                        <SelectTrigger className="bg-white text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {NIVEIS_ACESSO_OPCOES.map((op) => (
+                            <SelectItem key={op.valor} value={op.valor}>
+                              {op.rotulo}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    {novoNivelAcesso !== "OSTENSIVO" && (
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          Previsão de Desclassificação (Metadado e-ARQ 1.31)
+                        </Label>
+                        <Input
+                          type="date"
+                          value={novaPrevisaoDesclassificacao}
+                          onChange={(e) => setNovaPrevisaoDesclassificacao(e.target.value)}
+                          className="text-xs"
+                        />
+                      </div>
+                    )}
+                  </div>
+                  {novoNivelAcesso !== "OSTENSIVO" && (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Hipótese Legal (LAI — Lei 12.527/2011 ou LGPD)</Label>
+                      <Input
+                        value={novaHipoteseLegal}
+                        onChange={(e) => setNovaHipoteseLegal(e.target.value)}
+                        placeholder="Ex: Art. 31 da Lei 12.527/2011 (Informação Pessoal) ou Art. 23 LAI..."
+                        className="text-xs"
+                      />
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      Justificativa Formal de Alteração / Desclassificação{" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      rows={2}
+                      value={justificativaSigilo}
+                      onChange={(e) => setJustificativaSigilo(e.target.value)}
+                      placeholder="Fundamente o ato de desclassificação (ECV7) ou alteração de sigilo (ECV6)..."
+                      className="text-xs resize-none"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPainelAcao("nenhum")}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="button" size="sm" onClick={submeterAlteracaoSigilo}>
+                      Registrar Ato de Sigilo (ECV6 / ECV7)
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {painelAcao === "reclassificar" && (
+                <div className="rounded-xl border border-blue-200 bg-white p-4 space-y-3">
+                  <p className="text-xs font-bold text-blue-900">
+                    Reclassificação Arquivística com Recálculo Automático da TTD (Requisitos 1.3.9 a 1.3.11)
+                  </p>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Nova Classe do Plano de Classificação (PCD)</Label>
+                    <Select value={novoCodigoClasse} onValueChange={setNovoCodigoClasse}>
+                      <SelectTrigger className="bg-white text-xs [&>span]:truncate">
+                        <SelectValue placeholder="Selecione a classe do PCD..." />
+                      </SelectTrigger>
+                      <SelectContent className="max-w-[min(90vw,38rem)]">
+                        {classesDisponiveis.map((c) => (
+                          <SelectItem key={c.codigo} value={c.codigo}>
+                            {c.codigo} — {c.titulo} ({c.destinacaoFinal === "GUARDA_PERMANENTE" ? "Guarda Permanente" : "Eliminação"})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      Justificativa Técnica da Reclassificação{" "}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Textarea
+                      rows={2}
+                      value={justificativaReclassificacao}
+                      onChange={(e) => setJustificativaReclassificacao(e.target.value)}
+                      placeholder="Informe o motivo técnico da mudança de classe documental (mínimo 8 caracteres)..."
+                      className="text-xs resize-none"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPainelAcao("nenhum")}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button type="button" size="sm" onClick={submeterReclassificacao}>
+                      Confirmar Reclassificação e Recalcular TTD
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* 3. Preservação Digital e Fixidade PREMIS */}
           <section
@@ -317,6 +648,13 @@ export function ModalMetadadosEarq({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </Dialog>
   );
 }
