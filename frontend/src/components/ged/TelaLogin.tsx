@@ -69,7 +69,7 @@ export function TelaLogin({ onLoginSuccess }: TelaLoginProps) {
             <Input
               value={loginInput}
               onChange={(e) => setLoginInput(e.target.value)}
-              placeholder="Ex: pesquisador, arquivista ou admin"
+              placeholder="Ex: pesquisador, auxiliar, arquivista ou admin"
               required
             />
           </div>
@@ -105,8 +105,8 @@ export function TelaLogin({ onLoginSuccess }: TelaLoginProps) {
             Controle de Acesso RBAC (PBKDF2-SHA256 + JWT)
           </p>
           <p className="mt-0.5">
-            Perfis homologados: <strong>pesquisador</strong> · <strong>arquivista</strong> ·{" "}
-            <strong>admin</strong>
+            Perfis homologados: <strong>pesquisador</strong> · <strong>auxiliar</strong> ·{" "}
+            <strong>arquivista</strong> · <strong>admin</strong>
           </p>
         </div>
       </form>

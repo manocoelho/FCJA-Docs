@@ -15,12 +15,14 @@ import type { EventoArquivistico } from "@/lib/sigad-api";
 import type { PacoteSipItem } from "@/lib/archivematica-api";
 import type { DossieItem } from "@/lib/pcd-dossie-api";
 import { formatarHashCurto, formatarTamanho, rotuloCategoriaEvento } from "@/lib/formatters";
+import { podeAcessarAbaSigad, podeGerenciarPcdTtd } from "@/lib/auth";
 
 interface PainelAlertasArquivistaProps {
   alertas: AlertaArquivistico[];
   eventosRecentes: EventoArquivistico[];
   pacotesSip: PacoteSipItem[];
   dossies: DossieItem[];
+  usuarioPapel?: string | null | undefined;
   onNavegarAba?: ((aba: AbaSistemaSigad) => void) | undefined;
 }
 
@@ -29,8 +31,12 @@ export function PainelAlertasArquivista({
   eventosRecentes,
   pacotesSip,
   dossies,
+  usuarioPapel,
   onNavegarAba,
 }: PainelAlertasArquivistaProps) {
+  const temAcessoPcdTtd = podeGerenciarPcdTtd(usuarioPapel);
+  const temAcessoArchivematica = podeAcessarAbaSigad(usuarioPapel, "archivematica");
+  const temAcessoAuditoria = podeAcessarAbaSigad(usuarioPapel, "auditoria");
   function estiloSeveridade(sev: AlertaArquivistico["severidade"]) {
     switch (sev) {
       case "critico":
@@ -119,17 +125,19 @@ export function PainelAlertasArquivista({
                     <p className="text-xs leading-relaxed text-slate-600">{alerta.descricao}</p>
                   </div>
                 </div>
-                {onNavegarAba && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => onNavegarAba(alerta.abaDestino)}
-                    className="shrink-0 gap-1.5 bg-white text-xs font-semibold shadow-2xs hover:bg-slate-50"
-                  >
-                    {alerta.acaoRotulo}
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </Button>
-                )}
+                {onNavegarAba &&
+                  podeAcessarAbaSigad(usuarioPapel, alerta.abaDestino) &&
+                  (alerta.id !== "temporalidade-ttd" || temAcessoPcdTtd) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onNavegarAba(alerta.abaDestino)}
+                      className="shrink-0 gap-1.5 bg-white text-xs font-semibold shadow-2xs hover:bg-slate-50"
+                    >
+                      {alerta.acaoRotulo}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
               </div>
             );
           })}
@@ -147,7 +155,7 @@ export function PainelAlertasArquivista({
                   onClick={() => onNavegarAba("gestao")}
                   className="text-xs font-semibold text-purple-700 hover:underline"
                 >
-                  Abrir PCD & Dossiês →
+                  {temAcessoPcdTtd ? "Abrir PCD & Dossiês →" : "Abrir Dossiês →"}
                 </button>
               )}
             </div>
@@ -192,7 +200,7 @@ export function PainelAlertasArquivista({
               <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700">
                 <Archive className="h-4 w-4" /> Pacotes SIP (RDC-Arq OAIS)
               </span>
-              {onNavegarAba && (
+              {onNavegarAba && temAcessoArchivematica && (
                 <button
                   onClick={() => onNavegarAba("archivematica")}
                   className="text-xs font-semibold text-emerald-700 hover:underline"
@@ -249,7 +257,7 @@ export function PainelAlertasArquivista({
                 Registro cronológico de Ciclo de Vida, Preservação, Procedimentos e PCD
               </p>
             </div>
-            {onNavegarAba && (
+            {onNavegarAba && temAcessoAuditoria && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -307,7 +315,7 @@ export function PainelAlertasArquivista({
           </div>
         </div>
 
-        {onNavegarAba && (
+        {onNavegarAba && temAcessoAuditoria && (
           <div className="mt-4 border-t border-slate-100 pt-3">
             <Button
               variant="outline"

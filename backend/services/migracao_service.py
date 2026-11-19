@@ -141,10 +141,11 @@ def migrar_esquema_banco(engine: Engine) -> None:
 def migrar_senhas_e_papeis_usuarios(db: Session) -> None:
     """
     Responsabilidade única: Converter automaticamente senhas legadas em texto puro
-    para hashes criptográficos PBKDF2-HMAC-SHA256 e garantir a presença do perfil
-    'arquivista' no banco de dados.
+    para hashes criptográficos PBKDF2-HMAC-SHA256 e garantir a presença dos perfis
+    'arquivista' e 'auxiliar' no banco de dados.
     """
     arquivista = db.query(UsuarioModel).filter(UsuarioModel.login == "arquivista").first()
+    auxiliar = db.query(UsuarioModel).filter(UsuarioModel.login == "auxiliar").first()
     alterou = False
 
     if not arquivista:
@@ -154,6 +155,17 @@ def migrar_senhas_e_papeis_usuarios(db: Session) -> None:
                 senha=gerar_hash_senha("1980"),
                 nome="Arquivista SIGAD FCJA",
                 papel="arquivista",
+            )
+        )
+        alterou = True
+
+    if not auxiliar:
+        db.add(
+            UsuarioModel(
+                login="auxiliar",
+                senha=gerar_hash_senha("1980"),
+                nome="Auxiliar de Arquivo FCJA",
+                papel="auxiliar",
             )
         )
         alterou = True

@@ -81,6 +81,7 @@ def iniciar_banco():
             senha_hash = gerar_hash_senha("1980")
             usuarios_padrao = [
                 UsuarioModel(login="pesquisador", senha=senha_hash, nome="Pesquisador FCJA", papel="pesquisador"),
+                UsuarioModel(login="auxiliar", senha=senha_hash, nome="Auxiliar de Arquivo FCJA", papel="auxiliar"),
                 UsuarioModel(login="arquivista", senha=senha_hash, nome="Arquivista SIGAD FCJA", papel="arquivista"),
                 UsuarioModel(login="admin", senha=senha_hash, nome="Administrador Geral", papel="admin"),
             ]

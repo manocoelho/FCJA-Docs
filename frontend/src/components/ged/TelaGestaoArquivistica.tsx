@@ -44,7 +44,7 @@ import {
 } from "@/components/ui/table";
 import { NUCLEOS, SIGLA_POR_NUCLEO, type Doc } from "@/components/ged/data";
 import { useGestaoArquivistica } from "@/hooks/useGestaoArquivistica";
-import { podeEliminarDocumentoOficial } from "@/lib/auth";
+import { podeEliminarDocumentoOficial, podeGerenciarPcdTtd } from "@/lib/auth";
 import { formatarTamanho } from "@/lib/formatters";
 import type { DossieItem } from "@/lib/pcd-dossie-api";
 
@@ -77,6 +77,8 @@ export function TelaGestaoArquivistica({
 
   const [abaInterna, setAbaInterna] = useState<"dossies" | "pcd" | "avaliacao">("dossies");
   const temPermissaoArquivista = podeEliminarDocumentoOficial(usuarioPapel);
+  const podeAcessarPcdTtd = podeGerenciarPcdTtd(usuarioPapel);
+  const abaInternaEfetiva = podeAcessarPcdTtd ? abaInterna : "dossies";
 
   // Estados Modal Novo Dossiê / Processo
   const [modalNovoDossie, setModalNovoDossie] = useState(false);
@@ -173,15 +175,18 @@ export function TelaGestaoArquivistica({
         <div>
           <div className="flex items-center gap-2">
             <span className="rounded-md bg-blue-600/10 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-blue-600">
-              Relação Orgânica & Temporalidade
+              {podeAcessarPcdTtd ? "Relação Orgânica & Temporalidade" : "Unidades de Arquivamento & Vínculo Orgânico"}
             </span>
           </div>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">
-            Plano de Classificação (PCD), TTD & Dossiês
+            {podeAcessarPcdTtd
+              ? "Plano de Classificação (PCD), TTD & Dossiês"
+              : "Gestão de Dossiês & Processos"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Gestão de Unidades de Arquivamento (Dossiês/Processos), Atividades-Fim e Meio, e cálculo
-            de prazos de guarda para recolhimento ao Archivematica.
+            {podeAcessarPcdTtd
+              ? "Gestão de Unidades de Arquivamento (Dossiês/Processos), Atividades-Fim e Meio, e cálculo de prazos de guarda para recolhimento ao Archivematica."
+              : "Abertura, encerramento e juntada orgânica de documentos em Unidades de Arquivamento (Dossiês e Processos) dos Núcleos de Pesquisa."}
           </p>
         </div>
 
@@ -198,7 +203,7 @@ export function TelaGestaoArquivistica({
           <Button onClick={() => setModalNovoDossie(true)} className="gap-2">
             <FolderPlus className="h-4 w-4" /> Abrir Novo Dossiê / Processo
           </Button>
-          {temPermissaoArquivista && (
+          {podeAcessarPcdTtd && (
             <Button
               variant="outline"
               onClick={() => setModalNovaClasse(true)}
@@ -280,7 +285,7 @@ export function TelaGestaoArquivistica({
       {/* Navegação entre Sub-Abas da Fase 3 */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
         <Button
-          variant={abaInterna === "dossies" ? "default" : "outline"}
+          variant={abaInternaEfetiva === "dossies" ? "default" : "outline"}
           size="sm"
           onClick={() => setAbaInterna("dossies")}
           className="gap-2"
@@ -288,28 +293,32 @@ export function TelaGestaoArquivistica({
           <FolderKanban className="h-4 w-4" />
           1. Dossiês & Processos — Relação Orgânica ({dossies.length})
         </Button>
-        <Button
-          variant={abaInterna === "pcd" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setAbaInterna("pcd")}
-          className="gap-2"
-        >
-          <BookOpen className="h-4 w-4" />
-          2. Plano de Classificação (PCD) & Tabela de Temporalidade (TTD) ({classesPcd.length})
-        </Button>
-        <Button
-          variant={abaInterna === "avaliacao" ? "default" : "outline"}
-          size="sm"
-          onClick={() => setAbaInterna("avaliacao")}
-          className="gap-2"
-        >
-          <CalendarClock className="h-4 w-4" />
-          3. Avaliação Temporal & Relação de Recolhimento (Archivematica)
-        </Button>
+        {podeAcessarPcdTtd && (
+          <>
+            <Button
+              variant={abaInternaEfetiva === "pcd" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAbaInterna("pcd")}
+              className="gap-2"
+            >
+              <BookOpen className="h-4 w-4" />
+              2. Plano de Classificação (PCD) & Tabela de Temporalidade (TTD) ({classesPcd.length})
+            </Button>
+            <Button
+              variant={abaInternaEfetiva === "avaliacao" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setAbaInterna("avaliacao")}
+              className="gap-2"
+            >
+              <CalendarClock className="h-4 w-4" />
+              3. Avaliação Temporal & Relação de Recolhimento (Archivematica)
+            </Button>
+          </>
+        )}
       </div>
 
       {/* SUB-ABA 1: DOSSIÊS E PROCESSOS (RELAÇÃO ORGÂNICA) */}
-      {abaInterna === "dossies" && (
+      {abaInternaEfetiva === "dossies" && (
         <section className="space-y-4">
           <div className="grid gap-5 md:grid-cols-2">
             {dossies.map((d) => (
@@ -477,7 +486,7 @@ export function TelaGestaoArquivistica({
       )}
 
       {/* SUB-ABA 2: PLANO DE CLASSIFICAÇÃO (PCD) & TABELA DE TEMPORALIDADE (TTD) */}
-      {abaInterna === "pcd" && (
+      {abaInternaEfetiva === "pcd" && podeAcessarPcdTtd && (
         <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border px-6 py-4">
             <div>
@@ -592,7 +601,7 @@ export function TelaGestaoArquivistica({
       )}
 
       {/* SUB-ABA 3: AVALIAÇÃO TEMPORAL & RELAÇÃO DE RECOLHIMENTO */}
-      {abaInterna === "avaliacao" && avaliacao && (
+      {abaInternaEfetiva === "avaliacao" && podeAcessarPcdTtd && avaliacao && (
         <div className="grid gap-6 lg:grid-cols-2">
           <section className="rounded-2xl border border-emerald-200 bg-white shadow-sm overflow-hidden">
             <div className="bg-emerald-50/70 border-b border-emerald-200 px-6 py-4">
@@ -868,7 +877,7 @@ export function TelaGestaoArquivistica({
       </Dialog>
 
       {/* MODAL: NOVA CLASSE PCD / TTD */}
-      <Dialog open={modalNovaClasse} onOpenChange={setModalNovaClasse}>
+      <Dialog open={podeAcessarPcdTtd && modalNovaClasse} onOpenChange={setModalNovaClasse}>
         <DialogContent className="sm:max-w-xl w-[calc(100vw-2rem)] max-w-xl">
           <DialogHeader>
             <DialogTitle>Cadastrar Nova Classe no PCD / TTD</DialogTitle>

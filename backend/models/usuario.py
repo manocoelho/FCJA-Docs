@@ -12,4 +12,4 @@ class UsuarioModel(Base):
     login = Column(String(50), primary_key=True, index=True)
     senha = Column(String(255))
     nome = Column(String(100))
-    papel = Column(String(20))  # admin | arquivista | pesquisador
+    papel = Column(String(20))  # admin | arquivista | auxiliar | pesquisador

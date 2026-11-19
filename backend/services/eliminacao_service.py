@@ -55,14 +55,14 @@ def validar_governanca_eliminacao(
     justificativa_limpa = (justificativa or "").strip()
 
     if status_doc != "MINUTA":
-        if papel not in ("arquivista", "admin"):
+        if papel not in ("auxiliar", "arquivista", "admin"):
             raise HTTPException(
                 status_code=403,
                 detail=(
                     f"Proteção de Imutabilidade e-ARQ Brasil v2: O documento '{doc.nome}' "
                     f"(Protocolo {doc.numero_protocolo or doc.id[:8]}) possui status '{status_doc}'. "
                     "Pesquisadores só podem descartar documentos em status 'MINUTA'. "
-                    "A eliminação de documentos oficiais exige perfil 'Arquivista' ou 'Administrador' "
+                    "A eliminação de documentos oficiais exige perfil 'Auxiliar', 'Arquivista' ou 'Administrador' "
                     "com emissão de Termo de Eliminação."
                 ),
             )

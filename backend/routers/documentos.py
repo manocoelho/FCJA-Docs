@@ -15,7 +15,7 @@ from models.documento import DocumentoModel
 from models.componente_digital import ComponenteDigitalModel
 from models.dossie import UnidadeArquivamentoModel
 from schemas.documento_schema import DocUpdateSchema, EliminacaoLoteSchema
-from core.dependencies import extrair_agente_requisicao
+from core.dependencies import exigir_papeis, extrair_agente_requisicao
 from services.fixidade_service import (
     calcular_hash_sha256,
     identificar_formato_e_genero,
@@ -567,8 +567,9 @@ def verificar_fixidade_lote(
     agente = extrair_agente_requisicao(
         authorization=authorization,
         usuario_fallback=usuario_responsavel,
-        papel_fallback=papel_usuario,
+        papel_fallback=papel_usuario or "arquivista",
     )
+    exigir_papeis(agente, {"arquivista", "admin"}, "Auditoria de Fixidade SHA-256 em Lote")
     ip_cliente = get_ip_cliente(request)
 
     with database.SessionLocal() as db:

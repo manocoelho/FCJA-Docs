@@ -138,6 +138,7 @@ export function PainelAdmin() {
   function estiloSelectPapel(papel: string) {
     if (papel === "admin") return "bg-emerald-50 text-emerald-700 border-emerald-200";
     if (papel === "arquivista") return "bg-blue-50 text-blue-700 border-blue-200";
+    if (papel === "auxiliar") return "bg-amber-50 text-amber-800 border-amber-200";
     return "bg-slate-100 text-slate-700";
   }
 
@@ -159,7 +160,7 @@ export function PainelAdmin() {
       </header>
 
       {/* Matriz de Governança RBAC do SIGAD */}
-      <section className="grid gap-4 sm:grid-cols-3">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <span className="inline-block rounded bg-slate-100 px-2 py-0.5 text-xs font-bold uppercase text-slate-700">
             Pesquisador FCJA
@@ -170,13 +171,24 @@ export function PainelAdmin() {
             verificação de fixidade e exportação de inventários.
           </p>
         </div>
+        <div className="rounded-xl border border-amber-200 bg-amber-50/40 p-4 shadow-sm">
+          <span className="inline-block rounded bg-amber-100 px-2 py-0.5 text-xs font-bold uppercase text-amber-900">
+            Auxiliar de Arquivo
+          </span>
+          <p className="mt-2 text-xs text-slate-700 leading-relaxed">
+            Realiza captura, indexação, edição, gestão de <strong>Dossiês & Processos</strong> e
+            eliminação controlada. Sem acesso às tabelas de classificação (PCD), temporalidade
+            (TTD), criação de classes, Auditoria e Conector Archivematica.
+          </p>
+        </div>
         <div className="rounded-xl border border-blue-200 bg-blue-50/40 p-4 shadow-sm">
           <span className="inline-block rounded bg-blue-100 px-2 py-0.5 text-xs font-bold uppercase text-blue-800">
             Arquivista SIGAD
           </span>
           <p className="mt-2 text-xs text-slate-700 leading-relaxed">
-            Audita fixidade PREMIS em lote, classifica documentos, autoriza eliminações oficiais
-            mediante <strong>Termo de Eliminação</strong> e homologa recolhimentos ao Archivematica.
+            Gerencia o Plano de Classificação (PCD) e Tabela de Temporalidade (TTD), audita fixidade
+            PREMIS em lote, emite <strong>Termos de Eliminação</strong> e homologa pacotes SIP no
+            Archivematica.
           </p>
         </div>
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 shadow-sm">
@@ -234,8 +246,11 @@ export function PainelAdmin() {
                   <SelectItem value="pesquisador">
                     Pesquisador (Dashboard & Explorador)
                   </SelectItem>
+                  <SelectItem value="auxiliar">
+                    Auxiliar de Arquivo (Captura & Dossiês)
+                  </SelectItem>
                   <SelectItem value="arquivista">
-                    Arquivista SIGAD (Gestão, TTD & Termos)
+                    Arquivista SIGAD (Gestão, PCD/TTD & Termos)
                   </SelectItem>
                   <SelectItem value="admin">Administrador (Total)</SelectItem>
                 </SelectContent>
@@ -280,6 +295,7 @@ export function PainelAdmin() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="pesquisador">Pesquisador</SelectItem>
+                        <SelectItem value="auxiliar">Auxiliar de Arquivo</SelectItem>
                         <SelectItem value="arquivista">Arquivista SIGAD</SelectItem>
                         <SelectItem value="admin">Administrador</SelectItem>
                       </SelectContent>
@@ -348,8 +364,11 @@ export function PainelAdmin() {
                   <SelectItem value="pesquisador">
                     Pesquisador (Dashboard & Explorador)
                   </SelectItem>
+                  <SelectItem value="auxiliar">
+                    Auxiliar de Arquivo (Captura & Dossiês)
+                  </SelectItem>
                   <SelectItem value="arquivista">
-                    Arquivista SIGAD (Gestão, TTD & Termos)
+                    Arquivista SIGAD (Gestão, PCD/TTD & Termos)
                   </SelectItem>
                   <SelectItem value="admin">Administrador (Total)</SelectItem>
                 </SelectContent>

@@ -116,7 +116,7 @@ def delete_dossie(
     request: Request = None,
 ):
     agente = extrair_agente_requisicao(authorization=authorization, papel_fallback="arquivista")
-    exigir_papeis(agente, {"arquivista", "admin"}, "Exclusão de Dossiê / Unidade de Arquivamento")
+    exigir_papeis(agente, {"auxiliar", "arquivista", "admin"}, "Exclusão de Dossiê / Unidade de Arquivamento")
     ip = request.client.host if (request and request.client) else ""
 
     with database.SessionLocal() as db:

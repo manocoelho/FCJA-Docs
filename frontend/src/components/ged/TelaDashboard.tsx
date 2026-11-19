@@ -46,7 +46,7 @@ import {
   rotuloNivelAcesso,
   rotuloStatusDocumento,
 } from "@/lib/formatters";
-import { podeExecutarAcaoArquivistica } from "@/lib/auth";
+import { podeAcessarAbaSigad, podeExecutarAcaoArquivistica } from "@/lib/auth";
 import { useDashboardSigad, type AbaSistemaSigad } from "@/hooks/useDashboardSigad";
 
 type FiltrosArquivisticos = {
@@ -97,6 +97,8 @@ export function TelaDashboard({
   onAbrirDoc,
 }: TelaDashboardProps) {
   const temAcessoGestao = podeExecutarAcaoArquivistica(usuarioPapel);
+  const temAcessoAuditoria = podeAcessarAbaSigad(usuarioPapel, "auditoria");
+  const temAcessoArchivematica = podeAcessarAbaSigad(usuarioPapel, "archivematica");
   const [filtrosDash, setFiltrosDash] = useState<FiltrosArquivisticos>(INICIAL);
   const [modalFiltrosDash, setModalFiltrosDash] = useState(false);
   const [visaoAtiva, setVisaoAtiva] = useState<"360" | "gestao_ttd" | "preservacao_auditoria">(
@@ -444,9 +446,9 @@ export function TelaDashboard({
 
           {/* KPI 4: Autenticidade, Fixidade SHA-256 & Auditoria */}
           <div
-            onClick={() => temAcessoGestao && onNavegarAba?.("auditoria")}
+            onClick={() => temAcessoAuditoria && onNavegarAba?.("auditoria")}
             className={`rounded-2xl border bg-card p-5 shadow-sm transition-all ${
-              temAcessoGestao && onNavegarAba
+              temAcessoAuditoria && onNavegarAba
                 ? "cursor-pointer hover:border-emerald-300 hover:shadow-md"
                 : ""
             }`}
@@ -481,9 +483,9 @@ export function TelaDashboard({
 
           {/* KPI 5: Preservação Digital OAIS / Archivematica (RDC-Arq) */}
           <div
-            onClick={() => temAcessoGestao && onNavegarAba?.("archivematica")}
+            onClick={() => temAcessoArchivematica && onNavegarAba?.("archivematica")}
             className={`rounded-2xl border bg-card p-5 shadow-sm transition-all ${
-              temAcessoGestao && onNavegarAba
+              temAcessoArchivematica && onNavegarAba
                 ? "cursor-pointer hover:border-teal-300 hover:shadow-md"
                 : ""
             }`}
@@ -614,6 +616,7 @@ export function TelaDashboard({
             eventosRecentes={eventosRecentes}
             pacotesSip={pacotesSip}
             dossies={dossies}
+            usuarioPapel={usuarioPapel}
             onNavegarAba={temAcessoGestao ? onNavegarAba : undefined}
           />
         )}

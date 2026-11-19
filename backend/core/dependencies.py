@@ -3,7 +3,7 @@ from fastapi import Header, HTTPException, Query
 from core.security import validar_token_jwt
 
 
-PAPEIS_VALIDOS = {"pesquisador", "arquivista", "admin"}
+PAPEIS_VALIDOS = {"pesquisador", "auxiliar", "arquivista", "admin"}
 
 
 def extrair_agente_requisicao(

@@ -37,6 +37,7 @@ import {
   limparSessaoAuth,
   podeAcessarAbaSigad,
   podeExecutarAcaoArquivistica,
+  podeGerenciarPcdTtd,
   rotuloPapelSigad,
 } from "@/lib/auth";
 import { useAcervoSigad } from "@/hooks/useAcervoSigad";
@@ -166,8 +167,7 @@ function Index() {
   function navegarParaAba(novaAba: AbaSistemaSigad) {
     if (!podeAcessarAbaSigad(usuarioPapel, novaAba)) {
       toast.error("Acesso restrito ao perfil", {
-        description:
-          "O perfil de Pesquisador possui acesso exclusivo ao Dashboard Analítico e ao Explorador do Acervo.",
+        description: `O perfil "${rotuloPapelSigad(usuarioPapel)}" não possui permissão para acessar esta seção do SIGAD.`,
       });
       return;
     }
@@ -175,6 +175,9 @@ function Index() {
   }
 
   const temAcessoArquivistico = podeExecutarAcaoArquivistica(usuarioPapel);
+  const temAcessoPcdTtd = podeGerenciarPcdTtd(usuarioPapel);
+  const temAcessoArchivematica = podeAcessarAbaSigad(usuarioPapel, "archivematica");
+  const temAcessoAuditoria = podeAcessarAbaSigad(usuarioPapel, "auditoria");
   const abaEfetiva: AbaSistemaSigad = podeAcessarAbaSigad(usuarioPapel, abaAtiva)
     ? abaAtiva
     : "dashboard";
@@ -248,29 +251,36 @@ function Index() {
                       : "hover:bg-white/10 hover:text-white"
                   }`}
                 >
-                  <FolderKanban className="h-5 w-5 text-purple-400" /> PCD, TTD & Dossiês
-                </button>
-                <button
-                  onClick={() => navegarParaAba("archivematica")}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                    abaEfetiva === "archivematica"
-                      ? "bg-primary text-white"
-                      : "hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <Archive className="h-5 w-5 text-emerald-400" /> Conector Archivematica
-                </button>
-                <button
-                  onClick={() => navegarParaAba("auditoria")}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                    abaEfetiva === "auditoria"
-                      ? "bg-primary text-white"
-                      : "hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <Fingerprint className="h-5 w-5 text-blue-400" /> Auditoria & Fixidade
+                  <FolderKanban className="h-5 w-5 text-purple-400" />{" "}
+                  {temAcessoPcdTtd ? "PCD, TTD & Dossiês" : "Dossiês & Processos"}
                 </button>
               </>
+            )}
+
+            {temAcessoArchivematica && (
+              <button
+                onClick={() => navegarParaAba("archivematica")}
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                  abaEfetiva === "archivematica"
+                    ? "bg-primary text-white"
+                    : "hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <Archive className="h-5 w-5 text-emerald-400" /> Conector Archivematica
+              </button>
+            )}
+
+            {temAcessoAuditoria && (
+              <button
+                onClick={() => navegarParaAba("auditoria")}
+                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                  abaEfetiva === "auditoria"
+                    ? "bg-primary text-white"
+                    : "hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                <Fingerprint className="h-5 w-5 text-blue-400" /> Auditoria & Fixidade
+              </button>
             )}
 
             {usuarioPapel === "admin" && (
@@ -351,14 +361,14 @@ function Index() {
             onDocumentosAlterados={recarregarDocumentos}
           />
         )}
-        {abaEfetiva === "archivematica" && temAcessoArquivistico && (
+        {abaEfetiva === "archivematica" && temAcessoArchivematica && (
           <TelaArchivematicaSigad
             acervo={acervo}
             usuarioPapel={usuarioPapel}
             onAcervoAlterado={recarregarDocumentos}
           />
         )}
-        {abaEfetiva === "auditoria" && temAcessoArquivistico && (
+        {abaEfetiva === "auditoria" && temAcessoAuditoria && (
           <TelaAuditoriaSigad
             usuarioLogado={usuarioLogado}
             usuarioPapel={usuarioPapel}

@@ -46,12 +46,44 @@ export function obterHeadersAuth(
   return headers;
 }
 
+/**
+ * Permissão operacional sobre o acervo e unidades de arquivamento (dossiês):
+ * Concedida a Auxiliar, Arquivista e Administrador.
+ */
 export function podeEliminarDocumentoOficial(papel?: string | null): boolean {
+  const p = (papel || "").toLowerCase().trim();
+  return p === "auxiliar" || p === "arquivista" || p === "admin";
+}
+
+export function podeExecutarAcaoArquivistica(papel?: string | null): boolean {
+  const p = (papel || "").toLowerCase().trim();
+  return p === "auxiliar" || p === "arquivista" || p === "admin";
+}
+
+/**
+ * Permissão para acessar Tabelas de Classificação (PCD), Tabelas de Temporalidade (TTD),
+ * Avaliação Temporal e criar/ativar/inativar classes:
+ * Exclusiva de Arquivista e Administrador (bloqueada para Auxiliar e Pesquisador).
+ */
+export function podeGerenciarPcdTtd(papel?: string | null): boolean {
   const p = (papel || "").toLowerCase().trim();
   return p === "arquivista" || p === "admin";
 }
 
-export function podeExecutarAcaoArquivistica(papel?: string | null): boolean {
+/**
+ * Permissão para acessar a aba "Conector Archivematica":
+ * Exclusiva de Arquivista e Administrador (bloqueada para Auxiliar e Pesquisador).
+ */
+export function podeAcessarConectorArchivematica(papel?: string | null): boolean {
+  const p = (papel || "").toLowerCase().trim();
+  return p === "arquivista" || p === "admin";
+}
+
+/**
+ * Permissão para acessar a aba "Auditoria & Fixidade":
+ * Exclusiva de Arquivista e Administrador (bloqueada para Auxiliar e Pesquisador).
+ */
+export function podeAcessarAuditoriaFixidade(papel?: string | null): boolean {
   const p = (papel || "").toLowerCase().trim();
   return p === "arquivista" || p === "admin";
 }
@@ -63,6 +95,8 @@ export function podeGerenciarUsuarios(papel?: string | null): boolean {
 /**
  * Regra RBAC de navegação por telas:
  * - Pesquisador: acesso exclusivo a "dashboard" e "explorador".
+ * - Auxiliar: acesso a "dashboard", "explorador", "upload" e "gestao" (somente Dossiês, sem PCD/TTD);
+ *             sem acesso a "archivematica", "auditoria" e "permissoes".
  * - Arquivista: acesso a todas as telas arquivísticas, exceto "permissoes".
  * - Administrador: acesso irrestrito a todas as telas.
  */
@@ -73,10 +107,19 @@ export function podeAcessarAbaSigad(
   if (aba === "dashboard" || aba === "explorador") {
     return true;
   }
+  if (aba === "upload" || aba === "gestao") {
+    return podeExecutarAcaoArquivistica(papel);
+  }
+  if (aba === "archivematica") {
+    return podeAcessarConectorArchivematica(papel);
+  }
+  if (aba === "auditoria") {
+    return podeAcessarAuditoriaFixidade(papel);
+  }
   if (aba === "permissoes") {
     return podeGerenciarUsuarios(papel);
   }
-  return podeExecutarAcaoArquivistica(papel);
+  return false;
 }
 
 export function rotuloPapelSigad(papel?: string | null): string {
@@ -85,6 +128,8 @@ export function rotuloPapelSigad(papel?: string | null): string {
       return "Administrador Geral";
     case "arquivista":
       return "Arquivista SIGAD";
+    case "auxiliar":
+      return "Auxiliar de Arquivo";
     case "pesquisador":
     default:
       return "Pesquisador FCJA";
