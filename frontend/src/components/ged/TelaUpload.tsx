@@ -943,25 +943,6 @@ export function TelaUpload({
                       )}
                     </div>
 
-                    {/* Campo Individual de Descrição Contextual do Item na Fila */}
-                    <div className="mt-2.5 pl-7">
-                      <Input
-                        value={p.descricaoContextual}
-                        onChange={(e) =>
-                          setPendentes((prev) =>
-                            prev.map((x) =>
-                              x.id === p.id
-                                ? { ...x, descricaoContextual: e.target.value }
-                                : x
-                            )
-                          )
-                        }
-                        disabled={enviando}
-                        placeholder="Descrição / Contexto deste documento (ex: contexto da fotografia, pessoas, local, evento ou resumo para interpretação futura)..."
-                        className="h-8 bg-white/90 border-slate-200 text-xs text-slate-700 hover:border-blue-300 focus-visible:bg-white"
-                      />
-                    </div>
-
                     {p.status !== "aguardando" && (
                       <div className="mt-3 flex items-center gap-3 pl-7">
                         <Progress value={p.progresso} className="h-2 flex-1" />
