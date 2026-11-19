@@ -142,6 +142,16 @@ export function ModalMetadadosEarq({
                   <p className="font-mono text-xs text-slate-500">{doc.sigla}</p>
                 )}
               </div>
+              <div className="sm:col-span-2 rounded-lg border border-slate-200 bg-white p-3">
+                <p className="text-xs font-semibold text-slate-600">
+                  Descrição Contextual / Âmbito e Conteúdo (NOBRADE · <code>dc.description</code>)
+                </p>
+                <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-slate-800">
+                  {doc.descricao && doc.descricao.trim()
+                    ? doc.descricao
+                    : "Nenhuma descrição contextual detalhada registrada para este documento."}
+                </p>
+              </div>
             </div>
           </section>
 

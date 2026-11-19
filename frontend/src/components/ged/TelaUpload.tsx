@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -103,6 +104,7 @@ type Pendente = {
   tipoAtividade: string;
   codigo: string;
   descricao: string;
+  descricaoContextual: string;
   tipo: string;
   nucleo: string;
   sigla: string;
@@ -128,6 +130,7 @@ interface TelaUploadProps {
   onDeleteMany: (docs: Doc[], motivoEliminacao?: string, justificativa?: string) => Promise<void> | void;
   onEdit: (doc: Doc, dados: DadosEdicaoDoc) => void;
   onVerifyFixity?: ((doc: Doc) => Promise<unknown>) | undefined;
+  onAbrirEditor?: (() => void) | undefined;
 }
 
 export function TelaUpload({
@@ -141,6 +144,7 @@ export function TelaUpload({
   onDeleteMany,
   onEdit,
   onVerifyFixity,
+  onAbrirEditor,
 }: TelaUploadProps) {
   const [arrastando, setArrastando] = useState(false);
   const [pendentes, setPendentes] = useState<Pendente[]>([]);
@@ -152,7 +156,8 @@ export function TelaUpload({
   const [cadSigla, setCadSigla] = useState<string>(SIGLA_POR_NUCLEO[NUCLEOS[1]!] || "");
   const [cadTipo, setCadTipo] = useState<string>(TIPOLOGIAS_MEIO[0] || "");
 
-  // Metadados Intelectuais, Diplomáticos e de Acesso
+  // Metadados Intelectuais, Diplomáticos, Contextuais e de Acesso
+  const [cadDescricaoContextual, setCadDescricaoContextual] = useState<string>("");
   const [cadAutor, setCadAutor] = useState<string>(
     "Fundação Casa de José Américo (FCJA)"
   );
@@ -287,6 +292,7 @@ export function TelaUpload({
         tipoAtividade: cadTipoAtividade,
         codigo: cadCodigo,
         descricao: cadDescricao,
+        descricaoContextual: cadDescricaoContextual,
         tipo: cadTipo,
         nucleo: cadNucleo,
         sigla: cadSigla,
@@ -326,6 +332,7 @@ export function TelaUpload({
               tipoAtividade: cadTipoAtividade,
               codigo: cadCodigo,
               descricao: cadDescricao,
+              descricaoContextual: cadDescricaoContextual,
               tipo: cadTipo,
               nucleo: cadNucleo,
               sigla: cadSigla,
@@ -369,6 +376,7 @@ export function TelaUpload({
       formData.append("tipo_atividade", p.tipoAtividade);
       formData.append("codigo_classificacao", p.codigo);
       formData.append("descricao_codigo", p.descricao);
+      formData.append("descricao", p.descricaoContextual || "");
       formData.append("categoria", categoria);
       formData.append("ano", String(ano));
       formData.append("nucleo", p.nucleo);
@@ -398,6 +406,7 @@ export function TelaUpload({
           tipoAtividade: p.tipoAtividade,
           codigoClassificacao: p.codigo,
           descricaoCodigo: p.descricao,
+          descricao: resp.descricao ?? p.descricaoContextual,
           nome: p.nomeCustomizado,
           ext: ext as Doc["ext"],
           categoria,
@@ -479,6 +488,7 @@ export function TelaUpload({
           (d.numeroProtocolo || "").toLowerCase().includes(q) ||
           (d.codigoClassificacao || "").toLowerCase().includes(q) ||
           (d.descricaoCodigo || "").toLowerCase().includes(q) ||
+          (d.descricao || "").toLowerCase().includes(q) ||
           (d.nucleo || "").toLowerCase().includes(q) ||
           (d.autor || "").toLowerCase().includes(q) ||
           (d.hashSha256 || "").toLowerCase().includes(q)
@@ -589,7 +599,17 @@ export function TelaUpload({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {onAbrirEditor && (
+            <Button
+              variant="outline"
+              onClick={onAbrirEditor}
+              className="gap-2 border-blue-300 bg-blue-50/70 text-blue-800 hover:bg-blue-100"
+            >
+              <PencilLine className="h-4 w-4 text-blue-600" />
+              Criar Documento no Editor
+            </Button>
+          )}
           <Button
             variant="brand"
             onClick={() => inputRef.current?.click()}
@@ -923,6 +943,25 @@ export function TelaUpload({
                       )}
                     </div>
 
+                    {/* Campo Individual de Descrição Contextual do Item na Fila */}
+                    <div className="mt-2.5 pl-7">
+                      <Input
+                        value={p.descricaoContextual}
+                        onChange={(e) =>
+                          setPendentes((prev) =>
+                            prev.map((x) =>
+                              x.id === p.id
+                                ? { ...x, descricaoContextual: e.target.value }
+                                : x
+                            )
+                          )
+                        }
+                        disabled={enviando}
+                        placeholder="Descrição / Contexto deste documento (ex: contexto da fotografia, pessoas, local, evento ou resumo para interpretação futura)..."
+                        className="h-8 bg-white/90 border-slate-200 text-xs text-slate-700 hover:border-blue-300 focus-visible:bg-white"
+                      />
+                    </div>
+
                     {p.status !== "aguardando" && (
                       <div className="mt-3 flex items-center gap-3 pl-7">
                         <Progress value={p.progresso} className="h-2 flex-1" />
@@ -1194,6 +1233,32 @@ export function TelaUpload({
                     />
                   </div>
                 )}
+
+                {/* Campo de Descrição Contextual / Âmbito e Conteúdo (Preservação OAIS / NOBRADE / Archivematica & AtoM) */}
+                <div className="space-y-1.5 md:col-span-12">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Label htmlFor="cad-descricao-contextual" className="font-semibold text-slate-800">
+                      Descrição / Contexto do Documento (Âmbito e Conteúdo — Preservação Digital)
+                    </Label>
+                    <span className="text-[11px] font-medium text-blue-700 bg-blue-50 border border-blue-200 rounded-md px-2 py-0.5">
+                      Exportado como <code>dc.description</code> no Archivematica e AtoM
+                    </span>
+                  </div>
+                  <Textarea
+                    id="cad-descricao-contextual"
+                    rows={3}
+                    value={cadDescricaoContextual}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setCadDescricaoContextual(val);
+                      setPendentes((prev) =>
+                        prev.map((p) => (p.sel ? { ...p, descricaoContextual: val } : p))
+                      );
+                    }}
+                    placeholder="Registre informações detalhadas sobre o documento (ex: contexto histórico de uma fotografia, pessoas identificadas, local, evento, assunto ou observações técnicas) para garantir que a informação possa ser compreendida e interpretada no futuro..."
+                    className="bg-white resize-y text-sm"
+                  />
+                </div>
               </div>
             </div>
 

@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -144,6 +145,7 @@ export function DocumentTable({
   // Estados de edição de metadados
   const [editando, setEditando] = useState<Doc | null>(null);
   const [novoNome, setNovoNome] = useState("");
+  const [novaDescricao, setNovaDescricao] = useState("");
   const [novaCategoria, setNovaCategoria] = useState("");
   const [novoAno, setNovoAno] = useState<number>(new Date().getFullYear());
   const [novoNucleo, setNovoNucleo] = useState("");
@@ -160,6 +162,7 @@ export function DocumentTable({
   function abrirEdicao(doc: Doc) {
     setEditando(doc);
     setNovoNome(doc.nome);
+    setNovaDescricao(doc.descricao || "");
     setNovaCategoria(doc.categoria);
     setNovoAno(doc.ano);
     setNovoNucleo(doc.nucleo);
@@ -186,6 +189,7 @@ export function DocumentTable({
         categoria: novaCategoria,
         ano: novoAno,
         nucleo: novoNucleo,
+        descricao: novaDescricao.trim(),
         autor: novoAutor.trim() || "Fundação Casa de José Américo (FCJA)",
         statusDocumento: novoStatusDoc,
         nivelAcesso: novoNivelAcesso,
@@ -216,6 +220,7 @@ export function DocumentTable({
             d.autor || "",
             d.codigoClassificacao || "",
             d.descricaoCodigo || "",
+            d.descricao || "",
             d.nome,
             d.categoria,
             d.nucleo,
@@ -446,6 +451,14 @@ export function DocumentTable({
                           {doc.autor}
                         </p>
                       )}
+                      {doc.descricao && (
+                        <p
+                          className="truncate text-[11px] italic text-blue-700/80"
+                          title={doc.descricao}
+                        >
+                          {doc.descricao}
+                        </p>
+                      )}
                     </TableCell>
                     <TableCell>
                       <span className="inline-flex rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-secondary-foreground">
@@ -646,6 +659,20 @@ export function DocumentTable({
                 value={novoAutor}
                 onChange={(e) => setNovoAutor(e.target.value)}
                 placeholder="Ex: Fundação Casa de José Américo (FCJA)"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="nova-descricao">
+                Descrição / Contexto do Documento (Âmbito e Conteúdo — <code>dc.description</code>)
+              </Label>
+              <Textarea
+                id="nova-descricao"
+                rows={3}
+                value={novaDescricao}
+                onChange={(e) => setNovaDescricao(e.target.value)}
+                placeholder="Informações detalhadas sobre o documento (contexto da foto, pessoas, local, evento, assunto)..."
+                className="resize-y"
               />
             </div>
 

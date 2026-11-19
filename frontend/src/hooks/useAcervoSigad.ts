@@ -17,6 +17,7 @@ export interface DadosEdicaoDoc {
   categoria: string;
   ano: number;
   nucleo: string;
+  descricao?: string | undefined;
   autor?: string | undefined;
   statusDocumento?: string | undefined;
   nivelAcesso?: string | undefined;
@@ -179,6 +180,7 @@ export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: strin
             categoria: dados.categoria,
             ano: dados.ano,
             nucleo: dados.nucleo,
+            descricao: dados.descricao,
             autor: dados.autor,
             status_documento: dados.statusDocumento,
             nivel_acesso: dados.nivelAcesso,
@@ -199,6 +201,7 @@ export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: strin
                   categoria: dados.categoria,
                   ano: dados.ano,
                   nucleo: dados.nucleo,
+                  descricao: dados.descricao ?? d.descricao,
                   autor: dados.autor ?? d.autor,
                   statusDocumento: dados.statusDocumento ?? d.statusDocumento,
                   nivelAcesso: dados.nivelAcesso ?? d.nivelAcesso,
@@ -215,6 +218,7 @@ export function useAcervoSigad(usuarioLogado: string | null, usuarioPapel: strin
             categoria: dados.categoria,
             ano: dados.ano,
             nucleo: dados.nucleo,
+            descricao: dados.descricao ?? doc.descricao,
             autor: dados.autor ?? doc.autor,
             statusDocumento: dados.statusDocumento ?? doc.statusDocumento,
             nivelAcesso: dados.nivelAcesso ?? doc.nivelAcesso,

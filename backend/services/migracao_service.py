@@ -19,6 +19,7 @@ COLUNAS_NOVAS_DOCUMENTOS = [
     ("numero_protocolo", "VARCHAR(80) DEFAULT ''"),
     ("dossie_id", "VARCHAR(50) DEFAULT ''"),
     ("codigo_dossie", "VARCHAR(80) DEFAULT ''"),
+    ("descricao", "VARCHAR(2000) DEFAULT ''"),
     ("autor", "VARCHAR(255) DEFAULT 'Fundação Casa de José Américo (FCJA)'"),
     ("redator", "VARCHAR(255) DEFAULT ''"),
     ("originador", "VARCHAR(255) DEFAULT ''"),

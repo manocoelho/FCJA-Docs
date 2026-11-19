@@ -26,6 +26,7 @@ export type AbaSistemaSigad =
   | "dashboard"
   | "explorador"
   | "upload"
+  | "editor"
   | "gestao"
   | "archivematica"
   | "auditoria"

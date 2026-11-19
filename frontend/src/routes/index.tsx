@@ -7,6 +7,7 @@ import { TelaUpload } from "@/components/ged/TelaUpload";
 import { TelaAuditoriaSigad } from "@/components/ged/TelaAuditoriaSigad";
 import { TelaGestaoArquivistica } from "@/components/ged/TelaGestaoArquivistica";
 import { TelaArchivematicaSigad } from "@/components/ged/TelaArchivematicaSigad";
+import { TelaEditorDocumentos } from "@/components/ged/TelaEditorDocumentos";
 import { VisualizadorPlanilhaAvancado } from "@/components/ged/VisualizadorPlanilhaAvancado";
 import type { DadosPlanilhaAvancada } from "@/lib/planilha-viewer";
 import { lerXlsxNoNavegadorPorUrl } from "@/lib/xlsx-browser-parser";
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import {
   Archive,
   CloudUpload,
+  FileEdit,
   FolderOpen,
   LayoutDashboard,
   LogOut,
@@ -83,15 +85,14 @@ function Index() {
     return null;
   });
 
-  const [abaAtiva, setAbaAtiva] = useState<
-    "dashboard" | "explorador" | "upload" | "gestao" | "archivematica" | "auditoria" | "permissoes"
-  >("dashboard");
+  const [abaAtiva, setAbaAtiva] = useState<AbaSistemaSigad>("dashboard");
 
   // Estados do Visualizador
   const [viewDoc, setViewDoc] = useState<Doc | null>(null);
   const [dadosPlanilha, setDadosPlanilha] = useState<DadosPlanilhaAvancada | null>(
     null
   );
+  const [htmlDocxView, setHtmlDocxView] = useState<string | null>(null);
   const [carregandoView, setCarregandoView] = useState(false);
 
   // Hook isolado de estado e regras de negócio do Acervo SIGAD (SRP)
@@ -109,6 +110,23 @@ function Index() {
   async function abrirDoc(doc: Doc) {
     setViewDoc(doc);
     setDadosPlanilha(null);
+    setHtmlDocxView(null);
+
+    if (doc.ext === "docx" && doc.url) {
+      setCarregandoView(true);
+      try {
+        const res = await fetch(resolveUrl(doc.url));
+        const texto = await res.text();
+        if (texto.includes("<html") || texto.includes("documento-corpo")) {
+          setHtmlDocxView(texto);
+        }
+      } catch {
+        // fallback para download normal
+      } finally {
+        setCarregandoView(false);
+      }
+      return;
+    }
 
     if (doc.ext === "xlsx") {
       setCarregandoView(true);
@@ -244,6 +262,16 @@ function Index() {
                   <CloudUpload className="h-5 w-5" /> Captura & Acervo
                 </button>
                 <button
+                  onClick={() => navegarParaAba("editor")}
+                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    abaEfetiva === "editor"
+                      ? "bg-primary text-white"
+                      : "hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  <FileEdit className="h-5 w-5 text-amber-400" /> Criar Documento
+                </button>
+                <button
                   onClick={() => navegarParaAba("gestao")}
                   className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                     abaEfetiva === "gestao"
@@ -352,6 +380,15 @@ function Index() {
             onDeleteMany={removerDocs}
             onEdit={editarDoc}
             onVerifyFixity={auditarFixidadeDoc}
+            onAbrirEditor={() => navegarParaAba("editor")}
+          />
+        )}
+        {abaEfetiva === "editor" && temAcessoArquivistico && (
+          <TelaEditorDocumentos
+            usuarioLogado={usuarioLogado}
+            usuarioPapel={usuarioPapel}
+            onDocsUploaded={adicionarDocumentosCapturados}
+            onIrParaAcervo={() => navegarParaAba("upload")}
           />
         )}
         {abaEfetiva === "gestao" && temAcessoArquivistico && (
@@ -404,6 +441,12 @@ function Index() {
                   Inspecionando abas, células e fórmulas da planilha...
                 </span>
               </div>
+            ) : htmlDocxView ? (
+              <iframe
+                srcDoc={htmlDocxView}
+                className="h-full w-full border-0 bg-white"
+                title="Visualizador de Documento SIGAD"
+              />
             ) : dadosPlanilha ? (
               <VisualizadorPlanilhaAvancado
                 dadosBrutos={dadosPlanilha}

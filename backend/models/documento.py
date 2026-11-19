@@ -28,8 +28,9 @@ class DocumentoModel(Base):
     nucleo = Column(String(255))
     sigla = Column(String(100), default="")
 
-    # Metadados Intelectuais e de Contexto (e-ARQ Brasil v2 - Seção 1)
+    # Metadados Intelectuais e de Contexto (e-ARQ Brasil v2 - Seção 1 / NOBRADE 3.3.1)
     nome = Column(String(255))
+    descricao = Column(String(2000), default="")
     autor = Column(String(255), default="Fundação Casa de José Américo (FCJA)")
     redator = Column(String(255), default="")
     originador = Column(String(255), default="")

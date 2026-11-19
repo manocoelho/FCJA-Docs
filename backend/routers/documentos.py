@@ -89,6 +89,7 @@ def listar_documentos(request: Request = None):
                 "tipoAtividade": doc.tipo_atividade or "",
                 "codigoClassificacao": doc.codigo_classificacao or "",
                 "descricaoCodigo": doc.descricao_codigo or "",
+                "descricao": getattr(doc, "descricao", "") or "",
                 # Metadados e-ARQ Brasil v2, TTD & PREMIS
                 "autor": doc.autor or "Fundação Casa de José Américo (FCJA)",
                 "redator": doc.redator or "",
@@ -124,6 +125,7 @@ def upload_documento(
     tipo_atividade: str = Form(""),
     codigo_classificacao: str = Form(""),
     descricao_codigo: str = Form(""),
+    descricao: str = Form(""),
     categoria: str = Form(...),
     ano: int = Form(...),
     nucleo: str = Form(...),
@@ -209,6 +211,7 @@ def upload_documento(
             codigo_classificacao=codigo_classificacao,
             descricao_codigo=descricao_codigo,
             nome=nome,
+            descricao=(descricao or "").strip(),
             ext=ext,
             categoria=categoria,
             ano=ano,
@@ -308,6 +311,7 @@ def upload_documento(
         "hashSha256": hash_sha256,
         "formatoMime": formato_mime,
         "genero": genero_doc,
+        "descricao": (descricao or "").strip(),
         "autor": autor or "Fundação Casa de José Américo (FCJA)",
         "statusDocumento": status_documento or "ORIGINAL",
         "meio": meio or "DIGITAL",
@@ -448,6 +452,8 @@ def atualizar_documento(
         doc.nucleo = dados.nucleo
         doc.url = url_nova
 
+        if dados.descricao is not None:
+            doc.descricao = dados.descricao.strip()
         if dados.autor is not None:
             doc.autor = dados.autor
         if dados.status_documento is not None:

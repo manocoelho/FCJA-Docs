@@ -328,6 +328,7 @@ def _gerar_mets_earq_xml(
                 "      <mets:xmlData>",
                 f"        <dc:title>{escape(str(item.get('nome', '')))}</dc:title>",
                 f"        <dc:creator>{escape(str(item.get('autor', 'FCJA')))}</dc:creator>",
+                f"        <dc:description>{escape(str(item.get('descricao_contextual') or item.get('descricao_codigo', '')))}</dc:description>",
                 f"        <dc:date>{escape(str(item.get('data_iso', '')))}</dc:date>",
                 f"        <dc:type>{escape(str(item.get('dc_type_dcmi', 'Text')))}</dc:type>",
                 f"        <dc:format>{escape(str(item.get('formato_mime', 'application/pdf')))}</dc:format>",
@@ -545,6 +546,7 @@ def construir_pacote_sip_bagit(
                 "tipo_atividade": getattr(doc, "tipo_atividade", "") or "Atividade-Fim",
                 "codigo_classificacao": cod_classe,
                 "descricao_codigo": getattr(doc, "descricao_codigo", "") or "",
+                "descricao_contextual": getattr(doc, "descricao", "") or "",
                 "prazo_guarda_texto": prazo_guarda_texto,
                 "codigo_dossie": getattr(doc, "codigo_dossie", "") or dossie_codigo or "",
                 "nucleo": nucleo_doc,
@@ -579,10 +581,15 @@ def construir_pacote_sip_bagit(
                 )
                 if p
             )
-            descricao_dc = (
+            resumo_tecnico_dc = (
                 f"Protocolo NUP: {item['numero_protocolo'] or item['id']} | "
                 f"Classe PCD: {item['codigo_classificacao']} - {item['descricao_codigo']} | "
                 f"Núcleo Produtor: {item['nucleo']} ({item['sigla']})"
+            )
+            descricao_dc = (
+                f"{item['descricao_contextual']} [{resumo_tecnico_dc}]"
+                if item.get("descricao_contextual")
+                else resumo_tecnico_dc
             )
             contribuidor_dc = item["redator"] or item["originador"] or "SIGAD FCJA"
             relacao_dc = item["codigo_dossie"] or codigo_sip

@@ -6,6 +6,7 @@ export type Doc = {
   tipoAtividade?: string | undefined;
   codigoClassificacao?: string | undefined;
   descricaoCodigo?: string | undefined;
+  descricao?: string | undefined;
   nome: string;
   ext: "pdf" | "xlsx" | "docx" | "tiff";
   categoria: string;

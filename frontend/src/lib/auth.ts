@@ -107,7 +107,7 @@ export function podeAcessarAbaSigad(
   if (aba === "dashboard" || aba === "explorador") {
     return true;
   }
-  if (aba === "upload" || aba === "gestao") {
+  if (aba === "upload" || aba === "editor" || aba === "gestao") {
     return podeExecutarAcaoArquivistica(papel);
   }
   if (aba === "archivematica") {

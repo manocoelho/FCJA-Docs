@@ -7,6 +7,7 @@ class DocUpdateSchema(BaseModel):
     categoria: str
     ano: int
     nucleo: str
+    descricao: Optional[str] = None
     autor: Optional[str] = None
     status_documento: Optional[str] = None
     nivel_acesso: Optional[str] = None
