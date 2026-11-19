@@ -49,6 +49,10 @@ import { BarraFerramentasEditor } from "@/components/ged/BarraFerramentasEditor"
 import { ModalPlanilhaEditor } from "@/components/ged/ModalPlanilhaEditor";
 import { SeletorHierarquico } from "@/components/ged/SeletorHierarquico";
 import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
+import {
   CLASSES_FIM_PADRAO,
   NIVEIS_ACESSO_OPCOES,
   NUCLEOS,
@@ -141,6 +145,13 @@ export function TelaEditorDocumentos({
   const [modalCapturaSigad, setModalCapturaSigad] = useState(false);
   const [arquivoPlanilhaPronto, setArquivoPlanilhaPronto] = useState<File | null>(null);
   const [capturandoNoSigad, setCapturandoNoSigad] = useState(false);
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
 
   // Metadados e-ARQ Brasil v2 para a Captura Direta
   const [capNucleo, setCapNucleo] = useState<string>(NUCLEOS[1]!);
@@ -287,7 +298,7 @@ export function TelaEditorDocumentos({
     sincronizarHtmlDoDom();
   }
 
-  function aplicarTemplate(id: string) {
+  function aplicarTemplateDireto(id: string) {
     const tpl = TEMPLATES_EDITOR_SIGAD.find((t) => t.id === id);
     if (!tpl) return;
     setTemplateId(id);
@@ -305,6 +316,27 @@ export function TelaEditorDocumentos({
       setCapDescricaoContextual(tpl.descricaoSugerida);
     }
     toast.success(`Modelo "${tpl.nome}" carregado na folha A4!`);
+  }
+
+  function aplicarTemplate(id: string) {
+    const tpl = TEMPLATES_EDITOR_SIGAD.find((t) => t.id === id);
+    if (!tpl) return;
+    solicitarConfirmacao({
+      titulo:
+        id === "em_branco"
+          ? "Você deseja iniciar um novo documento em branco?"
+          : `Você deseja carregar o modelo "${tpl.nome}"?`,
+      descricao:
+        "O conteúdo atual da folha A4 será substituído pela estrutura do modelo selecionado.",
+      categoriaNormativa: "Estúdio de Produção Documental · SIGAD Docs",
+      variante: "atencao",
+      rotuloConfirmar: "Sim, Carregar Modelo",
+      detalhesAlvo: [
+        `Modelo selecionado: ${tpl.nome}`,
+        `Tipologia sugerida: ${tpl.categoriaSugerida} (${tpl.tipoAtividadeSugerida})`,
+      ],
+      onConfirmar: () => aplicarTemplateDireto(id),
+    });
   }
 
   function confirmarInsercaoTabela() {
@@ -491,8 +523,28 @@ export function TelaEditorDocumentos({
     setModalCapturaSigad(true);
   }
 
-  async function executarCapturaDiretaNoSigad(e: React.FormEvent) {
+  function submeterFormularioCaptura(e: React.FormEvent) {
     e.preventDefault();
+    const extExibicao = arquivoPlanilhaPronto ? "XLSX" : formatoCaptura.toUpperCase();
+    const nomeAlvo = arquivoPlanilhaPronto ? arquivoPlanilhaPronto.name : `${tituloDoc}.${formatoCaptura}`;
+    solicitarConfirmacao({
+      titulo: "Você deseja prosseguir com a criação e captura deste documento no SIGAD?",
+      descricao:
+        "O documento natodigital será consolidado, protocolado sob Número Único de Protocolo (NUP), terá seu hash criptográfico SHA-256 (PREMIS) aferido e será incorporado ao acervo institucional.",
+      categoriaNormativa: "Captura de Documento Natodigital · e-ARQ Brasil v2",
+      variante: "sucesso",
+      rotuloConfirmar: "Sim, Protocolar e Capturar",
+      detalhesAlvo: [
+        `Arquivo a protocolar: ${nomeAlvo} (Formato .${extExibicao})`,
+        `Núcleo Produtor: ${capNucleo}`,
+        `Classe PCD: ${capCodigoClasse || "Padrão"} (${capTipoAtividade})`,
+        `Tipologia & Acesso: ${capTipologia} · ${capStatusDoc} · ${capNivelAcesso}`,
+      ],
+      onConfirmar: executarCapturaDiretaNoSigad,
+    });
+  }
+
+  async function executarCapturaDiretaNoSigad() {
     setCapturandoNoSigad(true);
 
     try {
@@ -1180,7 +1232,7 @@ export function TelaEditorDocumentos({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={executarCapturaDiretaNoSigad} className="space-y-4 py-2">
+          <form onSubmit={submeterFormularioCaptura} className="space-y-4 py-2">
             <div className="grid gap-4 sm:grid-cols-12">
               <div className="space-y-1.5 sm:col-span-5">
                 <Label>Nome do Arquivo a Protocolar</Label>
@@ -1467,6 +1519,13 @@ export function TelaEditorDocumentos({
           </form>
         </DialogContent>
       </Dialog>
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </div>
   );
 }

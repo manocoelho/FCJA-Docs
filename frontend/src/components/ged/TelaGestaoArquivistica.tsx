@@ -47,6 +47,10 @@ import { useGestaoArquivistica } from "@/hooks/useGestaoArquivistica";
 import { podeEliminarDocumentoOficial, podeGerenciarPcdTtd } from "@/lib/auth";
 import { formatarTamanho } from "@/lib/formatters";
 import type { DossieItem } from "@/lib/pcd-dossie-api";
+import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
 
 interface TelaGestaoArquivisticaProps {
   acervo: Doc[];
@@ -79,6 +83,13 @@ export function TelaGestaoArquivistica({
   const temPermissaoArquivista = podeEliminarDocumentoOficial(usuarioPapel);
   const podeAcessarPcdTtd = podeGerenciarPcdTtd(usuarioPapel);
   const abaInternaEfetiva = podeAcessarPcdTtd ? abaInterna : "dossies";
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
 
   // Estados Modal Novo Dossiê / Processo
   const [modalNovoDossie, setModalNovoDossie] = useState(false);
@@ -109,56 +120,107 @@ export function TelaGestaoArquivistica({
   const [classeDestinacao, setClasseDestinacao] = useState("GUARDA_PERMANENTE");
   const [classeObs, setClasseObs] = useState("");
 
-  async function salvarNovoDossie(e: React.FormEvent) {
+  function salvarNovoDossie(e: React.FormEvent) {
     e.preventDefault();
     if (!dossieTitulo.trim()) return;
     const classeObj = classesPcd.find((c) => c.codigo === dossieCodigoClasse);
-    const ok = await abrirNovoDossie({
-      titulo: dossieTitulo.trim(),
-      tipo_unidade: dossieTipo,
-      nucleo: dossieNucleo,
-      sigla_nucleo: SIGLA_POR_NUCLEO[dossieNucleo] || "",
-      codigo_classificacao: dossieCodigoClasse,
-      descricao_codigo: classeObj?.titulo || dossieTitulo.trim(),
-      destinacao_prevista: dossieDestinacao,
-      ano: new Date().getFullYear(),
-      descricao: dossieDescricao.trim(),
+    solicitarConfirmacao({
+      titulo: "Você deseja prosseguir com a criação deste Dossiê / Processo?",
+      descricao:
+        "Uma nova Unidade de Arquivamento será aberta oficialmente no SIGAD com código único e registrada na Trilha de Auditoria (EarqEventoProc).",
+      categoriaNormativa: "Abertura de Unidade de Arquivamento · e-ARQ Brasil v2",
+      variante: "sucesso",
+      rotuloConfirmar: "Sim, Abrir Dossiê",
+      detalhesAlvo: [
+        `Título: ${dossieTitulo.trim()} (${dossieTipo})`,
+        `Núcleo Produtor: ${dossieNucleo}`,
+        `Classe PCD: ${dossieCodigoClasse} — ${classeObj?.titulo || ""}`,
+        `Destinação Prevista: ${
+          dossieDestinacao === "GUARDA_PERMANENTE" ? "Guarda Permanente" : "Guarda Temporária"
+        }`,
+      ],
+      onConfirmar: async () => {
+        const ok = await abrirNovoDossie({
+          titulo: dossieTitulo.trim(),
+          tipo_unidade: dossieTipo,
+          nucleo: dossieNucleo,
+          sigla_nucleo: SIGLA_POR_NUCLEO[dossieNucleo] || "",
+          codigo_classificacao: dossieCodigoClasse,
+          descricao_codigo: classeObj?.titulo || dossieTitulo.trim(),
+          destinacao_prevista: dossieDestinacao,
+          ano: new Date().getFullYear(),
+          descricao: dossieDescricao.trim(),
+        });
+        if (ok) {
+          setDossieTitulo("");
+          setDossieDescricao("");
+          setModalNovoDossie(false);
+        }
+      },
     });
-    if (ok) {
-      setDossieTitulo("");
-      setDossieDescricao("");
-      setModalNovoDossie(false);
-    }
   }
 
-  async function salvarNovaClasse(e: React.FormEvent) {
+  function salvarNovaClasse(e: React.FormEvent) {
     e.preventDefault();
     if (!classeCodigo.trim() || !classeTitulo.trim()) return;
-    const ok = await adicionarClassePcd({
-      codigo: classeCodigo.trim(),
-      titulo: classeTitulo.trim(),
-      tipo_atividade: classeTipoAtiv,
-      funcao: classeFuncao.trim(),
-      prazo_corrente_anos: Number(classePrazoCorrente) || 2,
-      prazo_intermediaria_anos: Number(classePrazoIntermed) || 0,
-      destinacao_final: classeDestinacao,
-      observacoes_ttd: classeObs.trim(),
+    solicitarConfirmacao({
+      titulo: "Você deseja prosseguir com a criação desta nova classe no PCD / TTD?",
+      descricao:
+        "A nova classe documental e seus prazos de guarda serão incorporados ao Plano de Classificação e Tabela de Temporalidade (EarqEventoClasse).",
+      categoriaNormativa: "Gestão do Plano de Classificação · e-ARQ Brasil v2",
+      variante: "sucesso",
+      rotuloConfirmar: "Sim, Cadastrar Classe",
+      detalhesAlvo: [
+        `Código PCD: ${classeCodigo.trim()} (${classeTipoAtiv})`,
+        `Título da Classe: ${classeTitulo.trim()}`,
+        `Prazos de Guarda: Corrente ${classePrazoCorrente}a | Intermediária ${classePrazoIntermed}a`,
+        `Destinação Final: ${
+          classeDestinacao === "GUARDA_PERMANENTE" ? "Guarda Permanente (RDC-Arq)" : "Eliminação"
+        }`,
+      ],
+      onConfirmar: async () => {
+        const ok = await adicionarClassePcd({
+          codigo: classeCodigo.trim(),
+          titulo: classeTitulo.trim(),
+          tipo_atividade: classeTipoAtiv,
+          funcao: classeFuncao.trim(),
+          prazo_corrente_anos: Number(classePrazoCorrente) || 2,
+          prazo_intermediaria_anos: Number(classePrazoIntermed) || 0,
+          destinacao_final: classeDestinacao,
+          observacoes_ttd: classeObs.trim(),
+        });
+        if (ok) {
+          setClasseCodigo("");
+          setClasseTitulo("");
+          setClasseObs("");
+          setModalNovaClasse(false);
+        }
+      },
     });
-    if (ok) {
-      setClasseCodigo("");
-      setClasseTitulo("");
-      setClasseObs("");
-      setModalNovaClasse(false);
-    }
   }
 
-  async function confirmarJuntada() {
+  function confirmarJuntada() {
     if (!dossieJuntadaAlvo) return;
-    const ok = await executarJuntadaDossie(dossieJuntadaAlvo.id, docsSelecionadosJuntada);
-    if (ok) {
-      setDossieJuntadaAlvo(null);
-      setDocsSelecionadosJuntada([]);
-    }
+    const alvo = dossieJuntadaAlvo;
+    solicitarConfirmacao({
+      titulo: `Você deseja prosseguir com a juntada de documentos no dossiê ${alvo.codigoDossie}?`,
+      descricao:
+        "O vínculo orgânico entre os documentos selecionados e esta Unidade de Arquivamento será atualizado e auditado.",
+      categoriaNormativa: "Juntada Arquivística · Vínculo Orgânico",
+      variante: "primaria",
+      rotuloConfirmar: "Sim, Salvar Vínculo",
+      detalhesAlvo: [
+        `Dossiê: [${alvo.codigoDossie}] ${alvo.titulo}`,
+        `Total de peças vinculadas após a operação: ${docsSelecionadosJuntada.length} documento(s)`,
+      ],
+      onConfirmar: async () => {
+        const ok = await executarJuntadaDossie(alvo.id, docsSelecionadosJuntada);
+        if (ok) {
+          setDossieJuntadaAlvo(null);
+          setDocsSelecionadosJuntada([]);
+        }
+      },
+    });
   }
 
   async function confirmarExclusaoDossie() {
@@ -413,7 +475,19 @@ export function TelaGestaoArquivistica({
                                     const restantes = d.documentos
                                       .filter((x) => x.id !== docItem.id)
                                       .map((x) => x.id);
-                                    executarJuntadaDossie(d.id, restantes);
+                                    solicitarConfirmacao({
+                                      titulo: "Você deseja desvincular este documento do dossiê?",
+                                      descricao:
+                                        "O documento não será apagado do acervo, apenas retornará à condição de Documento Avulso.",
+                                      categoriaNormativa: "Desentranhamento / Desvinculação · e-ARQ Brasil",
+                                      variante: "atencao",
+                                      rotuloConfirmar: "Sim, Desvincular Peça",
+                                      detalhesAlvo: [
+                                        `Documento: [${docItem.numeroProtocolo || docItem.id.slice(0, 6)}] ${docItem.nome}`,
+                                        `Dossiê: [${d.codigoDossie}] ${d.titulo}`,
+                                      ],
+                                      onConfirmar: () => executarJuntadaDossie(d.id, restantes),
+                                    });
                                   }}
                                   className="rounded p-0.5 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
                                   title="Desvincular peça deste dossiê (retornar para Documento Avulso)"
@@ -447,12 +521,28 @@ export function TelaGestaoArquivistica({
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() =>
-                        mudarStatusDossie(
-                          d.id,
-                          d.statusDossie === "ABERTO" ? "ENCERRADO" : "ABERTO"
-                        )
-                      }
+                      onClick={() => {
+                        const novoStatus = d.statusDossie === "ABERTO" ? "ENCERRADO" : "ABERTO";
+                        solicitarConfirmacao({
+                          titulo:
+                            novoStatus === "ENCERRADO"
+                              ? `Você deseja encerrar o dossiê ${d.codigoDossie}?`
+                              : `Você deseja reabrir o dossiê ${d.codigoDossie}?`,
+                          descricao:
+                            novoStatus === "ENCERRADO"
+                              ? "Ao encerrar o dossiê, novas juntadas ficam bloqueadas e inicia-se a contagem do prazo de guarda conforme a TTD."
+                              : "O dossiê voltará ao status ABERTO, permitindo a juntada de novos documentos.",
+                          categoriaNormativa: "Ciclo de Vida do Dossiê · e-ARQ Brasil v2",
+                          variante: "atencao",
+                          rotuloConfirmar:
+                            novoStatus === "ENCERRADO" ? "Sim, Encerrar Dossiê" : "Sim, Reabrir Dossiê",
+                          detalhesAlvo: [
+                            `Unidade: [${d.codigoDossie}] ${d.titulo}`,
+                            `Peças vinculadas: ${d.totalDocumentos} documento(s)`,
+                          ],
+                          onConfirmar: () => mudarStatusDossie(d.id, novoStatus),
+                        });
+                      }}
                       className="gap-1.5 text-xs text-slate-600"
                     >
                       {d.statusDossie === "ABERTO" ? (
@@ -576,7 +666,23 @@ export function TelaGestaoArquivistica({
                       <button
                         type="button"
                         disabled={!temPermissaoArquivista}
-                        onClick={() => alternarClasseAtiva(c.id)}
+                        onClick={() =>
+                          solicitarConfirmacao({
+                            titulo: c.ativa
+                              ? `Você deseja inativar a classe ${c.codigo} no PCD/TTD?`
+                              : `Você deseja reativar a classe ${c.codigo} no PCD/TTD?`,
+                            descricao:
+                              "Esta alteração gera um evento normativo de Plano de Classificação (EarqEventoClasse) na Trilha de Auditoria.",
+                            categoriaNormativa: "Governança do PCD / TTD · e-ARQ Brasil v2",
+                            variante: "atencao",
+                            rotuloConfirmar: c.ativa ? "Sim, Inativar Classe" : "Sim, Ativar Classe",
+                            detalhesAlvo: [
+                              `Classe: ${c.codigo} — ${c.titulo}`,
+                              `Status atual: ${c.ativa ? "ATIVA" : "INATIVA"}`,
+                            ],
+                            onConfirmar: () => alternarClasseAtiva(c.id),
+                          })
+                        }
                         className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                           c.ativa
                             ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
@@ -978,6 +1084,13 @@ export function TelaGestaoArquivistica({
           </form>
         </DialogContent>
       </Dialog>
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </div>
   );
 }

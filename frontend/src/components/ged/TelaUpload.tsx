@@ -45,6 +45,10 @@ import { FilterChips, type Chip } from "@/components/ged/FilterChips";
 import { DocumentTable } from "@/components/ged/DocumentTable";
 import { FiltroPastas } from "@/components/ged/FiltroPastas";
 import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
+import {
   NUCLEOS,
   ANOS,
   SIGLA_POR_NUCLEO,
@@ -213,6 +217,13 @@ export function TelaUpload({
 
   const [filtrosUpload, setFiltrosUpload] = useState<Filtros>(INICIAL);
   const [modalFiltrosUpload, setModalFiltrosUpload] = useState(false);
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
 
   const selecionados = pendentes.filter((p) => p.sel);
   const tamanhoTotalFila = useMemo(
@@ -347,6 +358,57 @@ export function TelaUpload({
       )
     );
     toast.success(`Metadados sincronizados em ${alvos.length} arquivo(s) marcado(s)!`);
+  }
+
+  function confirmarCapturarPendentes() {
+    const alvos = pendentes.filter((p) => p.sel);
+    if (alvos.length === 0) {
+      toast.error("Marque ao menos um arquivo para capturar.");
+      return;
+    }
+    const plural = alvos.length > 1;
+    solicitarConfirmacao({
+      titulo: plural
+        ? `Você deseja prosseguir com a captura dos ${alvos.length} documentos?`
+        : "Você deseja prosseguir com a captura do documento?",
+      descricao:
+        "Esta ação depositará oficialmente o(s) componente(s) digital(is) no repositório do SIGAD FCJA, gerando Número Único de Protocolo (NUP), hash criptográfico SHA-256 (PREMIS) e registro imutável na Trilha de Auditoria.",
+      categoriaNormativa: "Captura Arquivística · e-ARQ Brasil v2 & PREMIS",
+      variante: "sucesso",
+      rotuloConfirmar: plural
+        ? `Sim, Capturar ${alvos.length} Documentos`
+        : "Sim, Prosseguir com a Captura",
+      detalhesAlvo: [
+        `Documento(s): ${alvos.map((a) => a.nomeCustomizado).slice(0, 3).join(", ")}${
+          alvos.length > 3 ? ` (+${alvos.length - 3})` : ""
+        }`,
+        `Núcleo Produtor: ${alvos[0]?.nucleo || cadNucleo}`,
+        `Classificação PCD: ${alvos[0]?.codigo || cadCodigo || "Padrão"} (${
+          alvos[0]?.tipoAtividade || cadTipoAtividade
+        })`,
+        `Tipologia & Status: ${alvos[0]?.tipo || cadTipo} · ${
+          alvos[0]?.statusDocumento || cadStatusDoc
+        } · ${alvos[0]?.nivelAcesso || cadNivelAcesso}`,
+      ],
+      onConfirmar: cadastrarPendentes,
+    });
+  }
+
+  function confirmarLimparFila() {
+    if (pendentes.length === 0) return;
+    solicitarConfirmacao({
+      titulo: "Você deseja remover todos os arquivos da fila de captura?",
+      descricao:
+        "Os arquivos carregados na fila temporária que ainda não foram protocolados serão descartados.",
+      categoriaNormativa: "Fila de Captura · Confirmação",
+      variante: "atencao",
+      rotuloConfirmar: "Sim, Limpar Fila",
+      detalhesAlvo: [`${pendentes.length} arquivo(s) pendente(s) na fila atual`],
+      onConfirmar: () => {
+        setPendentes([]);
+        setErros([]);
+      },
+    });
   }
 
   async function cadastrarPendentes() {
@@ -1466,10 +1528,7 @@ export function TelaUpload({
               <div className="flex items-center gap-2.5">
                 <Button
                   variant="ghost"
-                  onClick={() => {
-                    setPendentes([]);
-                    setErros([]);
-                  }}
+                  onClick={confirmarLimparFila}
                   disabled={enviando}
                   className="text-slate-600 hover:text-red-600"
                 >
@@ -1478,7 +1537,7 @@ export function TelaUpload({
                 <Button
                   size="lg"
                   variant="brand"
-                  onClick={cadastrarPendentes}
+                  onClick={confirmarCapturarPendentes}
                   disabled={enviando || selecionados.length === 0}
                   className="gap-2 shadow-sm"
                 >
@@ -1661,6 +1720,13 @@ export function TelaUpload({
           </Button>
         </DialogContent>
       </Dialog>
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </div>
   );
 }

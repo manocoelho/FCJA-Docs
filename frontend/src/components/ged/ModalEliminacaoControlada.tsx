@@ -22,6 +22,10 @@ import {
 import type { Doc } from "@/components/ged/data";
 import { MOTIVOS_ELIMINACAO_OPCOES } from "@/lib/sigad-api";
 import { podeEliminarDocumentoOficial, rotuloPapelSigad } from "@/lib/auth";
+import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
 
 interface ModalEliminacaoControladaProps {
   alvos: Doc[];
@@ -49,6 +53,13 @@ export function ModalEliminacaoControlada({
   );
   const [justificativa, setJustificativa] = useState<string>("");
   const [processando, setProcessando] = useState<boolean>(false);
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
 
   useEffect(() => {
     if (aberto) {
@@ -59,7 +70,7 @@ export function ModalEliminacaoControlada({
     }
   }, [aberto, temDocumentoOficial]);
 
-  async function submeterEliminacao() {
+  function submeterEliminacao() {
     if (bloqueadoPorRbac) return;
 
     const justLimpa = justificativa.trim();
@@ -71,16 +82,40 @@ export function ModalEliminacaoControlada({
       return;
     }
 
-    setProcessando(true);
-    try {
-      await onConfirmar(
-        motivo,
-        justLimpa || "Descarte de minuta em espaço de trabalho."
-      );
-      onFechar();
-    } finally {
-      setProcessando(false);
-    }
+    const rotuloMotivo =
+      MOTIVOS_ELIMINACAO_OPCOES.find((op) => op.valor === motivo)?.rotulo || motivo;
+    const plural = alvos.length > 1;
+
+    solicitarConfirmacao({
+      titulo: plural
+        ? `Você deseja prosseguir com a exclusão definitiva dos ${alvos.length} documentos?`
+        : "Você deseja prosseguir com a exclusão definitiva deste documento?",
+      descricao:
+        "ATENÇÃO: Esta operação é irreversível. O componente digital físico será removido do armazenamento e um Termo de Eliminação perpétuo será gravado na Trilha de Auditoria Imutável.",
+      categoriaNormativa: "Eliminação Documental Controlada · Termo Oficial CONARQ",
+      variante: "perigo",
+      rotuloConfirmar: "Sim, Eliminar e Emitir Termo",
+      detalhesAlvo: [
+        `Alvo(s): ${alvos
+          .map((d) => `${d.numeroProtocolo ? `[${d.numeroProtocolo}] ` : ""}${d.nome}`)
+          .slice(0, 3)
+          .join(", ")}${alvos.length > 3 ? ` (+${alvos.length - 3})` : ""}`,
+        `Motivo Normativo: ${rotuloMotivo}`,
+        `Justificativa Técnica: ${justLimpa || "Descarte de minuta em espaço de trabalho."}`,
+      ],
+      onConfirmar: async () => {
+        setProcessando(true);
+        try {
+          await onConfirmar(
+            motivo,
+            justLimpa || "Descarte de minuta em espaço de trabalho."
+          );
+          onFechar();
+        } finally {
+          setProcessando(false);
+        }
+      },
+    });
   }
 
   return (
@@ -219,6 +254,13 @@ export function ModalEliminacaoControlada({
           )}
         </DialogFooter>
       </DialogContent>
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={processando || processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </Dialog>
   );
 }

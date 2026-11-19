@@ -36,6 +36,10 @@ import { formatarTamanho } from "@/lib/formatters";
 import { podeExecutarAcaoArquivistica } from "@/lib/auth";
 import { urlDownloadPacoteSip } from "@/lib/archivematica-api";
 import { useArchivematicaSigad } from "@/hooks/useArchivematicaSigad";
+import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
 
 interface TelaArchivematicaSigadProps {
   acervo: Doc[];
@@ -73,6 +77,13 @@ export function TelaArchivematicaSigad({
   const temPermissaoArquivista = podeExecutarAcaoArquivistica(usuarioPapel ?? null);
 
   const [subAba, setSubAba] = useState<"construtor" | "pacotes" | "fpr" | "config">("construtor");
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
   const [abaInspecaoArquivo, setAbaInspecaoArquivo] = useState<
     "metadataCsv" | "rightsCsv" | "premisXml" | "metsXml" | "termoSubmissao"
   >("metadataCsv");
@@ -182,20 +193,37 @@ export function TelaArchivematicaSigad({
     }
   }
 
-  async function handleConstruirEnviarSip() {
+  function handleConstruirEnviarSip() {
     const dossieIdParam = dossieSelecionado !== "NENHUM" ? dossieSelecionado : undefined;
-    const pacote = await gerarNovoPacoteSip({
-      titulo:
-        tituloSip.trim() ||
-        `Recolhimento Permanente FCJA (${new Date().toLocaleDateString("pt-BR")})`,
-      documentoIds: docsMarcados,
-      dossieId: dossieIdParam,
+    const tituloFinal =
+      tituloSip.trim() ||
+      `Recolhimento Permanente FCJA (${new Date().toLocaleDateString("pt-BR")})`;
+
+    solicitarConfirmacao({
+      titulo: "Você deseja prosseguir com a construção e envio do Pacote SIP ao Archivematica?",
+      descricao:
+        "O SIGAD irá empacotar os objetos digitais em estrutura Standard Transfer + BagIt (RFC 8493) com metadata.csv, rights.csv, premis.xml e manifesto METS, iniciando o recolhimento ao RDC-Arq.",
+      categoriaNormativa: "Admissão OAIS (ISO 14721) · Recolhimento ao RDC-Arq",
+      variante: "sucesso",
+      rotuloConfirmar: "Sim, Gerar e Enviar Pacote SIP",
+      detalhesAlvo: [
+        `Título do Pacote SIP: ${tituloFinal}`,
+        `Quantidade de objetos selecionados: ${docsMarcados.length} documento(s)`,
+        `Destino: ${urlArchivematica}`,
+      ],
+      onConfirmar: async () => {
+        const pacote = await gerarNovoPacoteSip({
+          titulo: tituloFinal,
+          documentoIds: docsMarcados,
+          dossieId: dossieIdParam,
+        });
+        if (pacote) {
+          setTituloSip("");
+          setDocsMarcados([]);
+          setSubAba("pacotes");
+        }
+      },
     });
-    if (pacote) {
-      setTituloSip("");
-      setDocsMarcados([]);
-      setSubAba("pacotes");
-    }
   }
 
   function renderBadgeStatusSip(status: string) {
@@ -1219,19 +1247,34 @@ export function TelaArchivematicaSigad({
                 <Button
                   variant="brand"
                   onClick={() =>
-                    salvarConfiguracao({
-                      urlArchivematica,
-                      usuarioArchivematica,
-                      apiKeyArchivematica: apiKeyArchivematica || undefined,
-                      urlStorageService,
-                      usuarioStorageService,
-                      apiKeyStorageService: apiKeyStorageService || undefined,
-                      locationUuidTransfer,
-                      caminhoRelativoTransfer,
-                      diretorioCompartilhado,
-                      processingConfig,
-                      autoApprove,
-                      urlAtom,
+                    solicitarConfirmacao({
+                      titulo:
+                        "Você deseja salvar as alterações de configuração do Conector Archivematica?",
+                      descricao:
+                        "Os novos endereços, credenciais de API e diretórios de transferência serão aplicados ao conector OAIS do SIGAD.",
+                      categoriaNormativa: "Configuração de Interoperabilidade RDC-Arq",
+                      variante: "atencao",
+                      rotuloConfirmar: "Sim, Salvar Configuração",
+                      detalhesAlvo: [
+                        `Dashboard Archivematica: ${urlArchivematica}`,
+                        `Storage Service (:8000): ${urlStorageService}`,
+                        `Portal AtoM (DIP): ${urlAtom}`,
+                      ],
+                      onConfirmar: () =>
+                        salvarConfiguracao({
+                          urlArchivematica,
+                          usuarioArchivematica,
+                          apiKeyArchivematica: apiKeyArchivematica || undefined,
+                          urlStorageService,
+                          usuarioStorageService,
+                          apiKeyStorageService: apiKeyStorageService || undefined,
+                          locationUuidTransfer,
+                          caminhoRelativoTransfer,
+                          diretorioCompartilhado,
+                          processingConfig,
+                          autoApprove,
+                          urlAtom,
+                        }),
                     })
                   }
                 >
@@ -1242,6 +1285,13 @@ export function TelaArchivematicaSigad({
           </div>
         </div>
       )}
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={gerandoSip || processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </div>
   );
 }

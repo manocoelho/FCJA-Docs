@@ -70,6 +70,10 @@ import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
 import { ModalMetadadosEarq } from "@/components/ged/ModalMetadadosEarq";
 import { ModalEliminacaoControlada } from "@/components/ged/ModalEliminacaoControlada";
 import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
+import {
   formatarHashCurto,
   rotuloNivelAcesso,
   rotuloStatusDocumento,
@@ -153,6 +157,13 @@ export function DocumentTable({
   const [novoStatusDoc, setNovoStatusDoc] = useState("ORIGINAL");
   const [novoNivelAcesso, setNovoNivelAcesso] = useState("OSTENSIVO");
   const [novaHipoteseLegal, setNovaHipoteseLegal] = useState("");
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
 
   const anosDisponiveis = useMemo(() => {
     const base = new Set<number>([...ANOS, ...docs.map((d) => d.ano), novoAno]);
@@ -183,22 +194,39 @@ export function DocumentTable({
       toast.error("Dados incompletos", { description: "Informe tipologia e núcleo de pesquisa." });
       return;
     }
-    if (onEdit) {
-      onEdit(editando, {
-        nome,
-        categoria: novaCategoria,
-        ano: novoAno,
-        nucleo: novoNucleo,
-        descricao: novaDescricao.trim(),
-        autor: novoAutor.trim() || "Fundação Casa de José Américo (FCJA)",
-        statusDocumento: novoStatusDoc,
-        nivelAcesso: novoNivelAcesso,
-        hipoteseLegal: novaHipoteseLegal.trim(),
-      });
-    } else {
-      onRename?.(editando, nome);
-    }
-    setEditando(null);
+    const docAlvo = editando;
+    solicitarConfirmacao({
+      titulo: "Você deseja prosseguir com a alteração dos metadados deste documento?",
+      descricao:
+        "Os metadados descritivos, contextuais e de acesso serão atualizados e um evento procedimental (EarqEventoProc) será registrado na Trilha de Auditoria.",
+      categoriaNormativa: "Retificação de Metadados · e-ARQ Brasil v2",
+      variante: "primaria",
+      rotuloConfirmar: "Sim, Salvar e Auditar",
+      detalhesAlvo: [
+        `Protocolo: ${docAlvo.numeroProtocolo || docAlvo.id.slice(0, 8)}`,
+        `Título: ${nome}`,
+        `Tipologia & Ano: ${novaCategoria} (${novoAno})`,
+        `Status & Acesso: ${novoStatusDoc} · ${novoNivelAcesso}`,
+      ],
+      onConfirmar: () => {
+        if (onEdit) {
+          onEdit(docAlvo, {
+            nome,
+            categoria: novaCategoria,
+            ano: novoAno,
+            nucleo: novoNucleo,
+            descricao: novaDescricao.trim(),
+            autor: novoAutor.trim() || "Fundação Casa de José Américo (FCJA)",
+            statusDocumento: novoStatusDoc,
+            nivelAcesso: novoNivelAcesso,
+            hipoteseLegal: novaHipoteseLegal.trim(),
+          });
+        } else {
+          onRename?.(docAlvo, nome);
+        }
+        setEditando(null);
+      },
+    });
   }
 
   function ordenarPor(c: Coluna) {
@@ -778,6 +806,13 @@ export function DocumentTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </div>
   );
 }

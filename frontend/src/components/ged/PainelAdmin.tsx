@@ -21,6 +21,10 @@ import {
 } from "@/components/ui/dialog";
 import { API_BASE_URL } from "@/lib/api";
 import { obterHeadersAuth, rotuloPapelSigad } from "@/lib/auth";
+import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
 
 interface UsuarioItem {
   login: string;
@@ -44,6 +48,13 @@ export function PainelAdmin() {
   const [editLogin, setEditLogin] = useState("");
   const [editSenha, setEditSenha] = useState("");
   const [editPapel, setEditPapel] = useState("pesquisador");
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
 
   const carregarUsuarios = () => {
     fetch(`${API_BASE_URL}/api/usuarios`, { headers: obterHeadersAuth() })
@@ -56,52 +67,91 @@ export function PainelAdmin() {
     carregarUsuarios();
   }, []);
 
-  const cadastrar = async (e: React.FormEvent) => {
+  const cadastrar = (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`${API_BASE_URL}/api/usuarios`, {
-      method: "POST",
-      headers: obterHeadersAuth({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        nome: novoNome,
-        login: novoLogin,
-        senha: novaSenha,
-        papel: novoPapel,
-      }),
+    solicitarConfirmacao({
+      titulo: "Você deseja prosseguir com o cadastro deste novo agente no SIGAD?",
+      descricao:
+        "A senha será derivada criptograficamente com PBKDF2-HMAC-SHA256 e o credenciamento RBAC será registrado na Trilha de Auditoria.",
+      categoriaNormativa: "Credenciamento de Agente · Segurança RBAC",
+      variante: "sucesso",
+      rotuloConfirmar: "Sim, Cadastrar Agente",
+      detalhesAlvo: [
+        `Nome Completo: ${novoNome}`,
+        `Identificador (Login): @${novoLogin}`,
+        `Perfil RBAC atribuído: ${rotuloPapelSigad(novoPapel)}`,
+      ],
+      onConfirmar: async () => {
+        const res = await fetch(`${API_BASE_URL}/api/usuarios`, {
+          method: "POST",
+          headers: obterHeadersAuth({ "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            nome: novoNome,
+            login: novoLogin,
+            senha: novaSenha,
+            papel: novoPapel,
+          }),
+        });
+        const data = await res.json();
+        if (data.sucesso) {
+          toast.success(data.mensagem);
+          setNovoNome("");
+          setNovoLogin("");
+          setNovaSenha("");
+          carregarUsuarios();
+        } else {
+          toast.error(data.erro || data.detail || "Erro ao cadastrar usuário");
+        }
+      },
     });
-    const data = await res.json();
-    if (data.sucesso) {
-      toast.success(data.mensagem);
-      setNovoNome("");
-      setNovoLogin("");
-      setNovaSenha("");
-      carregarUsuarios();
-    } else {
-      toast.error(data.erro || data.detail || "Erro ao cadastrar usuário");
-    }
   };
 
-  const mudarPapel = async (login: string, papel: string) => {
-    const res = await fetch(`${API_BASE_URL}/api/usuarios/${login}`, {
-      method: "PUT",
-      headers: obterHeadersAuth({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ papel }),
+  const mudarPapel = (login: string, papel: string) => {
+    solicitarConfirmacao({
+      titulo: `Você deseja alterar o perfil RBAC de "@${login}" para "${rotuloPapelSigad(papel)}"?`,
+      descricao:
+        "As permissões de acesso às telas e operações arquivísticas deste agente serão atualizadas e auditadas.",
+      categoriaNormativa: "Alteração de Cargo / Perfil RBAC · e-ARQ Cap. 7",
+      variante: "atencao",
+      rotuloConfirmar: "Sim, Atualizar Perfil",
+      detalhesAlvo: [
+        `Agente: @${login}`,
+        `Novo cargo/perfil: ${rotuloPapelSigad(papel)}`,
+      ],
+      onConfirmar: async () => {
+        const res = await fetch(`${API_BASE_URL}/api/usuarios/${login}`, {
+          method: "PUT",
+          headers: obterHeadersAuth({ "Content-Type": "application/json" }),
+          body: JSON.stringify({ papel }),
+        });
+        if (res.ok) {
+          toast.success(`Perfil RBAC atualizado para ${rotuloPapelSigad(papel)}!`);
+          carregarUsuarios();
+        } else {
+          toast.error("Não foi possível atualizar a permissão.");
+        }
+      },
     });
-    if (res.ok) {
-      toast.success(`Perfil RBAC atualizado para ${rotuloPapelSigad(papel)}!`);
-      carregarUsuarios();
-    } else {
-      toast.error("Não foi possível atualizar a permissão.");
-    }
   };
 
-  const removerUsuario = async (login: string) => {
-    if (!confirm(`Tem certeza que deseja revogar o acesso de "${login}"?`)) return;
-    await fetch(`${API_BASE_URL}/api/usuarios/${login}`, {
-      method: "DELETE",
-      headers: obterHeadersAuth(),
+  const removerUsuario = (login: string) => {
+    solicitarConfirmacao({
+      titulo: `Você deseja revogar permanentemente o acesso de "@${login}" ao SIGAD?`,
+      descricao:
+        "O usuário perderá imediatamente a capacidade de autenticação no sistema e a revogação ficará registrada na Trilha de Auditoria.",
+      categoriaNormativa: "Revogação de Credencial · Segurança RBAC",
+      variante: "perigo",
+      rotuloConfirmar: "Sim, Revogar Acesso",
+      detalhesAlvo: [`Login a ser revogado: @${login}`],
+      onConfirmar: async () => {
+        await fetch(`${API_BASE_URL}/api/usuarios/${login}`, {
+          method: "DELETE",
+          headers: obterHeadersAuth(),
+        });
+        toast.success("Acesso revogado e registrado na auditoria.");
+        carregarUsuarios();
+      },
     });
-    toast.success("Acesso revogado e registrado na auditoria.");
-    carregarUsuarios();
   };
 
   const abrirEdicao = (u: UsuarioItem) => {
@@ -112,27 +162,42 @@ export function PainelAdmin() {
     setEditPapel(u.papel);
   };
 
-  const salvarEdicao = async (e: React.FormEvent) => {
+  const salvarEdicao = (e: React.FormEvent) => {
     e.preventDefault();
-    const res = await fetch(`${API_BASE_URL}/api/usuarios/${usuarioEditando}/editar`, {
-      method: "PUT",
-      headers: obterHeadersAuth({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        nome: editNome,
-        login: editLogin,
-        senha: editSenha,
-        papel: editPapel,
-      }),
-    });
+    solicitarConfirmacao({
+      titulo: `Você deseja salvar as alterações cadastrais do agente "@${usuarioEditando}"?`,
+      descricao:
+        "Os novos dados cadastrais e permissões serão gravados e auditados na Trilha de Auditoria.",
+      categoriaNormativa: "Edição Cadastral de Agente · RBAC",
+      variante: "primaria",
+      rotuloConfirmar: "Sim, Salvar Alterações",
+      detalhesAlvo: [
+        `Nome: ${editNome} (@${editLogin})`,
+        `Perfil RBAC: ${rotuloPapelSigad(editPapel)}`,
+        `Senha alterada: ${editSenha ? "Sim (novo hash PBKDF2-SHA256)" : "Não (mantida atual)"}`,
+      ],
+      onConfirmar: async () => {
+        const res = await fetch(`${API_BASE_URL}/api/usuarios/${usuarioEditando}/editar`, {
+          method: "PUT",
+          headers: obterHeadersAuth({ "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            nome: editNome,
+            login: editLogin,
+            senha: editSenha,
+            papel: editPapel,
+          }),
+        });
 
-    const data = await res.json();
-    if (data.sucesso) {
-      toast.success(data.mensagem);
-      setUsuarioEditando(null);
-      carregarUsuarios();
-    } else {
-      toast.error(data.erro || data.detail || "Erro ao editar usuário");
-    }
+        const data = await res.json();
+        if (data.sucesso) {
+          toast.success(data.mensagem);
+          setUsuarioEditando(null);
+          carregarUsuarios();
+        } else {
+          toast.error(data.erro || data.detail || "Erro ao editar usuário");
+        }
+      },
+    });
   };
 
   function estiloSelectPapel(papel: string) {
@@ -380,6 +445,13 @@ export function PainelAdmin() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </div>
   );
 }

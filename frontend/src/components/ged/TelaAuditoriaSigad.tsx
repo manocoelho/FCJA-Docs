@@ -32,6 +32,10 @@ import {
 import { useAuditoriaEarq } from "@/hooks/useAuditoriaEarq";
 import { formatarHashCurto, rotuloCategoriaEvento } from "@/lib/formatters";
 import { imprimirTermoEliminacao } from "@/lib/termo-eliminacao-export";
+import {
+  ModalConfirmacaoAcaoSigad,
+  useConfirmacaoSigad,
+} from "@/components/ged/ModalConfirmacaoAcaoSigad";
 
 interface TelaAuditoriaSigadProps {
   usuarioLogado: string | null;
@@ -59,6 +63,13 @@ export function TelaAuditoriaSigad({
   } = useAuditoriaEarq(usuarioLogado, usuarioPapel, onFixidadeAtualizada);
 
   const [subAba, setSubAba] = useState<"eventos" | "termos">("eventos");
+  const {
+    confirmacaoAtiva,
+    processandoConfirmacao,
+    solicitarConfirmacao,
+    fecharConfirmacao,
+    executarConfirmacao,
+  } = useConfirmacaoSigad();
 
   function badgeCategoria(cat: string) {
     switch (cat) {
@@ -110,7 +121,21 @@ export function TelaAuditoriaSigad({
             Atualizar Trilha
           </Button>
           <Button
-            onClick={executarAuditoriaFixidadeLote}
+            onClick={() =>
+              solicitarConfirmacao({
+                titulo: "Você deseja iniciar a auditoria de fixidade SHA-256 em lote sobre todo o acervo?",
+                descricao:
+                  "O servidor recalculará o resumo criptográfico SHA-256 de todos os componentes digitais do repositório para aferir a integridade física e registrará um evento PREMIS na Trilha de Auditoria.",
+                categoriaNormativa: "Auditoria de Fixidade PREMIS 3.0 · e-ARQ Brasil v2",
+                variante: "sucesso",
+                rotuloConfirmar: "Sim, Auditar Fixidade em Lote",
+                detalhesAlvo: [
+                  `Total estimado no acervo: ${resumo?.totalDocumentos ?? 0} documento(s)`,
+                  `Algoritmo de Verificação: SHA-256 (FIPS 180-4)`,
+                ],
+                onConfirmar: executarAuditoriaFixidadeLote,
+              })
+            }
             disabled={verificandoLote}
             className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700"
           >
@@ -441,6 +466,13 @@ export function TelaAuditoriaSigad({
           </div>
         </section>
       )}
+
+      <ModalConfirmacaoAcaoSigad
+        dados={confirmacaoAtiva}
+        processando={verificandoLote || processandoConfirmacao}
+        onFechar={fecharConfirmacao}
+        onConfirmar={executarConfirmacao}
+      />
     </div>
   );
 }
