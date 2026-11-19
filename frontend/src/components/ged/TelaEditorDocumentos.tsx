@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import {
   CheckCircle2,
+  ChevronDown,
   CloudUpload,
   Download,
   FilePlus2,
@@ -21,6 +22,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Select,
   SelectContent,
@@ -49,11 +58,14 @@ import {
 } from "@/components/ged/data";
 import { TIPOLOGIAS_MEIO } from "@/components/ged/codigos";
 import {
+  OPCOES_FORMATO_EDITOR,
   TEMPLATES_EDITOR_SIGAD,
-  gerarArquivoDocxParaCaptura,
+  gerarArquivoPorFormatoEditor,
   gerarArquivoXlsxParaCaptura,
   imprimirOuSalvarPdfEditor,
   type ConfigPaginaEditor,
+  type FormatoCapturaSigad,
+  type FormatoExportacaoEditor,
 } from "@/lib/editor-documentos-export";
 import {
   buscarClassesPcd,
@@ -98,6 +110,9 @@ export function TelaEditorDocumentos({
   const inputImgRef = useRef<HTMLInputElement>(null);
 
   const [tituloDoc, setTituloDoc] = useState<string>("Relatorio_Tecnico_Pesquisa_FCJA");
+  const [formatoSelecionado, setFormatoSelecionado] =
+    useState<FormatoExportacaoEditor>("pdf");
+  const [formatoCaptura, setFormatoCaptura] = useState<FormatoCapturaSigad>("pdf");
   const [templateId, setTemplateId] = useState<string>("relatorio_pesquisa");
   const [cfgPagina, setCfgPagina] = useState<ConfigPaginaEditor>(CFG_PAGINA_INICIAL);
   const [htmlAtual, setHtmlAtual] = useState<string>(
@@ -423,16 +438,18 @@ export function TelaEditorDocumentos({
     );
   }
 
-  function baixarDocxLocal() {
+  function baixarNoFormato(formato: FormatoExportacaoEditor) {
     const conteudo = editorRef.current?.innerHTML ?? htmlAtual;
-    const file = gerarArquivoDocxParaCaptura(tituloDoc, conteudo, cfgPagina);
+    const file = gerarArquivoPorFormatoEditor(formato, tituloDoc, conteudo, cfgPagina);
     const url = URL.createObjectURL(file);
     const a = document.createElement("a");
     a.href = url;
     a.download = file.name;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success(`Documento "${file.name}" baixado no computador!`);
+    toast.success(`Arquivo "${file.name}" salvo no computador!`, {
+      description: `Formato exportado: .${formato.toUpperCase()}`,
+    });
   }
 
   function exportarPlanilhaXlsxLocal(nomeAba: string, colunas: string[], linhas: string[][]) {
@@ -453,13 +470,24 @@ export function TelaEditorDocumentos({
   ) {
     const file = gerarArquivoXlsxParaCaptura(nomeAba || tituloDoc, nomeAba, colunas, linhas);
     setArquivoPlanilhaPronto(file);
+    setFormatoCaptura("xlsx");
     setCapTipologia("Planilha");
     setModalCapturaSigad(true);
   }
 
-  function abrirModalCapturaDocumentoDocx() {
+  function abrirModalCapturaDocumento() {
     sincronizarHtmlDoDom();
     setArquivoPlanilhaPronto(null);
+    if (
+      formatoSelecionado === "pdf" ||
+      formatoSelecionado === "docx" ||
+      formatoSelecionado === "xlsx" ||
+      formatoSelecionado === "csv"
+    ) {
+      setFormatoCaptura(formatoSelecionado);
+    } else {
+      setFormatoCaptura("pdf");
+    }
     setModalCapturaSigad(true);
   }
 
@@ -471,14 +499,19 @@ export function TelaEditorDocumentos({
       const conteudo = editorRef.current?.innerHTML ?? htmlAtual;
       const arquivoFinal =
         arquivoPlanilhaPronto ??
-        gerarArquivoDocxParaCaptura(tituloDoc, conteudo, cfgPagina);
-      const ext = arquivoPlanilhaPronto ? "xlsx" : "docx";
+        gerarArquivoPorFormatoEditor(formatoCaptura, tituloDoc, conteudo, cfgPagina);
+      const extBackend: Doc["ext"] =
+        arquivoPlanilhaPronto || formatoCaptura === "xlsx" || formatoCaptura === "csv"
+          ? "xlsx"
+          : formatoCaptura === "pdf"
+            ? "pdf"
+            : "docx";
       const anoAtual = new Date().getFullYear();
 
       const formData = new FormData();
       formData.append("file", arquivoFinal);
       formData.append("nome", arquivoFinal.name);
-      formData.append("ext", ext);
+      formData.append("ext", extBackend);
       formData.append("tipo_atividade", capTipoAtividade);
       formData.append("codigo_classificacao", capCodigoClasse);
       formData.append("descricao_codigo", capDescricaoClasse);
@@ -516,7 +549,7 @@ export function TelaEditorDocumentos({
         descricaoCodigo: capDescricaoClasse,
         descricao: resp.descricao ?? capDescricaoContextual.trim(),
         nome: arquivoFinal.name,
-        ext: ext as Doc["ext"],
+        ext: extBackend,
         categoria: capTipologia || "Documento",
         ano: anoAtual,
         nucleo: capNucleo,
@@ -596,17 +629,39 @@ export function TelaEditorDocumentos({
             <FileText className="h-5 w-5" />
           </div>
 
-          <div className="min-w-[240px] flex-1 max-w-md">
-            <div className="flex items-center gap-2">
+          <div className="min-w-[260px] flex-1 max-w-lg">
+            <div className="flex items-center gap-1.5">
               <Input
                 value={tituloDoc}
                 onChange={(e) => setTituloDoc(e.target.value)}
                 placeholder="Título do Documento..."
                 className="h-8 border-transparent bg-slate-50 px-2.5 text-base font-bold text-slate-900 hover:border-slate-300 focus-visible:bg-white focus-visible:border-blue-500"
               />
-              <span className="rounded bg-blue-50 px-2 py-0.5 font-mono text-[11px] font-bold text-blue-700 border border-blue-200">
-                .DOCX
-              </span>
+              {/* Seletor de Formato de Salvamento / Exportação */}
+              <select
+                aria-label="Formato do arquivo"
+                value={formatoSelecionado}
+                onChange={(e) => {
+                  const novoFmt = e.target.value as FormatoExportacaoEditor;
+                  setFormatoSelecionado(novoFmt);
+                  if (
+                    novoFmt === "pdf" ||
+                    novoFmt === "docx" ||
+                    novoFmt === "xlsx" ||
+                    novoFmt === "csv"
+                  ) {
+                    setFormatoCaptura(novoFmt);
+                  }
+                }}
+                className="h-8 cursor-pointer rounded-md border border-blue-200 bg-blue-50 px-2 font-mono text-xs font-bold text-blue-700 hover:bg-blue-100 focus:outline-none"
+                title="Escolha o formato principal para salvar ou capturar o documento"
+              >
+                {OPCOES_FORMATO_EDITOR.map((op) => (
+                  <option key={op.valor} value={op.valor}>
+                    {op.rotuloCurto}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-3 px-1 text-[11px] text-slate-500">
               <span>
@@ -676,16 +731,58 @@ export function TelaEditorDocumentos({
             Salvar Rascunho
           </Button>
 
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={baixarDocxLocal}
-            className="gap-1.5 text-xs"
-          >
-            <Download className="h-3.5 w-3.5 text-indigo-600" />
-            Baixar (.docx)
-          </Button>
+          {/* Botão Principal + Menu "Salvar Como..." em 8 Formatos */}
+          <div className="inline-flex items-center rounded-md shadow-2xs">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => baixarNoFormato(formatoSelecionado)}
+              className="gap-1.5 rounded-r-none border-r-0 text-xs font-semibold text-indigo-700 hover:bg-indigo-50"
+            >
+              <Download className="h-3.5 w-3.5 text-indigo-600" />
+              Baixar (.{formatoSelecionado})
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-l-none px-2 text-indigo-700 hover:bg-indigo-50"
+                  title="Escolher outro formato para baixar"
+                >
+                  <ChevronDown className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuLabel className="text-xs">
+                  Salvar Documento no Computador Como...
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {OPCOES_FORMATO_EDITOR.map((op) => (
+                  <DropdownMenuItem
+                    key={op.valor}
+                    onClick={() => {
+                      setFormatoSelecionado(op.valor);
+                      baixarNoFormato(op.valor);
+                    }}
+                    className="flex flex-col items-start gap-0.5 py-2 cursor-pointer"
+                  >
+                    <div className="flex w-full items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-900">
+                        {op.rotuloCompleto}
+                      </span>
+                      <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] font-bold text-blue-700">
+                        {op.rotuloCurto}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-slate-500">{op.descricao}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
 
           <Button
             type="button"
@@ -701,13 +798,13 @@ export function TelaEditorDocumentos({
             className="gap-1.5 text-xs"
           >
             <Printer className="h-3.5 w-3.5 text-slate-700" />
-            PDF / Imprimir
+            Imprimir A4
           </Button>
 
           <Button
             type="button"
             size="sm"
-            onClick={abrirModalCapturaDocumentoDocx}
+            onClick={abrirModalCapturaDocumento}
             className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm text-xs font-semibold"
           >
             <CloudUpload className="h-4 w-4" />
@@ -1070,38 +1167,55 @@ export function TelaEditorDocumentos({
             </div>
             <DialogTitle className="mt-1">
               Protocolar e Capturar{" "}
-              {arquivoPlanilhaPronto ? "Planilha (.xlsx)" : "Documento (.docx)"} no SIGAD
+              {arquivoPlanilhaPronto
+                ? "Planilha (.xlsx)"
+                : `Documento (.${formatoCaptura.toUpperCase()})`}{" "}
+              no SIGAD
             </DialogTitle>
             <DialogDescription>
-              O sistema irá empacotar o arquivo criado, calcular o hash criptográfico{" "}
-              <strong>SHA-256 (PREMIS)</strong>, atribuir o{" "}
-              <strong>Número Único de Protocolo (NUP)</strong> e indexar sua{" "}
+              Escolha o formato de preservação/armazenamento abaixo. O sistema irá empacotar o
+              arquivo criado, calcular o hash criptográfico <strong>SHA-256 (PREMIS)</strong>,
+              atribuir o <strong>Número Único de Protocolo (NUP)</strong> e indexar sua{" "}
               <strong>Descrição Contextual (`dc.description`)</strong> para o Archivematica e AtoM.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={executarCapturaDiretaNoSigad} className="space-y-4 py-2">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
+            <div className="grid gap-4 sm:grid-cols-12">
+              <div className="space-y-1.5 sm:col-span-5">
                 <Label>Nome do Arquivo a Protocolar</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    required
-                    value={
-                      arquivoPlanilhaPronto
-                        ? arquivoPlanilhaPronto.name.replace(/\.xlsx$/i, "")
-                        : tituloDoc
-                    }
-                    onChange={(e) => setTituloDoc(e.target.value)}
-                    disabled={!!arquivoPlanilhaPronto}
-                  />
-                  <span className="rounded-md bg-slate-100 px-2.5 py-2 font-mono text-xs font-bold text-slate-700">
-                    {arquivoPlanilhaPronto ? ".xlsx" : ".docx"}
-                  </span>
-                </div>
+                <Input
+                  required
+                  value={
+                    arquivoPlanilhaPronto
+                      ? arquivoPlanilhaPronto.name.replace(/\.xlsx$/i, "")
+                      : tituloDoc
+                  }
+                  onChange={(e) => setTituloDoc(e.target.value)}
+                  disabled={!!arquivoPlanilhaPronto}
+                />
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-3">
+                <Label>Formato do Arquivo</Label>
+                <Select
+                  value={arquivoPlanilhaPronto ? "xlsx" : formatoCaptura}
+                  onValueChange={(v) => setFormatoCaptura(v as FormatoCapturaSigad)}
+                  disabled={!!arquivoPlanilhaPronto}
+                >
+                  <SelectTrigger className="font-mono text-xs font-bold text-blue-700 bg-blue-50/60 border-blue-200">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pdf">.PDF (Preservação / Leitura)</SelectItem>
+                    <SelectItem value="docx">.DOCX (Microsoft Word)</SelectItem>
+                    <SelectItem value="xlsx">.XLSX (Planilha Excel)</SelectItem>
+                    <SelectItem value="csv">.CSV (Dados Tabulares)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-4">
                 <Label>Autor / Produtor Arquivístico</Label>
                 <Input
                   required
